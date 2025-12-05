@@ -1,3 +1,10 @@
+> **⚠️ Important Notice**
+> 
+> - Please use **Use this template** to create your project, not Fork
+> - Docker deployment is recommended
+> - GitHub Actions deployment is not recommended at this time
+
+
 <div align="center" id="trendradar">
 
 <a href="https://github.com/sansan0/TrendRadar" title="TrendRadar">

@@ -1,3 +1,10 @@
+> **⚠️ 重要提示**
+> 
+> - 请使用 **Use this template** 创建项目，而非 Fork
+> - 推荐使用 Docker 部署
+> - 暂不建议通过 GitHub Actions 方式部署运行
+
+
 <div align="center" id="trendradar">
 
 <a href="https://github.com/sansan0/TrendRadar" title="TrendRadar">
