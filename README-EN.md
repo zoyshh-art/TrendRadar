@@ -1,8 +1,23 @@
-> **⚠️ Important Notice**
-> 
-> - Please use **Use this template** to create your project, not Fork
-> - Docker deployment is recommended
-> - GitHub Actions deployment is not recommended at this time
+> ## ⚠️ Important Announcement (December 2025)
+>
+> Due to rapid growth in forks, GitHub has contacted me about server infrastructure strain. **This project and all forks may experience access difficulties.**
+>
+> - ✅ **Recommended**: [Docker Deployment](#6-docker-deployment) (data stored locally, no restrictions)
+> - ❌ **Suspended**: Fork deployment, GitHub Actions, GitHub Pages
+>
+> <details>
+> <summary>👉 Click for details</summary>
+>
+> **Issue Explanation:**
+> - Original design used GitHub Actions to periodically fetch news and save to the repository, essentially using GitHub as a "cloud database"
+> - With many forks running simultaneously, servers couldn't handle the load; GitHub engineering team is working on fixes
+>
+> **Future Plans:**
+> - Exploring new approach: keep Actions for fetching and notifications, but no longer save data to repository, use external storage instead
+>
+> Thanks for understanding! Feedback: [Issues](https://github.com/sansan0/TrendRadar/issues)
+>
+> </details>
 
 
 <div align="center" id="trendradar">

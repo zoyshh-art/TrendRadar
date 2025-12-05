@@ -1,8 +1,23 @@
-> **⚠️ 重要提示**
-> 
-> - 请使用 **Use this template** 创建项目，而非 Fork
-> - 推荐使用 Docker 部署
-> - 暂不建议通过 GitHub Actions 方式部署运行
+> ## ⚠️ 重要公告（2025年12月）
+>
+> 由于 Fork 数量激增，GitHub 官方已联系我，当前运行方式对服务器造成压力。**本项目及所有 Fork 可能出现访问困难。**
+>
+> - ✅ **推荐**：[Docker 部署](#6-docker-部署)（数据存本地，不受限制）
+> - ❌ **暂停**：Fork 部署、GitHub Actions、GitHub Pages
+>
+> <details>
+> <summary>👉 点击查看详情</summary>
+>
+> **问题说明：**
+> - 原设计通过 GitHub Actions 定时抓取新闻并保存到仓库，相当于把 GitHub 当"云端数据库"
+> - 大量 Fork 同时运行，服务器承受不住，GitHub 工程团队正在修复
+>
+> **后续计划：**
+> - 探索新方案：保留 Actions 用于抓取和推送，但不再将数据保存到仓库，改用外部存储
+>
+> 感谢理解！问题反馈：[Issues](https://github.com/sansan0/TrendRadar/issues) 或公众号
+>
+> </details>
 
 
 <div align="center" id="trendradar">
