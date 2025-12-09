@@ -397,7 +397,7 @@ Transform from "algorithm recommendation captivity" to "actively getting the inf
 
 **🔧 Upgrade Instructions**:
 - **GitHub Fork Users**: Update `main.py`, `config/config.yaml` (Added multi-account push support, existing single-account configuration unaffected)
-- **Docker Users**: Update `.env`, `docker-compose.yml` or set environment variables `REVERSE_CONTENT_ORDER`, `MAX_ACCOUNTS_PER_CHANNEL`
+- **Docker Users**: Update `.env`, `docker compose.yml` or set environment variables `REVERSE_CONTENT_ORDER`, `MAX_ACCOUNTS_PER_CHANNEL`
 - **Multi-Account Push**: New feature, disabled by default, existing single-account configuration unaffected
 
 
@@ -520,7 +520,7 @@ Transform from "algorithm recommendation captivity" to "actively getting the inf
 
 - **Added Personal WeChat Push Support**: WeWork application can push to personal WeChat without installing WeWork APP
 - Supports two message formats: `markdown` (WeWork group bot) and `text` (personal WeChat app)
-- Added `WEWORK_MSG_TYPE` environment variable configuration, supporting GitHub Actions, Docker, docker-compose and other deployment methods
+- Added `WEWORK_MSG_TYPE` environment variable configuration, supporting GitHub Actions, Docker, docker compose and other deployment methods
 - `text` mode automatically strips Markdown syntax for clean plain text push
 - See "Personal WeChat Push" configuration in Quick Start
 
@@ -2018,7 +2018,7 @@ TrendRadar provides two independent Docker images, deploy according to your need
 
 ---
 
-#### Method 1: Using docker-compose (Recommended)
+#### Method 1: Using docker compose (Recommended)
 
 1. **Create Project Directory and Config**:
 
@@ -2039,9 +2039,9 @@ TrendRadar provides two independent Docker images, deploy according to your need
    wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/config.yaml -P config/
    wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/frequency_words.txt -P config/
 
-   # Download docker-compose config
+   # Download docker compose config
    wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/.env -P docker/
-   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker-compose.yml -P docker/
+   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker compose.yml -P docker/
    ```
 
    > 💡 **Note**: Key directory structure required for Docker deployment:
@@ -2052,7 +2052,7 @@ current directory/
 │   └── frequency_words.txt
 └── docker/
     ├── .env
-    └── docker-compose.yml
+    └── docker compose.yml
 ```
 
 2. **Config File Description**:
@@ -2082,7 +2082,7 @@ current directory/
    **Usage Method**:
    - Modify `.env` file, uncomment and fill in needed configs
    - Or add directly in NAS/Synology Docker management interface's "Environment Variables"
-   - Restart container to take effect: `docker-compose up -d`
+   - Restart container to take effect: `docker compose up -d`
 
 
 3. **Start Service**:
@@ -2090,24 +2090,24 @@ current directory/
    **Option A: Start All Services (Push + AI Analysis)**
    ```bash
    # Pull latest images
-   docker-compose pull
+   docker compose pull
 
    # Start all services (trend-radar + trend-radar-mcp)
-   docker-compose up -d
+   docker compose up -d
    ```
 
    **Option B: Start News Push Service Only**
    ```bash
    # Start trend-radar only (scheduled crawling and push)
-   docker-compose pull trend-radar
-   docker-compose up -d trend-radar
+   docker compose pull trend-radar
+   docker compose up -d trend-radar
    ```
 
    **Option C: Start MCP AI Analysis Service Only**
    ```bash
    # Start trend-radar-mcp only (AI analysis interface)
-   docker-compose pull trend-radar-mcp
-   docker-compose up -d trend-radar-mcp
+   docker compose pull trend-radar-mcp
+   docker compose up -d trend-radar-mcp
    ```
 
    > 💡 **Tips**:
@@ -2127,8 +2127,8 @@ current directory/
    docker ps | grep trend-radar
 
    # Stop specific service
-   docker-compose stop trend-radar      # Stop push service
-   docker-compose stop trend-radar-mcp  # Stop MCP service
+   docker compose stop trend-radar      # Stop push service
+   docker compose stop trend-radar-mcp  # Stop MCP service
    ```
 
 #### Method 2: Local Build (Developer Option)
@@ -2144,25 +2144,25 @@ cd TrendRadar
 vim config/config.yaml
 vim config/frequency_words.txt
 
-# Use build version docker-compose
+# Use build version docker compose
 cd docker
-cp docker-compose-build.yml docker-compose.yml
+cp docker compose-build.yml docker compose.yml
 ```
 
 **Build and Start Services**:
 
 ```bash
 # Option A: Build and start all services
-docker-compose build
-docker-compose up -d
+docker compose build
+docker compose up -d
 
 # Option B: Build and start news push service only
-docker-compose build trend-radar
-docker-compose up -d trend-radar
+docker compose build trend-radar
+docker compose up -d trend-radar
 
 # Option C: Build and start MCP AI analysis service only
-docker-compose build trend-radar-mcp
-docker-compose up -d trend-radar-mcp
+docker compose build trend-radar-mcp
+docker compose up -d trend-radar-mcp
 ```
 
 > 💡 **Architecture Parameter Notes**:
@@ -2170,7 +2170,7 @@ docker-compose up -d trend-radar-mcp
 > - To build `arm64` architecture (Apple Silicon, Raspberry Pi, etc.), set environment variable:
 >   ```bash
 >   export DOCKER_ARCH=arm64
->   docker-compose build
+>   docker compose build
 >   ```
 
 #### Image Update
@@ -2179,12 +2179,12 @@ docker-compose up -d trend-radar-mcp
 # Method 1: Manual update (Crawler + MCP images)
 docker pull wantcat/trendradar:latest
 docker pull wantcat/trendradar-mcp:latest
-docker-compose down
-docker-compose up -d
+docker compose down
+docker compose up -d
 
-# Method 2: Using docker-compose update
-docker-compose pull
-docker-compose up -d
+# Method 2: Using docker compose update
+docker compose pull
+docker compose up -d
 ```
 
 **Available Images**:
@@ -2321,14 +2321,14 @@ flowchart TB
 
 **Quick Start**:
 
-Use docker-compose to start both news push and MCP services:
+Use docker compose to start both news push and MCP services:
 
 ```bash
-# Download latest docker-compose.yml (includes MCP service config)
-wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker-compose.yml
+# Download latest docker compose.yml (includes MCP service config)
+wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker compose.yml
 
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # Check running status
 docker ps | grep trend-radar

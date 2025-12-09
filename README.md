@@ -567,7 +567,7 @@ GitHub 一键 Fork 即可使用，无需编程基础。
 
 - **新增个人微信推送支持**：企业微信应用可推送到个人微信，无需安装企业微信 APP
 - 支持两种消息格式：`markdown`（企业微信群机器人）和 `text`（个人微信应用）
-- 新增 `WEWORK_MSG_TYPE` 环境变量配置，支持 GitHub Actions、Docker、docker-compose 等多种部署方式
+- 新增 `WEWORK_MSG_TYPE` 环境变量配置，支持 GitHub Actions、Docker、docker compose 等多种部署方式
 - `text` 模式自动清除 Markdown 语法，提供纯文本推送效果
 - 详见快速开始中的「个人微信推送」配置说明
 
@@ -2046,7 +2046,7 @@ TrendRadar 提供两个独立的 Docker 镜像，可根据需求选择部署：
 
 ---
 
-#### 方式一：使用 docker-compose（推荐）
+#### 方式一：使用 docker compose（推荐）
 
 1. **创建项目目录和配置**:
 
@@ -2067,9 +2067,9 @@ TrendRadar 提供两个独立的 Docker 镜像，可根据需求选择部署：
    wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/config.yaml -P config/
    wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/frequency_words.txt -P config/
 
-   # 下载 docker-compose 配置
+   # 下载 docker compose 配置
    wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/.env  -P docker/
-   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker-compose.yml  -P docker/
+   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker compose.yml  -P docker/
    ```
 
    > 💡 **说明**：Docker 部署需要的关键目录结构如下：
@@ -2080,7 +2080,7 @@ TrendRadar 提供两个独立的 Docker 镜像，可根据需求选择部署：
 │   └── frequency_words.txt
 └── docker/
     ├── .env
-    └── docker-compose.yml
+    └── docker compose.yml
 ```
 
 2. **配置文件说明**:
@@ -2110,7 +2110,7 @@ TrendRadar 提供两个独立的 Docker 镜像，可根据需求选择部署：
    **使用方法**：
    - 修改 `.env` 文件，取消注释并填写需要的配置
    - 或在 NAS/群晖 Docker 管理界面的"环境变量"中直接添加
-   - 重启容器后生效：`docker-compose up -d`
+   - 重启容器后生效：`docker compose up -d`
 
 
 3. **启动服务**:
@@ -2118,24 +2118,24 @@ TrendRadar 提供两个独立的 Docker 镜像，可根据需求选择部署：
    **选项 A：启动所有服务（推送 + AI 分析）**
    ```bash
    # 拉取最新镜像
-   docker-compose pull
+   docker compose pull
 
    # 启动所有服务（trend-radar + trend-radar-mcp）
-   docker-compose up -d
+   docker compose up -d
    ```
 
    **选项 B：仅启动新闻推送服务**
    ```bash
    # 只启动 trend-radar（定时抓取和推送）
-   docker-compose pull trend-radar
-   docker-compose up -d trend-radar
+   docker compose pull trend-radar
+   docker compose up -d trend-radar
    ```
 
    **选项 C：仅启动 MCP AI 分析服务**
    ```bash
    # 只启动 trend-radar-mcp（提供 AI 分析接口）
-   docker-compose pull trend-radar-mcp
-   docker-compose up -d trend-radar-mcp
+   docker compose pull trend-radar-mcp
+   docker compose up -d trend-radar-mcp
    ```
 
    > 💡 **提示**：
@@ -2155,8 +2155,8 @@ TrendRadar 提供两个独立的 Docker 镜像，可根据需求选择部署：
    docker ps | grep trend-radar
 
    # 停止特定服务
-   docker-compose stop trend-radar      # 停止推送服务
-   docker-compose stop trend-radar-mcp  # 停止 MCP 服务
+   docker compose stop trend-radar      # 停止推送服务
+   docker compose stop trend-radar-mcp  # 停止 MCP 服务
    ```
 
 #### 方式二：本地构建（开发者选项）
@@ -2172,25 +2172,25 @@ cd TrendRadar
 vim config/config.yaml
 vim config/frequency_words.txt
 
-# 使用构建版本的 docker-compose
+# 使用构建版本的 docker compose
 cd docker
-cp docker-compose-build.yml docker-compose.yml
+cp docker compose-build.yml docker compose.yml
 ```
 
 **构建并启动服务**：
 
 ```bash
 # 选项 A：构建并启动所有服务
-docker-compose build
-docker-compose up -d
+docker compose build
+docker compose up -d
 
 # 选项 B：仅构建并启动新闻推送服务
-docker-compose build trend-radar
-docker-compose up -d trend-radar
+docker compose build trend-radar
+docker compose up -d trend-radar
 
 # 选项 C：仅构建并启动 MCP AI 分析服务
-docker-compose build trend-radar-mcp
-docker-compose up -d trend-radar-mcp
+docker compose build trend-radar-mcp
+docker compose up -d trend-radar-mcp
 ```
 
 > 💡 **架构参数说明**：
@@ -2198,7 +2198,7 @@ docker-compose up -d trend-radar-mcp
 > - 如需构建 `arm64` 架构（Apple Silicon、树莓派等），设置环境变量：
 >   ```bash
 >   export DOCKER_ARCH=arm64
->   docker-compose build
+>   docker compose build
 >   ```
 
 #### 镜像更新
@@ -2207,12 +2207,12 @@ docker-compose up -d trend-radar-mcp
 # 方式一：手动更新（爬虫 + MCP 镜像）
 docker pull wantcat/trendradar:latest
 docker pull wantcat/trendradar-mcp:latest
-docker-compose down
-docker-compose up -d
+docker compose down
+docker compose up -d
 
-# 方式二：使用 docker-compose 更新
-docker-compose pull
-docker-compose up -d
+# 方式二：使用 docker compose 更新
+docker compose pull
+docker compose up -d
 ```
 
 **可用镜像**：
@@ -2349,14 +2349,14 @@ flowchart TB
 
 **快速启动**：
 
-使用 docker-compose 同时启动新闻推送和 MCP 服务：
+使用 docker compose 同时启动新闻推送和 MCP 服务：
 
 ```bash
-# 下载最新的 docker-compose.yml（已包含 MCP 服务配置）
-wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker-compose.yml
+# 下载最新的 docker compose.yml（已包含 MCP 服务配置）
+wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker compose.yml
 
 # 启动所有服务
-docker-compose up -d
+docker compose up -d
 
 # 查看运行状态
 docker ps | grep trend-radar
