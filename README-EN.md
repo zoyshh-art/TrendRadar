@@ -1,26 +1,6 @@
-> ## ⚠️ Important Announcement (December 2025)
->
-> Due to rapid growth in forks, GitHub has contacted me about server infrastructure strain. **This project and all forks may experience access difficulties.**
->
-> - ✅ **Recommended**: [Docker Deployment](#6-docker-deployment) (data stored locally, no restrictions)
-> - ❌ **Suspended**: Fork deployment, GitHub Actions, GitHub Pages
->
-> <details>
-> <summary>👉 Click for details</summary>
->
-> **Issue Explanation:**
-> - Original design used GitHub Actions to periodically fetch news and save to the repository, essentially using GitHub as a "cloud database"
-> - With many forks running simultaneously, servers couldn't handle the load; GitHub engineering team is working on fixes
->
-> **Future Plans:**
-> - Exploring new approach: keep Actions for fetching and notifications, but no longer save data to repository, use external storage instead
->
-> Thanks for understanding! Feedback: [Issues](https://github.com/sansan0/TrendRadar/issues)
->
-> </details>
-
-
 <div align="center" id="trendradar">
+
+> **📢 Announcement:** After communicating with GitHub officials, "One-Click Fork Deployment" will be restored after compliance adjustments are completed. Please stay tuned for **v4.0.0** update
 
 <a href="https://github.com/sansan0/TrendRadar" title="TrendRadar">
   <img src="/_image/banner.webp" alt="TrendRadar Banner" width="80%">
@@ -63,34 +43,67 @@
 
 </div>
 
-
 > This project is designed to be lightweight and easy to deploy
 
-<details>
-<summary>⚠️ Click to expand: <strong>Fork Guide: Docs, Resource Limits & Deployment Options</strong></summary>
 <br>
 
-**📄 Documentation Version:**
+<details>
+<summary>🚨 <strong>【MUST READ】Important Announcement: The Correct Way to Deploy This Project</strong></summary>
 
-If you use this project via **Fork**, you might be viewing outdated documentation. Fork copies the documentation version at that time, but the original project may have been updated.
+<br>
 
-**👉 [Click to View Latest Official Documentation](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)**
+> **⚠️ December 2025 Urgent Notice**
+>
+> Due to a surge in Fork numbers causing excessive load on GitHub servers, **GitHub Actions and GitHub Pages deployments are currently restricted**. Please read the following instructions carefully to ensure successful deployment.
 
-**How to Tell?** Check the repository address at the top of the page:
-- `github.com/your-username/TrendRadar` ← Your forked version
-- `github.com/sansan0/TrendRadar` ← Latest official version
+### 1. ✅ Only Recommended Deployment Method: Docker
+
+**This is currently the most stable solution, free from GitHub restrictions.** Data is stored locally and won't be affected by GitHub policy changes.
+
+* 👉 [Jump to Docker Deployment Tutorial](#6-docker-deployment)
 
 ---
 
-**🛡️ Resource Limits & Safety Tips:**
+### 2. If You Were Planning to Fork This Project...
 
-GitHub provides limited Actions resources per account. To avoid being flagged for abuse and risking account suspension:
+To reduce pressure on GitHub servers, **please DO NOT directly click the "Fork" button!**
 
-- **Platform Count**: Keep it around **10 platforms** — more platforms consume more resources
-- **Run Frequency**: Minimum interval of **30 minutes** — more frequent runs are unnecessary
-- **Fair Use**: GitHub Actions is designed for lightweight scheduled tasks, not high-frequency crawlers
+Please use the **"Use this template"** feature instead of Fork:
 
-💡 **Want more freedom?** Try [🐳 Docker Deployment](#6-docker-deployment) on your own server with no restrictions.
+1.  **Click** the green **[Use this template]** button in the top right corner of the original repository page.
+2.  **Select** "Create a new repository".
+
+**Why do this?**
+* **❌ Fork**: Copies complete history records. Many forks running simultaneously will trigger GitHub risk control.
+* **✅ Use this template**: Creates a completely new independent repository without historical baggage, more server-friendly.
+
+---
+
+### 3. About New Data Storage
+
+The new version will use **Cloudflare R2** to store news data, ensuring data persistence.
+
+**⚠️ Configuration Prerequisites:**
+
+According to Cloudflare platform rules, activating R2 requires binding a payment method.
+
+- **Purpose:** Identity verification only (Verify Only), no charges will be incurred.
+- **Payment:** Supports credit cards or PayPal (China region).
+- **Usage:** R2's free tier is sufficient to cover this project's daily operation, no payment required.
+
+---
+
+### 4. 📅 Future Plans & Documentation Reading Notes
+
+> **Future Plans:**
+> - Exploring new approach: keep Actions for fetching and pushing, but no longer save data to repository, use external storage instead.
+
+**⚠️ Reading Note:**
+Given that the above plans mean **Fork deployment mode may return in a new form in the future**, and the workload to fully revise documentation is massive, we have temporarily retained the old descriptions.
+
+**At the current stage, if "Fork" related expressions still appear in subsequent tutorials, please ignore them or understand them as "Use this template"**.
+
+👉 **[Click here to view TrendRadar's latest official documentation](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)**
 
 </details>
 

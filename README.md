@@ -1,26 +1,6 @@
-> ## ⚠️ 重要公告（2025年12月）
->
-> 由于 Fork 数量激增，GitHub 官方已联系我，当前运行方式对服务器造成压力。**本项目及所有 Fork 可能出现访问困难。**
->
-> - ✅ **推荐**：[Docker 部署](#6-docker-部署)（数据存本地，不受限制）
-> - ❌ **暂停**：Fork 部署、GitHub Actions、GitHub Pages
->
-> <details>
-> <summary>👉 点击查看详情</summary>
->
-> **问题说明：**
-> - 原设计通过 GitHub Actions 定时抓取新闻并保存到仓库，相当于把 GitHub 当"云端数据库"
-> - 大量 Fork 同时运行，服务器承受不住，GitHub 工程团队正在修复
->
-> **后续计划：**
-> - 探索新方案：保留 Actions 用于抓取和推送，但不再将数据保存到仓库，改用外部存储
->
-> 感谢理解！问题反馈：[Issues](https://github.com/sansan0/TrendRadar/issues) 或公众号
->
-> </details>
-
-
 <div align="center" id="trendradar">
+
+> **📢 公告：** 经与 GitHub 官方沟通，完成合规调整后将恢复"一键 Fork 部署"，请关注 **v4.0.0** 版本的更新
 
 <a href="https://github.com/sansan0/TrendRadar" title="TrendRadar">
   <img src="/_image/banner.webp" alt="TrendRadar Banner" width="80%">
@@ -65,31 +45,65 @@
 
 > 本项目以轻量，易部署为目标
 
-<details>
-<summary>⚠️ 点击展开：<strong>Fork 须知：文档更新、资源限制与部署建议</strong></summary>
 <br>
 
-**📄 文档版本说明：**
+<details>
+<summary>🚨 <strong>【必读】重要公告：本项目的正确部署姿势</strong></summary>
 
-如果你是通过 **Fork** 使用本项目，你看到的可能是旧版文档。因为 Fork 时会复制当时的文档版本，但原项目可能已更新。
+<br>
 
-**👉 [点击查看最新官方文档](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)**
+> **⚠️ 2025年12月紧急通知**
+>
+> 由于 Fork 数量激增导致 GitHub 服务器压力过大，**GitHub Actions 及 GitHub Pages 部署目前已受限**。为确保顺利部署，请务必阅读以下说明。
 
-**如何判断？** 看页面顶部的仓库地址：
-- `github.com/你的用户名/TrendRadar` ← 你 fork 的版本
-- `github.com/sansan0/TrendRadar` ← 最新官方版本
+### 1. ✅ 唯一推荐部署方式：Docker
+
+**这是目前最稳定、不受 GitHub 限制的方案。** 数据存储在本地，不会因为 GitHub 策略调整而失效。
+
+* 👉 [跳转到 Docker 部署教程](#6-docker-部署)
 
 ---
 
-**🛡️ 资源限制与安全提示：**
+### 2. 如果你本打算 Fork 本项目...
 
-GitHub 为每个账号提供的 Actions 资源是有限额的。为了避免被官方判定为滥用而面临封号风险，请注意：
+为了减少对 GitHub 服务器的压力，**请千万不要直接点击 "Fork" 按钮！**
 
-- **监控平台数量**：建议控制在 **10 个左右**，过多平台会消耗更多资源
-- **执行频率**：建议最短间隔为 **30 分钟**，过于频繁无实际意义
-- **合理使用**：GitHub Actions 适合轻量级定时任务，而非高频爬虫
+请务必使用 **"Use this template"** 功能来替代 Fork：
 
-💡 **想要更自由地使用？** 推荐 [🐳 Docker 部署](#6-docker-部署)，在自己的服务器上运行。
+1.  **点击**原仓库页面右上角的绿色的 **[Use this template]** 按钮。
+2.  **选择** "Create a new repository"。
+
+**为什么要这样做？**
+* **❌ Fork**：复制完整历史记录，大量 Fork 同时运行会触发 GitHub 风控。
+* **✅ Use this template**：创建的是一个全新的独立仓库，没有历史包袱，对服务器更友好。
+
+---
+
+### 3. 关于新版数据存储的说明
+
+新版将使用 **Cloudflare R2** 存储新闻数据，以保证持久化。
+
+**⚠️ 配置前置条件：**
+
+根据 Cloudflare 平台规则，开通 R2 需绑定支付方式。
+
+- **目的：** 仅作身份验证（Verify Only），不产生扣费。
+- **支付：** 支持信用卡或国区 PayPal。
+- **用量：** R2 的免费额度足以覆盖本项目日常运行，无需付费。
+
+---
+
+### 4. 📅 后续计划与文档阅读说明
+
+> **后续计划：**
+> - 探索新方案：保留 Actions 用于抓取和推送，但不再将数据保存到仓库，改用外部存储。
+
+**⚠️ 阅读注意：**
+鉴于上述计划意味着 **Fork 部署模式未来可能会以新形式回归**，且当前全面修改文档工作量巨大，我们暂时保留了旧版描述。
+
+**在当前阶段，若后续教程中仍出现 "Fork" 相关表述，请一律忽略或将其理解为 "Use this template"**。
+
+👉 **[点击此处查看 TrendRadar 最新官方文档](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)**
 
 </details>
 
