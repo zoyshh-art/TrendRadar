@@ -4,8 +4,6 @@ name: ⚙️ 设置遇到困难
 description: 配置相关的问题或需要帮助
 title: "[设置] "
 labels: ["配置", "帮助"]
-assignees:
-  - sansan0
 body:
   - type: markdown
     attributes:

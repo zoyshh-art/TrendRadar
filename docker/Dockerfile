@@ -53,8 +53,8 @@ RUN set -ex && \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py .
 COPY docker/manage.py .
+COPY trendradar/ ./trendradar/
 
 # 复制 entrypoint.sh 并强制转换为 LF 格式
 COPY docker/entrypoint.sh /entrypoint.sh.tmp

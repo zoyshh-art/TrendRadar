@@ -450,7 +450,89 @@ AI: (date_range={"start": "2024-12-01", "end": "2024-12-31"})
 
 ---
 
-### Q14: How to parse natural language date expressions? (Recommended to use first)
+## Storage Sync
+
+### Q14: How to sync data from remote storage to local?
+
+**You can ask like this:**
+
+- "Sync last 7 days data from remote"
+- "Pull data from remote storage to local"
+- "Sync last 30 days of news data"
+
+**Tool called:** `sync_from_remote`
+
+**Use cases:**
+
+- Crawler deployed in the cloud (e.g., GitHub Actions), data stored remotely (e.g., Cloudflare R2)
+- MCP Server deployed locally, needs to pull data from remote for analysis
+
+**Return information:**
+
+- synced_files: Number of successfully synced files
+- synced_dates: List of successfully synced dates
+- skipped_dates: Skipped dates (already exist locally)
+- failed_dates: Failed dates and error information
+
+**Prerequisites:**
+
+Need to configure remote storage in `config/config.yaml` or set environment variables:
+- `S3_ENDPOINT_URL`: Service endpoint
+- `S3_BUCKET_NAME`: Bucket name
+- `S3_ACCESS_KEY_ID`: Access key ID
+- `S3_SECRET_ACCESS_KEY`: Secret access key
+
+---
+
+### Q15: How to view storage status?
+
+**You can ask like this:**
+
+- "View current storage status"
+- "What's the storage configuration"
+- "How much data is stored locally"
+- "Is remote storage configured"
+
+**Tool called:** `get_storage_status`
+
+**Return information:**
+
+| Category | Information |
+|----------|-------------|
+| **Local Storage** | Data directory, total size, date count, date range |
+| **Remote Storage** | Whether configured, endpoint URL, bucket name, date count |
+| **Pull Config** | Whether auto-pull enabled, pull days |
+
+---
+
+### Q16: How to view available data dates?
+
+**You can ask like this:**
+
+- "What dates are available locally"
+- "What dates are in remote storage"
+- "Compare local and remote data dates"
+- "Which dates only exist remotely"
+
+**Tool called:** `list_available_dates`
+
+**Three query modes:**
+
+| Mode | Description | Example Question |
+|------|-------------|------------------|
+| **local** | View local only | "What dates are available locally" |
+| **remote** | View remote only | "What dates are in remote" |
+| **both** | Compare both (default) | "Compare local and remote data" |
+
+**Return information (both mode):**
+
+- only_local: Dates only existing locally
+- only_remote: Dates only existing remotely (useful for deciding which dates to sync)
+- both: Dates existing in both places
+
+---
+
+### Q17: How to parse natural language date expressions? (Recommended to use first)
 
 **You can ask like this:**
 

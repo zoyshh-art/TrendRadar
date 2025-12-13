@@ -283,13 +283,13 @@ class DateParser:
             date: datetime对象
 
         Returns:
-            文件夹名称，格式: YYYY年MM月DD日
+            文件夹名称，格式: YYYY-MM-DD
 
         Examples:
             >>> DateParser.format_date_folder(datetime(2025, 10, 11))
-            '2025年10月11日'
+            '2025-10-11'
         """
-        return date.strftime("%Y年%m月%d日")
+        return date.strftime("%Y-%m-%d")
 
     @staticmethod
     def validate_date_not_future(date: datetime) -> None:

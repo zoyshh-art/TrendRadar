@@ -15,6 +15,7 @@ from .tools.analytics import AnalyticsTools
 from .tools.search_tools import SearchTools
 from .tools.config_mgmt import ConfigManagementTools
 from .tools.system import SystemManagementTools
+from .tools.storage_sync import StorageSyncTools
 from .utils.date_parser import DateParser
 from .utils.errors import MCPError
 
@@ -34,6 +35,7 @@ def _get_tools(project_root: Optional[str] = None):
         _tools_instances['search'] = SearchTools(project_root)
         _tools_instances['config'] = ConfigManagementTools(project_root)
         _tools_instances['system'] = SystemManagementTools(project_root)
+        _tools_instances['storage'] = StorageSyncTools(project_root)
     return _tools_instances
 
 
@@ -657,6 +659,127 @@ async def trigger_crawl(
     return json.dumps(result, ensure_ascii=False, indent=2)
 
 
+# ==================== 存储同步工具 ====================
+
+@mcp.tool
+async def sync_from_remote(
+    days: int = 7
+) -> str:
+    """
+    从远程存储拉取数据到本地
+
+    用于 MCP Server 等场景：爬虫存到远程云存储（如 Cloudflare R2），
+    MCP Server 拉取到本地进行分析查询。
+
+    Args:
+        days: 拉取最近 N 天的数据，默认 7 天
+              - 0: 不拉取
+              - 7: 拉取最近一周的数据
+              - 30: 拉取最近一个月的数据
+
+    Returns:
+        JSON格式的同步结果，包含：
+        - success: 是否成功
+        - synced_files: 成功同步的文件数量
+        - synced_dates: 成功同步的日期列表
+        - skipped_dates: 跳过的日期（本地已存在）
+        - failed_dates: 失败的日期及错误信息
+        - message: 操作结果描述
+
+    Examples:
+        - sync_from_remote()  # 拉取最近7天
+        - sync_from_remote(days=30)  # 拉取最近30天
+
+    Note:
+        需要在 config/config.yaml 中配置远程存储（storage.remote）或设置环境变量：
+        - S3_ENDPOINT_URL: 服务端点
+        - S3_BUCKET_NAME: 存储桶名称
+        - S3_ACCESS_KEY_ID: 访问密钥 ID
+        - S3_SECRET_ACCESS_KEY: 访问密钥
+    """
+    tools = _get_tools()
+    result = tools['storage'].sync_from_remote(days=days)
+    return json.dumps(result, ensure_ascii=False, indent=2)
+
+
+@mcp.tool
+async def get_storage_status() -> str:
+    """
+    获取存储配置和状态
+
+    查看当前存储后端配置、本地和远程存储的状态信息。
+
+    Returns:
+        JSON格式的存储状态信息，包含：
+        - backend: 当前使用的后端类型（local/remote/auto）
+        - local: 本地存储状态
+            - data_dir: 数据目录
+            - retention_days: 保留天数
+            - total_size: 总大小
+            - date_count: 日期数量
+            - earliest_date: 最早日期
+            - latest_date: 最新日期
+        - remote: 远程存储状态
+            - configured: 是否已配置
+            - endpoint_url: 服务端点
+            - bucket_name: 存储桶名称
+            - date_count: 远程日期数量
+        - pull: 拉取配置
+            - enabled: 是否启用自动拉取
+            - days: 自动拉取天数
+
+    Examples:
+        - get_storage_status()  # 查看所有存储状态
+    """
+    tools = _get_tools()
+    result = tools['storage'].get_storage_status()
+    return json.dumps(result, ensure_ascii=False, indent=2)
+
+
+@mcp.tool
+async def list_available_dates(
+    source: str = "both"
+) -> str:
+    """
+    列出本地/远程可用的日期范围
+
+    查看本地和远程存储中有哪些日期的数据可用，
+    帮助了解数据覆盖范围和同步状态。
+
+    Args:
+        source: 数据来源，可选值：
+            - "local": 仅列出本地可用日期
+            - "remote": 仅列出远程可用日期
+            - "both": 同时列出两者并进行对比（默认）
+
+    Returns:
+        JSON格式的日期列表，包含：
+        - local: 本地日期信息（如果 source 包含 local）
+            - dates: 日期列表（按时间倒序）
+            - count: 日期数量
+            - earliest: 最早日期
+            - latest: 最新日期
+        - remote: 远程日期信息（如果 source 包含 remote）
+            - configured: 是否已配置远程存储
+            - dates: 日期列表
+            - count: 日期数量
+            - earliest: 最早日期
+            - latest: 最新日期
+        - comparison: 对比结果（仅当 source="both" 时）
+            - only_local: 仅本地存在的日期
+            - only_remote: 仅远程存在的日期
+            - both: 两边都存在的日期
+
+    Examples:
+        - list_available_dates()  # 查看本地和远程的对比
+        - list_available_dates(source="local")  # 仅查看本地
+        - list_available_dates(source="remote")  # 仅查看远程
+    """
+    tools = _get_tools()
+    result = tools['storage'].list_available_dates(source=source)
+    return json.dumps(result, ensure_ascii=False, indent=2)
+
+
 # ==================== 启动入口 ====================
 
 def run_server(
@@ -721,6 +844,11 @@ def run_server(
     print("    11. get_current_config      - 获取当前系统配置")
     print("    12. get_system_status       - 获取系统运行状态")
     print("    13. trigger_crawl           - 手动触发爬取任务")
+    print()
+    print("    === 存储同步工具 ===")
+    print("    14. sync_from_remote        - 从远程存储拉取数据到本地")
+    print("    15. get_storage_status      - 获取存储配置和状态")
+    print("    16. list_available_dates    - 列出本地/远程可用日期")
     print("=" * 60)
     print()
 

@@ -33,7 +33,7 @@ def manual_run():
     print("🔄 手动执行爬虫...")
     try:
         result = subprocess.run(
-            ["python", "main.py"], cwd="/app", capture_output=False, text=True
+            ["python", "-m", "trendradar"], cwd="/app", capture_output=False, text=True
         )
         if result.returncode == 0:
             print("✅ 执行完成")
@@ -285,12 +285,24 @@ def show_config():
         "TELEGRAM_CHAT_ID",
         "CONFIG_PATH",
         "FREQUENCY_WORDS_PATH",
+        # 存储配置
+        "STORAGE_BACKEND",
+        "LOCAL_RETENTION_DAYS",
+        "REMOTE_RETENTION_DAYS",
+        "STORAGE_TXT_ENABLED",
+        "STORAGE_HTML_ENABLED",
+        "S3_BUCKET_NAME",
+        "S3_ACCESS_KEY_ID",
+        "S3_ENDPOINT_URL",
+        "S3_REGION",
+        "PULL_ENABLED",
+        "PULL_DAYS",
     ]
 
     for var in env_vars:
         value = os.environ.get(var, "未设置")
         # 隐藏敏感信息
-        if any(sensitive in var for sensitive in ["WEBHOOK", "TOKEN", "KEY"]):
+        if any(sensitive in var for sensitive in ["WEBHOOK", "TOKEN", "KEY", "SECRET"]):
             if value and value != "未设置":
                 masked_value = value[:10] + "***" if len(value) > 10 else "***"
                 print(f"  {var}: {masked_value}")
@@ -331,6 +343,17 @@ def show_files():
     # 显示最近2天的文件
     for date_dir in date_dirs[:2]:
         print(f"  📅 {date_dir.name}:")
+
+        # 检查 SQLite 数据库文件
+        db_files = list(date_dir.glob("*.db"))
+        if db_files:
+            print(f"    💾 SQLite: {len(db_files)} 个数据库")
+            for db_file in db_files[:3]:
+                mtime = time.ctime(db_file.stat().st_mtime)
+                size_kb = db_file.stat().st_size // 1024
+                print(f"      📀 {db_file.name} ({size_kb}KB, {mtime.split()[3][:5]})")
+
+        # 检查子目录（html, txt）
         for subdir in ["html", "txt"]:
             sub_path = date_dir / subdir
             if sub_path.exists():

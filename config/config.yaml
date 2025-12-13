@@ -1,12 +1,60 @@
 app:
   version_check_url: "https://raw.githubusercontent.com/sansan0/TrendRadar/refs/heads/master/version"
   show_version_update: true # 控制显示版本更新提示，如果 false，则不接受新版本提示
+  # 时区配置（影响所有时间显示、推送窗口判断、数据存储）
+  # 常用时区：
+  #   - Asia/Shanghai (北京时间 UTC+8)
+  #   - America/New_York (美东时间 UTC-5/-4)
+  #   - Europe/London (伦敦时间 UTC+0/+1)
+  # 完整时区列表: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  timezone: "Asia/Shanghai"
+
+# 存储配置
+storage:
+  # 存储后端选择: local / remote / auto
+  # - local: 本地 SQLite + TXT/HTML 文件
+  # - remote: 远程云存储（S3 兼容协议，支持 R2/OSS/COS 等）
+  # - auto: 自动选择（GitHub Actions 环境且配置了远程存储则用 remote，否则用 local）
+  backend: "auto"
+
+  # 数据格式选项
+  formats:
+    sqlite: true       # 主存储（必须启用）
+    txt: false         # 是否生成 TXT 快照
+    html: false        # 是否生成 HTML 报告
+
+  # 本地存储配置
+  local:
+    data_dir: "output"        # 数据目录
+    retention_days: 0         # 本地数据保留天数（0 = 不清理）
+
+  # 远程存储配置（S3 兼容协议）
+  # 支持: Cloudflare R2, 阿里云 OSS, 腾讯云 COS, AWS S3, MinIO 等
+  # 建议将敏感信息配置在 GitHub Secrets 或环境变量中
+  remote:
+    # 数据保留天数（0 = 不清理远程数据）
+    retention_days: 0
+    # S3 兼容配置
+    endpoint_url: ""          # 服务端点（或环境变量 S3_ENDPOINT_URL）
+                              # Cloudflare R2: https://<account_id>.r2.cloudflarestorage.com
+                              # 阿里云 OSS: https://oss-cn-hangzhou.aliyuncs.com
+                              # 腾讯云 COS: https://cos.ap-guangzhou.myqcloud.com
+    bucket_name: ""           # 存储桶名称（或环境变量 S3_BUCKET_NAME）
+    access_key_id: ""         # 访问密钥 ID（或环境变量 S3_ACCESS_KEY_ID）
+    secret_access_key: ""     # 访问密钥（或环境变量 S3_SECRET_ACCESS_KEY）
+    region: ""                # 区域（可选，部分服务商需要，或环境变量 S3_REGION）
+
+  # 数据拉取配置（从远程同步到本地）
+  # 用于 MCP Server 等场景：爬虫存到远程，MCP 拉取到本地分析
+  pull:
+    enabled: false            # 是否启用启动时自动拉取
+    days: 7                   # 拉取最近 N 天的数据（0 = 不拉取）
 
 crawler:
   request_interval: 1000 # 请求间隔(毫秒)
   enable_crawler: true # 是否启用爬取新闻功能，如果 false，则直接停止程序
   use_proxy: false # 是否启用代理，false 时为关闭
-  default_proxy: "http://127.0.0.1:10086"
+  default_proxy: "http://127.0.0.1:10801"
 
 # 🔸 daily（当日汇总模式）
 #   • 推送时机：按时推送(默认每小时推送一次)
@@ -55,7 +103,6 @@ notification:
       start: "20:00"  # 推送时间窗口开始（北京时间）
       end: "22:00"    # 推送时间窗口结束（北京时间）
     once_per_day: true  # 每天在时间窗口内只推送一次，如果 false，则窗口内每次执行都推送
-    push_record_retention_days: 7  # 推送记录保留天数
 
   # ⚠️⚠️⚠️ 重要安全警告 / IMPORTANT SECURITY WARNING ⚠️⚠️⚠️
   #

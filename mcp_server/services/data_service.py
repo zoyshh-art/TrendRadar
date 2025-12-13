@@ -517,23 +517,54 @@ class DataService:
         # 遍历日期文件夹
         for date_folder in output_dir.iterdir():
             if date_folder.is_dir() and not date_folder.name.startswith('.'):
-                # 解析日期（格式: YYYY年MM月DD日）
-                try:
-                    date_match = re.match(r'(\d{4})年(\d{2})月(\d{2})日', date_folder.name)
-                    if date_match:
-                        folder_date = datetime(
-                            int(date_match.group(1)),
-                            int(date_match.group(2)),
-                            int(date_match.group(3))
-                        )
-                        available_dates.append(folder_date)
-                except Exception:
-                    pass
+                folder_date = self._parse_date_folder_name(date_folder.name)
+                if folder_date:
+                    available_dates.append(folder_date)
 
         if not available_dates:
             return (None, None)
 
         return (min(available_dates), max(available_dates))
+
+    def _parse_date_folder_name(self, folder_name: str) -> Optional[datetime]:
+        """
+        解析日期文件夹名称（兼容中文和ISO格式）
+
+        支持两种格式：
+        - 中文格式：YYYY年MM月DD日
+        - ISO格式：YYYY-MM-DD
+
+        Args:
+            folder_name: 文件夹名称
+
+        Returns:
+            datetime 对象，解析失败返回 None
+        """
+        # 尝试中文格式：YYYY年MM月DD日
+        chinese_match = re.match(r'(\d{4})年(\d{2})月(\d{2})日', folder_name)
+        if chinese_match:
+            try:
+                return datetime(
+                    int(chinese_match.group(1)),
+                    int(chinese_match.group(2)),
+                    int(chinese_match.group(3))
+                )
+            except ValueError:
+                pass
+
+        # 尝试 ISO 格式：YYYY-MM-DD
+        iso_match = re.match(r'(\d{4})-(\d{2})-(\d{2})', folder_name)
+        if iso_match:
+            try:
+                return datetime(
+                    int(iso_match.group(1)),
+                    int(iso_match.group(2)),
+                    int(iso_match.group(3))
+                )
+            except ValueError:
+                pass
+
+        return None
 
     def get_system_status(self) -> Dict:
         """
@@ -553,26 +584,14 @@ class DataService:
         if output_dir.exists():
             # 遍历日期文件夹
             for date_folder in output_dir.iterdir():
-                if date_folder.is_dir():
-                    # 解析日期
-                    try:
-                        date_str = date_folder.name
-                        # 格式: YYYY年MM月DD日
-                        date_match = re.match(r'(\d{4})年(\d{2})月(\d{2})日', date_str)
-                        if date_match:
-                            folder_date = datetime(
-                                int(date_match.group(1)),
-                                int(date_match.group(2)),
-                                int(date_match.group(3))
-                            )
-
-                            if oldest_record is None or folder_date < oldest_record:
-                                oldest_record = folder_date
-                            if latest_record is None or folder_date > latest_record:
-                                latest_record = folder_date
-
-                    except:
-                        pass
+                if date_folder.is_dir() and not date_folder.name.startswith('.'):
+                    # 解析日期（兼容中文和ISO格式）
+                    folder_date = self._parse_date_folder_name(date_folder.name)
+                    if folder_date:
+                        if oldest_record is None or folder_date < oldest_record:
+                            oldest_record = folder_date
+                        if latest_record is None or folder_date > latest_record:
+                            latest_record = folder_date
 
                     # 计算存储大小
                     for item in date_folder.rglob("*"):

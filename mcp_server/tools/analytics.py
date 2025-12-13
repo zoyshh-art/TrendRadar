@@ -25,7 +25,6 @@ def calculate_news_weight(news_data: Dict, rank_threshold: int = 5) -> float:
     """
     计算新闻权重（用于排序）
 
-    基于 main.py 的权重算法实现，综合考虑：
     - 排名权重 (60%)：新闻在榜单中的排名
     - 频次权重 (30%)：新闻出现的次数
     - 热度权重 (10%)：高排名出现的比例

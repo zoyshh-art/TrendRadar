@@ -1,6 +1,6 @@
 <div align="center" id="trendradar">
 
-> **📢 Announcement:** After communicating with GitHub officials, "One-Click Fork Deployment" will be restored after compliance adjustments are completed. Please stay tuned for **v4.0.0** update
+> **📢 Announcement:** **v4.0.0** has been released! Including storage architecture refactoring, database optimization, modularization improvements, and more major updates
 
 <a href="https://github.com/sansan0/TrendRadar" title="TrendRadar">
   <img src="/_image/banner.webp" alt="TrendRadar Banner" width="80%">
@@ -16,8 +16,8 @@
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.5.0-blue.svg)](https://github.com/sansan0/TrendRadar)
-[![MCP](https://img.shields.io/badge/MCP-v1.0.3-green.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v4.0.0-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![MCP](https://img.shields.io/badge/MCP-v1.1.0-green.svg)](https://github.com/sansan0/TrendRadar)
 
 [![WeWork](https://img.shields.io/badge/WeWork-Notification-00D4AA?style=flat-square)](https://work.weixin.qq.com/)
 [![WeChat](https://img.shields.io/badge/WeChat-Notification-00D4AA?style=flat-square)](https://weixin.qq.com/)
@@ -48,62 +48,61 @@
 <br>
 
 <details>
-<summary>🚨 <strong>【MUST READ】Important Announcement: The Correct Way to Deploy This Project</strong></summary>
+<summary>🚨 <strong>【Must Read】Important Announcement: v4.0.0 Deployment & Storage Architecture Changes</strong></summary>
 
 <br>
 
-> **⚠️ December 2025 Urgent Notice**
->
-> Due to a surge in Fork numbers causing excessive load on GitHub servers, **GitHub Actions and GitHub Pages deployments are currently restricted**. Please read the following instructions carefully to ensure successful deployment.
+### 🛠️ Choose the Deployment Method That Fits You
 
-### 1. ✅ Only Recommended Deployment Method: Docker
+#### 🅰️ Option 1: Docker Deployment (Recommended 🔥)
 
-**This is currently the most stable solution, free from GitHub restrictions.** Data is stored locally and won't be affected by GitHub policy changes.
+* **Features**: Most stable and simplest. Data is stored in **local SQLite**, fully under your control.
+
+* **Best for**: Users with their own server, NAS, or an always-on PC.
 
 * 👉 [Jump to Docker Deployment Tutorial](#6-docker-deployment)
 
 ---
 
-### 2. If You Were Planning to Fork This Project...
+#### 🅱️ Option 2: GitHub Actions Deployment (Restored ✅)
 
-To reduce pressure on GitHub servers, **please DO NOT directly click the "Fork" button!**
+* **Features**: Data is no longer committed directly to the repo. Instead, it is stored in **Remote Cloud Storage** (supports S3-compatible protocols: Cloudflare R2, Alibaba Cloud OSS, Tencent Cloud COS, etc.).
 
-Please use the **"Use this template"** feature instead of Fork:
+* **Requirement**: You **must** configure an S3-compatible object storage service (Cloudflare R2 recommended, it's free).
 
-1.  **Click** the green **[Use this template]** button in the top right corner of the original repository page.
+> **⚠️ Note**: If you choose this option, you must complete the following two configuration steps:
+
+#### 1. 🚀 Recommended Start: Use this template
+
+To keep the repository clean and avoid inheriting redundant history, I **recommend** using Template mode:
+
+1.  **Click** the green **[Use this template]** button at the top right of the original repository page.
+
 2.  **Select** "Create a new repository".
 
-**Why do this?**
-* **❌ Fork**: Copies complete history records. Many forks running simultaneously will trigger GitHub risk control.
-* **✅ Use this template**: Creates a completely new independent repository without historical baggage, more server-friendly.
+> **💡 Why do this?**
+> * **Use this template**: Creates a brand new, clean repository with no historical baggage.
+> * **Fork**: Retains the complete commit history and relationships, consuming more GitHub resources.
 
----
+#### 2. ☁️ About the Mandatory Remote Storage for GitHub Actions
 
-### 3. About New Data Storage
+If you choose **Option 2 (GitHub Actions)**, you must configure an S3-compatible object storage service.
 
-The new version will use **Cloudflare R2** to store news data, ensuring data persistence.
+**Supported Storage Services:**
+- **Cloudflare R2** (Recommended, generous free tier)
+- Other S3-compatible services
 
-**⚠️ Configuration Prerequisites:**
+**⚠️ Configuration Prerequisites (Using Cloudflare R2 as Example):**
 
-According to Cloudflare platform rules, activating R2 requires binding a payment method.
+According to Cloudflare platform rules, enabling R2 requires binding a payment method.
 
-- **Purpose:** Identity verification only (Verify Only), no charges will be incurred.
-- **Payment:** Supports credit cards or PayPal (China region).
-- **Usage:** R2's free tier is sufficient to cover this project's daily operation, no payment required.
+* **Purpose**: Identity verification only (Verify Only). **No charges will be incurred**.
 
----
+* **Payment**: Supports international credit cards or PayPal.
 
-### 4. 📅 Future Plans & Documentation Reading Notes
+* **Usage**: The R2 free tier (10GB storage/month) is sufficient to cover the daily operation of this project. No need to worry about costs.
 
-> **Future Plans:**
-> - Exploring new approach: keep Actions for fetching and pushing, but no longer save data to repository, use external storage instead.
-
-**⚠️ Reading Note:**
-Given that the above plans mean **Fork deployment mode may return in a new form in the future**, and the workload to fully revise documentation is massive, we have temporarily retained the old descriptions.
-
-**At the current stage, if "Fork" related expressions still appear in subsequent tutorials, please ignore them or understand them as "Use this template"**.
-
-👉 **[Click here to view TrendRadar's latest official documentation](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)**
+👉 **[Click to View Detailed Configuration Tutorial](#-quick-start)**
 
 </details>
 
@@ -287,10 +286,32 @@ Supports **WeWork** (+ WeChat push solution), **Feishu**, **DingTalk**, **Telegr
 - ⚠️ **Paired Configuration**: Telegram and ntfy require paired parameter quantities to match (e.g., token and chat_id both have 2 values)
 - ⚠️ **Quantity Limit**: Default maximum 3 accounts per channel, exceeded values will be truncated
 
-### **Multi-Platform Support**
-- **GitHub Pages**: Auto-generate beautiful web reports, PC/mobile adapted
+### **Flexible Storage Architecture (v4.0.0 Major Update)**
+
+**Multi-Backend Support**:
+- ☁️ **Remote Cloud Storage**: GitHub Actions environment default, supports S3-compatible protocols (R2/OSS/COS, etc.), data stored in cloud, keeping repository clean
+- 💾 **Local SQLite**: Traditional SQLite database, stable and efficient (Docker/local deployment)
+- 🔀 **Auto Selection**: Auto-selects appropriate backend based on runtime environment
+
+**Data Format Hierarchy**:
+
+| Format | Role | Description |
+|--------|------|-------------|
+| **SQLite** | Primary storage | Complete data with statistics information |
+| **TXT** | Human-readable backup | Optional text records for manual viewing |
+| **HTML** | Web report | Beautiful visual report (GitHub Pages) |
+
+**Data Management Features**:
+- Auto data cleanup (configurable retention period)
+- Timezone support (configurable IANA time zone)
+- Cloud/local seamless switching
+
+> 💡 For storage configuration details, see [Configuration Details - Storage Configuration](#11-storage-configuration-v400-new)
+
+### **Multi-Platform Deployment**
+- **GitHub Actions**: Cloud automated operations (7-day check-in cycle + remote cloud storage)
 - **Docker Deployment**: Supports multi-architecture containerized operation
-- **Data Persistence**: HTML/TXT multi-format history saving
+- **Local Running**: Python environment direct execution
 
 
 ### **AI Smart Analysis (v3.0.0 New)**
@@ -341,8 +362,30 @@ Transform from "algorithm recommendation captivity" to "actively getting the inf
 >**Upgrade Instructions**:
 - **📌 Check Latest Updates**: **[Original Repository Changelog](https://github.com/sansan0/TrendRadar?tab=readme-ov-file#-changelog)**
 - **Tip**: Do NOT update this project via **Sync fork**. Check [Changelog] to understand specific [Upgrade Methods] and [Features]
-- **Minor Version Update**: Upgrading from v2.x to v2.y, replace `main.py` in your forked repo with the latest version
 - **Major Version Upgrade**: Upgrading from v1.x to v2.y, recommend deleting existing fork and re-forking to save effort and avoid config conflicts
+
+
+### 2025/12/13 - v4.0.0
+
+**🎉 Major Update: Comprehensive Refactoring of Storage and Core Architecture**
+
+- **Multi-Storage Backend Support**: Introduced a brand new storage module supporting local SQLite and remote cloud storage (S3-compatible protocols, Cloudflare R2 recommended for free tier), adaptable to GitHub Actions, Docker, and local environments.
+- **Database Structure Optimization**: Refactored SQLite database table structures to improve data efficiency and query performance.
+- **Enhanced Features**: Implemented date format standardization, data retention policies, timezone configuration support, and optimized time display. Fixed remote storage data persistence issues to ensure accurate data merging.
+- **Cleanup and Compatibility**: Removed most legacy compatibility code and unified data storage and retrieval methods.
+
+### 2025/12/13 - mcp-v1.1.0
+
+**MCP Module Update:**
+- Adapted for v4.0.0, while maintaining compatibility with v3.x data.
+- Added storage sync tools:
+  - `sync_from_remote`: Pull data from remote storage to local
+  - `get_storage_status`: Get storage configuration and status
+  - `list_available_dates`: List available dates in local/remote storage
+
+
+<details>
+<summary>👉 Click to expand: <strong>Historical Updates</strong></summary>
 
 
 ### 2025/12/03 - v3.5.0
@@ -397,7 +440,7 @@ Transform from "algorithm recommendation captivity" to "actively getting the inf
 
 **🔧 Upgrade Instructions**:
 - **GitHub Fork Users**: Update `main.py`, `config/config.yaml` (Added multi-account push support, existing single-account configuration unaffected)
-- **Docker Users**: Update `.env`, `docker compose.yml` or set environment variables `REVERSE_CONTENT_ORDER`, `MAX_ACCOUNTS_PER_CHANNEL`
+- **Docker Users**: Update `.env`, `docker-compose.yml` or set environment variables `REVERSE_CONTENT_ORDER`, `MAX_ACCOUNTS_PER_CHANNEL`
 - **Multi-Account Push**: New feature, disabled by default, existing single-account configuration unaffected
 
 
@@ -429,10 +472,6 @@ Transform from "algorithm recommendation captivity" to "actively getting the inf
   - Added date parsing tool resolve_date_range to resolve AI model date calculation inconsistencies
   - Support natural language date expression parsing (this week, last 7 days, last month, etc.)
   - Tool count increased from 13 to 14
-
-
-<details>
-<summary>👉 Click to expand: <strong>Historical Updates</strong></summary>
 
 
 ### 2025/11/25 - v3.4.0
@@ -819,11 +858,44 @@ frequency_words.txt file added **required word** feature, using + sign
 
 > **📖 Reminder**: Fork users should first **[check the latest official documentation](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)** to ensure the configuration steps are up to date.
 
+### ⚠️ GitHub Actions Usage Instructions
+
+**v4.0.0 Important Change**: Introduced "Activity Detection" mechanism—GitHub Actions now requires periodic check-in to maintain operation.
+
+#### 🔄 Check-In Renewal Mechanism
+
+- **Running Cycle**: Valid for **7 days**—service will automatically suspend when countdown ends.
+- **Renewal Method**: Manually trigger the "Check In" workflow on the Actions page to reset the 7-day validity period.
+- **Operation Path**: `Actions` → `Check In` → `Run workflow`
+- **Design Philosophy**:
+    - If you forget for 7 days, maybe you don't really need it. Letting it stop is a digital detox, freeing you from the constant impact.
+    - GitHub Actions is a valuable public computing resource. The check-in mechanism aims to prevent wasted computing cycles, ensuring resources are allocated to truly active users who need them. Thank you for your understanding and support.
+
+#### 📦 Data Storage (Required Configuration)
+
+In GitHub Actions environment, data is stored in **Remote Cloud Storage** (supports S3-compatible protocols, Cloudflare R2 recommended for free tier), keeping your repository clean (see **Required Configuration: Remote Cloud Storage** below).
+
+#### 🚀 Recommended: Docker Deployment
+
+For long-term stable operation, we recommend [Docker Deployment](#6-docker-deployment), with data stored locally and no check-in required—though it does require purchasing a cloud server.
+
+<br>
+
+> 🎉 **Now Supported: Multi-Cloud Storage Options**
+>
+> This project now supports S3-compatible protocols. You can choose:
+> - **Cloudflare R2** (Recommended, generous free tier)
+> - Other S3-compatible storage services
+>
+> Simply configure the corresponding `S3_ENDPOINT_URL`, `S3_BUCKET_NAME` and other environment variables to switch.
+
+---
+
 1. **Fork this project** to your GitHub account
 
    - Click the "Fork" button at the top right of this page
 
-2. **Setup GitHub Secrets (Choose your needed platforms)**:
+2. **Setup GitHub Secrets (Required + Optional Platforms)**:
 
    In your forked repo, go to `Settings` > `Secrets and variables` > `Actions` > `New repository secret`
 
@@ -862,6 +934,35 @@ frequency_words.txt file added **required word** feature, using + sign
 
    <br>
 
+   <details>
+   <summary>⚠️ <strong>Required Configuration: Remote Cloud Storage</strong> (Required for GitHub Actions Environment, Cloudflare R2 Recommended)</summary>
+   <br>
+
+   **GitHub Secret Configuration (⚠️ All 4 configuration items below are required):**
+
+   | Name | Secret (Value) Description |
+   |------|----------------------------|
+   | `S3_BUCKET_NAME` | Bucket name (e.g., `trendradar-data`) |
+   | `S3_ACCESS_KEY_ID` | Access key ID |
+   | `S3_SECRET_ACCESS_KEY` | Access key |
+   | `S3_ENDPOINT_URL` | S3 API endpoint (e.g., R2: `https://<account-id>.r2.cloudflarestorage.com`) |
+
+   <br>
+
+   **How to Get Credentials (Using Cloudflare R2 as Example):**
+
+   1. Visit [Cloudflare Dashboard](https://dash.cloudflare.com/) and log in
+   2. Select `R2` in left menu → Click `Create Bucket` → Enter name (e.g., `trendradar-data`)
+   3. Click `Manage R2 API Tokens` at top right → `Create API Token`
+   4. Select `Object Read & Write` permission → After creation, it will display `Access Key ID` and `Secret Access Key`
+   5. Endpoint URL can be found in bucket details page (format: `https://<account-id>.r2.cloudflarestorage.com`)
+
+   **Notes**:
+   - R2 free tier: 10GB storage + 1 million reads per month, sufficient for this project
+   - Activation requires binding a payment method (identity verification only, no charges)
+   - Data stored in cloud, keeps GitHub repository clean
+
+   </details>
 
    <details>
    <summary> <strong>👉 Click to expand: WeWork Bot</strong> (Simplest and fastest configuration)</summary>
@@ -2041,7 +2142,7 @@ TrendRadar provides two independent Docker images, deploy according to your need
 
    # Download docker compose config
    wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/.env -P docker/
-   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker compose.yml -P docker/
+   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker-compose.yml -P docker/
    ```
 
    > 💡 **Note**: Key directory structure required for Docker deployment:
@@ -2052,7 +2153,7 @@ current directory/
 │   └── frequency_words.txt
 └── docker/
     ├── .env
-    └── docker compose.yml
+    └── docker-compose.yml
 ```
 
 2. **Config File Description**:
@@ -2146,7 +2247,7 @@ vim config/frequency_words.txt
 
 # Use build version docker compose
 cd docker
-cp docker compose-build.yml docker compose.yml
+cp docker-compose-build.yml docker-compose.yml
 ```
 
 **Build and Start Services**:
@@ -2232,7 +2333,7 @@ docker rm trend-radar
 
 > 💡 **Web Server Notes**:
 > - After starting, access latest report at `http://localhost:8080`
-> - Access historical reports via directory navigation (e.g., `http://localhost:8080/2025年xx月xx日/`)
+> - Access historical reports via directory navigation (e.g., `http://localhost:8080/2025-xx-xx/`)
 > - Port can be configured in `.env` file with `WEBSERVER_PORT` parameter
 > - Auto-start: Set `ENABLE_WEBSERVER=true` in `.env`
 > - Security: Static files only, limited to output directory, localhost binding only
@@ -2249,7 +2350,7 @@ TrendRadar generates daily summary HTML reports to two locations simultaneously:
 |--------------|---------------|----------|
 | `output/index.html` | Direct host access | **Docker Deployment** (via Volume mount, visible on host) |
 | `index.html` | Root directory access | **GitHub Pages** (repository root, auto-detected by Pages) |
-| `output/YYYY年MM月DD日/html/当日汇总.html` | Historical reports | All environments (archived by date) |
+| `output/YYYY-MM-DD/html/当日汇总.html` | Historical reports | All environments (archived by date) |
 
 **Local Access Examples**:
 ```bash
@@ -2258,8 +2359,8 @@ TrendRadar generates daily summary HTML reports to two locations simultaneously:
 docker exec -it trend-radar python manage.py start_webserver
 # 2. Access in browser
 http://localhost:8080                           # Access latest report (default index.html)
-http://localhost:8080/2025年xx月xx日/            # Access reports for specific date
-http://localhost:8080/2025年xx月xx日/html/       # Browse all HTML files for that date
+http://localhost:8080/2025-xx-xx/               # Access reports for specific date
+http://localhost:8080/2025-xx-xx/html/          # Browse all HTML files for that date
 
 # Method 2: Direct file access (local environment)
 open ./output/index.html             # macOS
@@ -2267,7 +2368,7 @@ start ./output/index.html            # Windows
 xdg-open ./output/index.html         # Linux
 
 # Method 3: Access historical archives
-open ./output/2025年xx月xx日/html/当日汇总.html
+open ./output/2025-xx-xx/html/当日汇总.html
 ```
 
 **Why two index.html files?**
@@ -2324,10 +2425,20 @@ flowchart TB
 Use docker compose to start both news push and MCP services:
 
 ```bash
-# Download latest docker compose.yml (includes MCP service config)
-wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker compose.yml
+# Method 1: Clone project (Recommended)
+git clone https://github.com/sansan0/TrendRadar.git
+cd TrendRadar/docker
+docker compose up -d
 
-# Start all services
+# Method 2: Download docker-compose.yml separately
+mkdir trendradar && cd trendradar
+wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker-compose.yml
+wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/.env
+mkdir -p config output
+# Download config files
+wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/config.yaml -P config/
+wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/frequency_words.txt -P config/
+# Modify volume paths in docker-compose.yml: ../config -> ./config, ../output -> ./output
 docker compose up -d
 
 # Check running status
@@ -2337,18 +2448,29 @@ docker ps | grep trend-radar
 **Start MCP Service Separately**:
 
 ```bash
+# Linux/Mac
 docker run -d --name trend-radar-mcp \
   -p 127.0.0.1:3333:3333 \
-  -v ./config:/app/config:ro \
-  -v ./output:/app/output:ro \
+  -v $(pwd)/config:/app/config:ro \
+  -v $(pwd)/output:/app/output:ro \
   -e TZ=Asia/Shanghai \
   wantcat/trendradar-mcp:latest
+
+# Windows PowerShell
+docker run -d --name trend-radar-mcp `
+  -p 127.0.0.1:3333:3333 `
+  -v ${PWD}/config:/app/config:ro `
+  -v ${PWD}/output:/app/output:ro `
+  -e TZ=Asia/Shanghai `
+  wantcat/trendradar-mcp:latest
 ```
+
+> ⚠️ **Note**: Ensure `config/` and `output/` folders exist in current directory with config files and news data before running.
 
 **Verify Service**:
 
 ```bash
-# Check if MCP service is running properly
+# Check MCP service health
 curl http://127.0.0.1:3333/mcp
 
 # View MCP service logs
@@ -2357,14 +2479,20 @@ docker logs -f trend-radar-mcp
 
 **Configure in AI Clients**:
 
-After MCP service starts, configure in Claude Desktop, Cherry Studio, Cursor, etc.:
+After MCP service starts, configure based on your client:
 
+**Cherry Studio** (Recommended, GUI config):
+- Settings → MCP Server → Add
+- Type: `streamableHttp`
+- URL: `http://127.0.0.1:3333/mcp`
+
+**Claude Desktop / Cline** (JSON config):
 ```json
 {
   "mcpServers": {
     "trendradar": {
       "url": "http://127.0.0.1:3333/mcp",
-      "description": "TrendRadar News Trending Analysis"
+      "type": "streamableHttp"
     }
   }
 }
@@ -2452,7 +2580,6 @@ notification:
       start: "20:00"                  # Start time (Beijing time)
       end: "22:00"                    # End time (Beijing time)
     once_per_day: true                # Push only once per day
-    push_record_retention_days: 7     # Push record retention days
 ```
 
 #### Configuration Details
@@ -2463,7 +2590,6 @@ notification:
 | `time_range.start` | string | `"20:00"` | Push window start time (Beijing time, HH:MM format) |
 | `time_range.end` | string | `"22:00"` | Push window end time (Beijing time, HH:MM format) |
 | `once_per_day` | bool | `true` | `true`=push only once per day within window, `false`=push every execution within window |
-| `push_record_retention_days` | int | `7` | Push record retention days (used to determine if already pushed) |
 
 #### Use Cases
 
@@ -2487,7 +2613,6 @@ PUSH_WINDOW_ENABLED=true
 PUSH_WINDOW_START=09:00
 PUSH_WINDOW_END=18:00
 PUSH_WINDOW_ONCE_PER_DAY=false
-PUSH_WINDOW_RETENTION_DAYS=7
 ```
 
 #### Complete Configuration Examples
@@ -2502,7 +2627,6 @@ notification:
       start: "20:00"
       end: "22:00"
     once_per_day: true
-    push_record_retention_days: 7
 ```
 
 **Scenario: Push every hour during working hours**
@@ -2515,7 +2639,6 @@ notification:
       start: "09:00"
       end: "18:00"
     once_per_day: false
-    push_record_retention_days: 7
 ```
 
 </details>
@@ -2806,6 +2929,207 @@ notification:
 - Or only use in local development environment, **never commit to public repositories**
 
 </details>
+
+</details>
+
+<br>
+
+### 11. Storage Configuration (v4.0.0 New)
+
+<details>
+<summary>👉 Click to expand: <strong>Storage Configuration Guide</strong></summary>
+<br>
+
+#### Storage Backend Selection
+
+TrendRadar v4.0.0 introduces **multi-backend storage architecture**, supporting automatic backend selection or manual specification:
+
+| Configuration Value | Description | Applicable Scenarios |
+|---------------------|-------------|---------------------|
+| `auto` (default) | Auto-select backend: GitHub Actions→R2, other environments→Local | Most users (recommended) |
+| `local` | Force use of local SQLite | Docker/local deployment |
+| `r2` | Force use of Cloudflare R2 | Cloud storage required |
+
+**Configuration Location**:
+- GitHub Actions: Set `STORAGE_BACKEND` environment variable in GitHub Secrets
+- Docker: Configure `STORAGE_BACKEND=local` in `.env` file
+- Local: Add `STORAGE_BACKEND` in environment variables or use auto mode
+
+---
+
+#### Database Structure Optimization (v4.0.0)
+
+v4.0.0 made significant optimizations to database structure, removing redundant fields and improving data normalization:
+
+##### 1. Removed Redundant Fields
+
+Removed the following redundant fields from `news` table:
+
+| Field Name | Removal Reason | Alternative |
+|------------|----------------|------------|
+| `source_name` | Duplicate with platform name | Get via `platforms` table JOIN query |
+| `crawl_date` | Duplicate with file path date | Infer from file path timestamp |
+
+**Migration Notes**: Old databases are incompatible, see [Breaking Changes](#breaking-changes-v400) section
+
+##### 2. New Platforms Table
+
+Added `platforms` table for unified management of platform information:
+
+```sql
+CREATE TABLE IF NOT EXISTS platforms (
+    id TEXT PRIMARY KEY,     -- Platform ID (immutable, e.g., 'zhihu', 'weibo')
+    name TEXT NOT NULL,      -- Platform display name (mutable, e.g., 'Zhihu', 'Weibo')
+    enabled INTEGER DEFAULT 1 -- Whether enabled (1=enabled, 0=disabled)
+);
+```
+
+**Design Advantages**:
+- `id` field is immutable, maintains data consistency
+- `name` field is mutable, supports internationalization and customization
+- Historical data remains valid when modifying platform names
+
+##### 3. Crawl Source Status Normalization
+
+Replaced original comma-separated string storage `successful_sources` field with normalized `crawl_source_status` table:
+
+```sql
+CREATE TABLE IF NOT EXISTS crawl_source_status (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_path TEXT NOT NULL,           -- File path (e.g., 'output/2025-12-09/news.db')
+    platform_id TEXT NOT NULL,         -- Platform ID (foreign key to platforms.id)
+    success INTEGER NOT NULL,          -- Whether crawl succeeded (1=success, 0=failed)
+    crawl_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (platform_id) REFERENCES platforms(id)
+);
+```
+
+**Design Advantages**:
+- Supports efficient SQL queries (e.g., calculate success rate by platform)
+- Easy statistics and analysis (no string splitting required)
+- Normalized structure, avoids data redundancy
+
+##### 4. File Path Format Standardization
+
+**Old Format**: `output/2025年12月09日/news_14-30.txt`
+**New Format**: `output/2025-12-09/news.db`
+
+**Changes**:
+- Date format: Chinese format → ISO 8601 standard format
+- Filename: Multiple time-stamped TXT files → single SQLite database file
+- Extension: `.txt` → `.db`
+
+**Advantages**:
+- Cross-platform compatibility (avoids Chinese path issues)
+- Easier programmatic parsing
+- International standard, better maintainability
+
+---
+
+#### Remote Cloud Storage Configuration
+
+When using remote cloud storage (required for GitHub Actions environment), configure the following environment variables:
+
+| Environment Variable | Description | Required | Example Value |
+|----------------------|-------------|----------|--------------|
+| `S3_BUCKET_NAME` | Bucket name | ✅ Yes | `trendradar-data` |
+| `S3_ACCESS_KEY_ID` | Access key ID | ✅ Yes | `abc123...` |
+| `S3_SECRET_ACCESS_KEY` | Access key | ✅ Yes | `xyz789...` |
+| `S3_ENDPOINT_URL` | S3 API endpoint | ✅ Yes | `https://<account-id>.r2.cloudflarestorage.com` |
+| `S3_REGION` | Region (optional) | ❌ No | `auto` |
+
+**Configuration Method**:
+- GitHub Actions: Configure in GitHub Secrets (see [Quick Start - Remote Storage Configuration](#2-setup-github-secrets-required--optional-platforms))
+- Docker/Local: Configure in `.env` file (remote storage is optional)
+
+---
+
+#### Data Cleanup Strategy
+
+v4.0.0 added automatic data cleanup feature, supporting scheduled cleanup of old data:
+
+**Configuration Items**: `LOCAL_RETENTION_DAYS` and `REMOTE_RETENTION_DAYS`
+
+| Configuration Value | Description |
+|---------------------|-------------|
+| `0` (default) | Disable cleanup, keep all data |
+| Positive integer (e.g., `30`) | Only keep recent N days of data, auto-delete old data |
+
+**Configuration Method**:
+```bash
+# GitHub Actions: Configure in GitHub Secrets
+LOCAL_RETENTION_DAYS=30
+REMOTE_RETENTION_DAYS=30
+
+# Docker: Configure in .env file
+LOCAL_RETENTION_DAYS=30
+REMOTE_RETENTION_DAYS=30
+
+# Local: Add to environment variables
+export LOCAL_RETENTION_DAYS=30
+```
+
+**Cleanup Rules**:
+- Cleanup executes during each crawl task
+- Local: Deletes `output/YYYY-MM-DD/` directories older than N days
+- Remote: Deletes cloud objects older than N days (e.g., `news/2025-11-10.db`)
+
+---
+
+#### Timezone Configuration
+
+v4.0.0 added timezone configuration support, using IANA standard time zone names:
+
+**Configuration Item**: `TIMEZONE`
+
+| Configuration Value | Description | Example |
+|---------------------|-------------|---------|
+| Not set (default) | Use UTC+0 | - |
+| IANA time zone name | Specify time zone | `Asia/Shanghai`, `America/New_York`, `Europe/London` |
+
+**Configuration Method**:
+```bash
+# GitHub Actions: Configure in GitHub Secrets
+TIMEZONE=Asia/Shanghai
+
+# Docker: Configure in .env file
+TIMEZONE=Asia/Shanghai
+
+# Local: Add to environment variables
+export TIMEZONE=Asia/Shanghai
+```
+
+**Common IANA Time Zones**:
+- China: `Asia/Shanghai`
+- United States East: `America/New_York`
+- United States West: `America/Los_Angeles`
+- United Kingdom: `Europe/London`
+- Japan: `Asia/Tokyo`
+
+---
+
+#### Breaking Changes (v4.0.0)
+
+**⚠️ Important Notice**: v4.0.0 made breaking changes to database structure, **old databases are incompatible**
+
+**Impact**:
+- Cannot directly read v3.x version data
+- Need to re-crawl data to build new database
+- **No automatic migration tool provided**
+
+**Recommendations**:
+1. **Fresh Start**: Recommended to start from scratch to accumulate data
+2. **Keep Historical Data**: If need to preserve v3.x historical data, can rename old `output/` directory (e.g., `output_v3_backup/`) before running new version
+
+**Data Format Comparison**:
+
+| Item | v3.x | v4.0.0 |
+|------|------|--------|
+| File path format | `output/2025年12月09日/` | `output/2025-12-09/` |
+| Data file | Multiple `news_HH-MM.txt` files | Single `news.db` file |
+| Database fields | Contains `source_name`, `crawl_date` | Removed redundant fields |
+| Platform management | No independent table | Added `platforms` table |
+| Crawl status | Comma-separated string | Normalized `crawl_source_status` table |
 
 </details>
 

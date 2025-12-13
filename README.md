@@ -1,6 +1,6 @@
 <div align="center" id="trendradar">
 
-> **📢 公告：** 经与 GitHub 官方沟通，完成合规调整后将恢复"一键 Fork 部署"，请关注 **v4.0.0** 版本的更新
+> **📢 公告：** **v4.0.0** 版本已发布！包含存储架构重构、数据库优化、模块化改进等重大更新
 
 <a href="https://github.com/sansan0/TrendRadar" title="TrendRadar">
   <img src="/_image/banner.webp" alt="TrendRadar Banner" width="80%">
@@ -16,8 +16,8 @@
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.5.0-blue.svg)](https://github.com/sansan0/TrendRadar)
-[![MCP](https://img.shields.io/badge/MCP-v1.0.3-green.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v4.0.0-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![MCP](https://img.shields.io/badge/MCP-v1.1.0-green.svg)](https://github.com/sansan0/TrendRadar)
 
 [![企业微信通知](https://img.shields.io/badge/企业微信-通知-00D4AA?style=flat-square)](https://work.weixin.qq.com/)
 [![个人微信通知](https://img.shields.io/badge/个人微信-通知-00D4AA?style=flat-square)](https://weixin.qq.com/)
@@ -48,62 +48,61 @@
 <br>
 
 <details>
-<summary>🚨 <strong>【必读】重要公告：本项目的正确部署姿势</strong></summary>
+<summary>🚨 <strong>【必读】重要公告：v4.0.0 部署方式与存储架构变更</strong></summary>
 
 <br>
 
-> **⚠️ 2025年12月紧急通知**
->
-> 由于 Fork 数量激增导致 GitHub 服务器压力过大，**GitHub Actions 及 GitHub Pages 部署目前已受限**。为确保顺利部署，请务必阅读以下说明。
+### 🛠️ 请选择适合你的部署方式
 
-### 1. ✅ 唯一推荐部署方式：Docker
+#### 🅰️ 方案一：Docker 部署（推荐 🔥）
 
-**这是目前最稳定、不受 GitHub 限制的方案。** 数据存储在本地，不会因为 GitHub 策略调整而失效。
+* **特点**：最稳定、最简单，数据存储在 **本地 SQLite**，完全自主可控。
+
+* **适用**：有自己的服务器、NAS 或长期运行的电脑。
 
 * 👉 [跳转到 Docker 部署教程](#6-docker-部署)
 
 ---
 
-### 2. 如果你本打算 Fork 本项目...
+#### 🅱️ 方案二：GitHub Actions 部署（已恢复 ✅）
 
-为了减少对 GitHub 服务器的压力，**请千万不要直接点击 "Fork" 按钮！**
+* **特点**：数据不再直接写入仓库（Git Commit），而是存储在 **远程云存储**（支持 S3 兼容协议：Cloudflare R2、阿里云 OSS、腾讯云 COS 等）。
 
-请务必使用 **"Use this template"** 功能来替代 Fork：
+* **门槛**：**必须**配置一个 S3 兼容的对象存储服务（推荐免费的 Cloudflare R2）。
 
-1.  **点击**原仓库页面右上角的绿色的 **[Use this template]** 按钮。
+> **⚠️ 注意**：选择此方案，请务必执行以下两步配置：
+
+#### 1. 🚀 推荐的开始方式：Use this template
+
+为了保持仓库整洁，避免继承冗余的历史记录，我**建议**你使用 Template 模式：
+
+1.  **点击**原仓库页面右上角的绿色 **[Use this template]** 按钮。
+
 2.  **选择** "Create a new repository"。
 
-**为什么要这样做？**
-* **❌ Fork**：复制完整历史记录，大量 Fork 同时运行会触发 GitHub 风控。
-* **✅ Use this template**：创建的是一个全新的独立仓库，没有历史包袱，对服务器更友好。
+> **💡 为什么要这样做？**
+> * **Use this template**：创建一个全新的、干净的仓库，没有历史包袱。
+> * **Fork**：会保留完整的提交历史和关联关系，占用 GitHub 更多资源。
 
----
+#### 2. ☁️ 关于 GitHub Actions 必配的远程存储
 
-### 3. 关于新版数据存储的说明
+如果你选择 **方案二 (GitHub Actions)**，则必须配置一个 S3 兼容的对象存储服务。
 
-新版将使用 **Cloudflare R2** 存储新闻数据，以保证持久化。
+**支持的存储服务：**
+- **Cloudflare R2**（推荐，免费额度充足）
+- 其他 S3 兼容服务
 
-**⚠️ 配置前置条件：**
+**⚠️ 以 Cloudflare R2 为例的配置前置条件：**
 
 根据 Cloudflare 平台规则，开通 R2 需绑定支付方式。
 
-- **目的：** 仅作身份验证（Verify Only），不产生扣费。
-- **支付：** 支持信用卡或国区 PayPal。
-- **用量：** R2 的免费额度足以覆盖本项目日常运行，无需付费。
+* **目的**：仅作身份验证（Verify Only），**不产生扣费**。
 
----
+* **支付**：支持双币信用卡或国区 PayPal。
 
-### 4. 📅 后续计划与文档阅读说明
+* **用量**：R2 的免费额度（10GB存储/月）足以覆盖本项目日常运行，无需担心付费。
 
-> **后续计划：**
-> - 探索新方案：保留 Actions 用于抓取和推送，但不再将数据保存到仓库，改用外部存储。
-
-**⚠️ 阅读注意：**
-鉴于上述计划意味着 **Fork 部署模式未来可能会以新形式回归**，且当前全面修改文档工作量巨大，我们暂时保留了旧版描述。
-
-**在当前阶段，若后续教程中仍出现 "Fork" 相关表述，请一律忽略或将其理解为 "Use this template"**。
-
-👉 **[点击此处查看 TrendRadar 最新官方文档](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)**
+👉 **[点击查看详细配置教程](#-快速开始)**
 
 </details>
 
@@ -335,10 +334,30 @@
 - ⚠️ **配对配置**：Telegram 和 ntfy 需要保证配对参数数量一致（如 token 和 chat_id 都是 2 个）
 - ⚠️ **数量限制**：默认每个渠道最多 3 个账号，超出会被截断
 
-### **多端适配**
-- **GitHub Pages**：自动生成精美网页报告，PC/移动端适配
-- **Docker部署**：支持多架构容器化运行
-- **数据持久化**：HTML/TXT多格式历史记录保存
+### **灵活存储架构**（v4.0.0 重大更新）
+
+**多存储后端支持**：
+- ☁️ **远程云存储**：GitHub Actions 环境默认，支持 S3 兼容协议（R2/OSS/COS 等），数据存储在云端，不污染仓库
+- 💾 **本地 SQLite 数据库**：Docker/本地环境默认，数据完全可控
+- 🔄 **自动后端选择**：根据运行环境智能切换存储方式
+
+**数据格式**：
+| 格式 | 用途 | 说明 |
+|------|------|------|
+| **SQLite** | 主存储 | 单文件数据库，查询快速，支持 MCP AI 分析 |
+| **TXT** | 可选快照 | 可读文本格式，方便直接查看 |
+| **HTML** | 报告展示 | 精美可视化页面，PC/移动端适配 |
+
+**数据管理**：
+- ✅ 自动清理过期数据（可配置保留天数）
+- ✅ 时区配置支持（全球时区）
+
+> 💡 详细说明见 [配置详解 - 存储配置](#9-存储配置)
+
+### **多端部署**
+- **GitHub Actions**：定时自动爬取 + 远程云存储（需签到续期）
+- **Docker 部署**：支持多架构容器化运行，数据本地存储
+- **本地运行**：Windows/Mac/Linux 直接运行
 
 
 ### **AI 智能分析（v3.0.0 新增）**
@@ -389,8 +408,32 @@ GitHub 一键 Fork 即可使用，无需编程基础。
 >**升级说明**：
 - **📌 查看最新更新**：**[原仓库更新日志](https://github.com/sansan0/TrendRadar?tab=readme-ov-file#-更新日志)**
 - **提示**：不要通过 **Sync fork** 更新本项目，建议查看【历史更新】，明确具体的【升级方式】和【功能内容】
-- **小版本更新**：从 v2.x 升级到 v2.y，用本项目的 `main.py` 代码替换你 fork 仓库中的对应文件
 - **大版本升级**：从 v1.x 升级到 v2.y，建议删除现有 fork 后重新 fork，这样更省力且避免配置冲突
+
+
+### 2025/12/13 - v4.0.0
+
+**🎉 重大更新：全面重构存储和核心架构**
+
+- **多存储后端支持**：引入全新的存储模块，支持本地 SQLite 和远程云存储（S3 兼容协议，推荐免费的 Cloudflare R2），适应 GitHub Actions、Docker 和本地环境。
+- **数据库结构优化**：重构 SQLite 数据库表结构，提升数据效率和查询能力。
+- **核心代码模块化**：将主程序逻辑拆分为 trendradar 包的多个模块，显著提升代码可维护性。
+- **增强功能**：实现日期格式标准化、数据保留策略、时区配置支持、时间显示优化，并修复远程存储数据持久化问题，确保数据合并的准确性。
+- **清理和兼容**：移除了大部分历史兼容代码，统一了数据存储和读取方式。
+
+
+### 2025/12/13 - mcp-v1.1.0
+
+  **MCP 模块更新:**
+  - 适配 v4.0.0，同时也兼容 v3.x 的数据
+  - 新增存储同步工具：
+    - `sync_from_remote`: 从远程存储拉取数据到本地
+    - `get_storage_status`: 获取存储配置和状态
+    - `list_available_dates`: 列出本地/远程可用日期范围
+
+
+<details>
+<summary>👉 点击展开：<strong>历史更新</strong></summary>
 
 
 ### 2025/12/03 - v3.5.0
@@ -454,10 +497,6 @@ GitHub 一键 Fork 即可使用，无需编程基础。
   - 新增日期解析工具 resolve_date_range,解决 AI 模型计算日期不一致的问题
   - 支持自然语言日期表达式解析(本周、最近7天、上月等)
   - 工具总数从 13 个增加到 14 个
-
-
-<details>
-<summary>👉 点击展开：<strong>历史更新</strong></summary>
 
 
 ### 2025/11/28 - v3.4.1
@@ -857,11 +896,44 @@ frequency_words.txt 文件增加了一个【必须词】功能，使用 + 号
 
 > **📖 提醒**：Fork 用户建议先 **[查看最新官方文档](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)**，确保配置步骤是最新的。
 
+### ⚠️ GitHub Actions 使用说明
+
+**v4.0.0 重要变更**：引入「活跃度检测」机制，GitHub Actions 需定期签到以维持运行。
+
+#### 🔄 签到续期机制
+
+- **运行周期**：有效期为 **7 天**，倒计时结束后服务将自动挂起。
+- **续期方式**：在 Actions 页面手动触发 "Check In" workflow，即可重置 7 天有效期。
+- **操作路径**：`Actions` → `Check In` → `Run workflow`
+- **设计理念**：
+    - 如果 7 天都忘了签到，或许这些资讯对你来说并非刚需。适时的暂停，能帮你从信息流中抽离，给大脑留出喘息的空间。
+    - GitHub Actions 是宝贵的公共计算资源。引入签到机制旨在避免算力的无效空转，确保资源能分配给真正活跃且需要的用户。感谢你的理解与支持。
+
+#### 📦 数据存储（必需配置）
+
+GitHub Actions 环境下，数据存储在 **远程云存储**（支持 S3 兼容协议，推荐免费的 Cloudflare R2），不会污染仓库（见下方 **必需配置：远程云存储**）
+
+#### 🚀 推荐：Docker 部署
+
+如需长期稳定运行，建议使用 [Docker 部署](#6-docker-部署)，数据存储在本地，无需签到，不过需要额外付费购买云服务器。
+
+<br>
+
+> 🎉 **已支持：多云存储方案**
+>
+> 本项目现已支持 S3 兼容协议，你可以选择：
+> - **Cloudflare R2**（推荐，免费额度充足）
+> - 其他 S3 兼容存储服务
+>
+> 只需配置对应的 `S3_ENDPOINT_URL`、`S3_BUCKET_NAME` 等环境变量即可切换。
+
+---
+
 1. **Fork 本项目**到你的 GitHub 账户
 
    - 点击本页面右上角的"Fork"按钮
 
-2. **设置 GitHub Secrets（选择你需要的平台）**:
+2. **设置 GitHub Secrets（必需 + 可选平台）**:
 
    在你 Fork 后的仓库中，进入 `Settings` > `Secrets and variables` > `Actions` > `New repository secret`
 
@@ -900,6 +972,53 @@ frequency_words.txt 文件增加了一个【必须词】功能，使用 + 号
 
    <br>
 
+   <details>
+   <summary>⚠️ <strong>必需配置：远程云存储</strong>（GitHub Actions 环境必需，推荐 Cloudflare R2）</summary>
+   <br>
+
+    **GitHub Secret 配置（⚠️ 以下 4 个配置项都是必需的）：**
+
+    | Name（名称） | Secret（值）说明 |
+    |-------------|-----------------|
+    | `S3_BUCKET_NAME` | 存储桶名称（如 `trendradar-data`） |
+    | `S3_ACCESS_KEY_ID` | 访问密钥 ID（Access Key ID） |
+    | `S3_SECRET_ACCESS_KEY` | 访问密钥（Secret Access Key） |
+    | `S3_ENDPOINT_URL` | S3 API 端点（如 R2：`https://<account-id>.r2.cloudflarestorage.com`） |
+
+    <br>
+
+    **如何获取凭据（以 Cloudflare R2 为例）：**
+
+    1. **进入 R2 概览**：
+    - 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)。
+    - 在左侧侧边栏找到并点击 `R2对象存储`。
+
+    <br>
+
+    2. **创建存储桶**：
+    - 点击`概述`
+    - 点击右上角的 `创建存储桶` (Create bucket)。
+    - 输入名称（例如 `trendradar-data`），点击 `创建存储桶`。
+
+    <br>
+
+    3. **创建 API 令牌**：
+    - 回到 **概述**页面。
+    - 点击**右下角** `Account Details `找到并点击 `Manage` (Manage R2 API Tokens)。
+    - 同时你会看到 `S3 API`：`https://<account-id>.r2.cloudflarestorage.com`(这就是 S3_ENDPOINT_URL)
+    - 点击 `创建 Account APl 令牌` 。
+    - **⚠️ 关键设置**：
+        - **令牌名称**：随意填写（如 `github-action-write`）。
+        - **权限**：选择 `管理员读和写` 。
+        - **指定存储桶**：为了安全，建议选择 `仅适用于指定存储桶` 并选中你的桶（如 `trendradar-data`）。
+    - 点击 `创建 API 令牌`，**立即复制** 显示的 `Access Key ID` 和 `Secret Access Key`（只显示一次！）。
+
+    <br>
+
+    - **R2 免费额度**：每月 10GB 存储 + 100万次读取，对本项目来说非常充足。
+    - **支付验证**：开通 R2 即使是免费额度，Cloudflare 也要求绑定 PayPal 或信用卡进行身份验证（不会实际扣费，除非超过额度）。
+
+   </details>
 
    <details>
    <summary>👉 点击展开：<strong>企业微信机器人</strong>（配置最简单最迅速）</summary>
@@ -1489,10 +1608,11 @@ frequency_words.txt 文件增加了一个【必须词】功能，使用 + 号
 
    **测试步骤**：
    1. 进入你项目的 Actions 页面
-   2. 找到 **"Hot News Crawler"** 点进去
+   2. 找到 **"Get Hot News"**(必须得是这个字)点进去，点击右侧的 **"Run workflow"** 按钮运行 
       - 如果看不到该字样，参照 [#109](https://github.com/sansan0/TrendRadar/issues/109) 解决
-   3. 点击右侧的 **"Run workflow"** 按钮运行
-   4. 等待 1 分钟左右，消息会推送到你配置的平台
+   3. 3 分钟左右，消息会推送到你配置的平台
+
+   <br>
 
    > ⏱️ **测试提示**：
    > - 手动测试不要太频繁，避免触发 GitHub Actions 限制
@@ -2069,7 +2189,7 @@ TrendRadar 提供两个独立的 Docker 镜像，可根据需求选择部署：
 
    # 下载 docker compose 配置
    wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/.env  -P docker/
-   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker compose.yml  -P docker/
+   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker-compose.yml  -P docker/
    ```
 
    > 💡 **说明**：Docker 部署需要的关键目录结构如下：
@@ -2080,7 +2200,7 @@ TrendRadar 提供两个独立的 Docker 镜像，可根据需求选择部署：
 │   └── frequency_words.txt
 └── docker/
     ├── .env
-    └── docker compose.yml
+    └── docker-compose.yml
 ```
 
 2. **配置文件说明**:
@@ -2174,7 +2294,7 @@ vim config/frequency_words.txt
 
 # 使用构建版本的 docker compose
 cd docker
-cp docker compose-build.yml docker compose.yml
+cp docker-compose-build.yml docker-compose.yml
 ```
 
 **构建并启动服务**：
@@ -2260,7 +2380,7 @@ docker rm trend-radar
 
 > 💡 **Web 服务器说明**：
 > - 启动后可通过浏览器访问 `http://localhost:8080` 查看最新报告
-> - 通过目录导航访问历史报告（如：`http://localhost:8080/2025年xx月xx日/`）
+> - 通过目录导航访问历史报告（如：`http://localhost:8080/2025-xx-xx/`）
 > - 端口可在 `.env` 文件中配置 `WEBSERVER_PORT` 参数
 > - 自动启动：在 `.env` 中设置 `ENABLE_WEBSERVER=true`
 > - 安全提示：仅提供静态文件访问，限制在 output 目录，只绑定本地访问
@@ -2277,7 +2397,7 @@ TrendRadar 生成的当日汇总 HTML 报告会同时保存到两个位置：
 |---------|---------|---------|
 | `output/index.html` | 宿主机直接访问 | **Docker 部署**（通过 Volume 挂载，宿主机可见） |
 | `index.html` | 根目录访问 | **GitHub Pages**（仓库根目录，Pages 自动识别） |
-| `output/YYYY年MM月DD日/html/当日汇总.html` | 历史报告访问 | 所有环境（按日期归档） |
+| `output/YYYY-MM-DD/html/当日汇总.html` | 历史报告访问 | 所有环境（按日期归档） |
 
 **本地访问示例**：
 ```bash
@@ -2286,8 +2406,8 @@ TrendRadar 生成的当日汇总 HTML 报告会同时保存到两个位置：
 docker exec -it trend-radar python manage.py start_webserver
 # 2. 在浏览器访问
 http://localhost:8080                           # 访问最新报告（默认 index.html）
-http://localhost:8080/2025年xx月xx日/            # 访问指定日期的报告
-http://localhost:8080/2025年xx月xx日/html/       # 浏览该日期下的所有 HTML 文件
+http://localhost:8080/2025-xx-xx/               # 访问指定日期的报告
+http://localhost:8080/2025-xx-xx/html/          # 浏览该日期下的所有 HTML 文件
 
 # 方式 2：直接打开文件（本地环境）
 open ./output/index.html             # macOS
@@ -2295,7 +2415,7 @@ start ./output/index.html            # Windows
 xdg-open ./output/index.html         # Linux
 
 # 方式 3：访问历史归档
-open ./output/2025年xx月xx日/html/当日汇总.html
+open ./output/2025-xx-xx/html/当日汇总.html
 ```
 
 **为什么有两个 index.html？**
@@ -2349,34 +2469,42 @@ flowchart TB
 
 **快速启动**：
 
-使用 docker compose 同时启动新闻推送和 MCP 服务：
+如果已按照 [方式一：使用 docker compose](#方式一使用-docker-compose推荐) 完成部署，只需启动 MCP 服务：
 
 ```bash
-# 下载最新的 docker compose.yml（已包含 MCP 服务配置）
-wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker compose.yml
-
-# 启动所有服务
-docker compose up -d
+cd TrendRadar/docker
+docker compose up -d trend-radar-mcp
 
 # 查看运行状态
-docker ps | grep trend-radar
+docker ps | grep trend-radar-mcp
 ```
 
-**单独启动 MCP 服务**：
+**单独启动 MCP 服务**（不使用 docker compose）：
 
 ```bash
+# Linux/Mac
 docker run -d --name trend-radar-mcp \
   -p 127.0.0.1:3333:3333 \
-  -v ./config:/app/config:ro \
-  -v ./output:/app/output:ro \
+  -v $(pwd)/config:/app/config:ro \
+  -v $(pwd)/output:/app/output:ro \
   -e TZ=Asia/Shanghai \
   wantcat/trendradar-mcp:latest
+
+# Windows PowerShell
+docker run -d --name trend-radar-mcp `
+  -p 127.0.0.1:3333:3333 `
+  -v ${PWD}/config:/app/config:ro `
+  -v ${PWD}/output:/app/output:ro `
+  -e TZ=Asia/Shanghai `
+  wantcat/trendradar-mcp:latest
 ```
+
+> ⚠️ **注意**：单独运行时，确保当前目录下有 `config/` 和 `output/` 文件夹，且包含配置文件和新闻数据。
 
 **验证服务**：
 
 ```bash
-# 检查 MCP 服务是否正常运行
+# 检查 MCP 服务健康状态
 curl http://127.0.0.1:3333/mcp
 
 # 查看 MCP 服务日志
@@ -2385,14 +2513,20 @@ docker logs -f trend-radar-mcp
 
 **在 AI 客户端中配置**：
 
-MCP 服务启动后，在 Claude Desktop、Cherry Studio、Cursor 等客户端中配置：
+MCP 服务启动后，根据不同客户端进行配置：
 
+**Cherry Studio**（推荐，GUI 配置）：
+- 设置 → MCP 服务器 → 添加
+- 类型：`streamableHttp`
+- URL：`http://127.0.0.1:3333/mcp`
+
+**Claude Desktop / Cline**（JSON 配置）：
 ```json
 {
   "mcpServers": {
     "trendradar": {
       "url": "http://127.0.0.1:3333/mcp",
-      "description": "TrendRadar 新闻热点分析"
+      "type": "streamableHttp"
     }
   }
 }
@@ -2480,7 +2614,6 @@ notification:
       start: "20:00"                  # 开始时间（北京时间）
       end: "22:00"                    # 结束时间（北京时间）
     once_per_day: true                # 每天只推送一次
-    push_record_retention_days: 7     # 推送记录保留天数
 ```
 
 #### 配置项详解
@@ -2491,7 +2624,6 @@ notification:
 | `time_range.start` | string | `"20:00"` | 推送时间窗口开始时间（北京时间，HH:MM 格式） |
 | `time_range.end` | string | `"22:00"` | 推送时间窗口结束时间（北京时间，HH:MM 格式） |
 | `once_per_day` | bool | `true` | `true`=每天在窗口内只推送一次，`false`=窗口内每次执行都推送 |
-| `push_record_retention_days` | int | `7` | 推送记录保留天数（用于判断是否已推送） |
 
 #### 使用场景
 
@@ -2515,7 +2647,6 @@ PUSH_WINDOW_ENABLED=true
 PUSH_WINDOW_START=09:00
 PUSH_WINDOW_END=18:00
 PUSH_WINDOW_ONCE_PER_DAY=false
-PUSH_WINDOW_RETENTION_DAYS=7
 ```
 
 #### 完整配置示例
@@ -2530,7 +2661,6 @@ notification:
       start: "20:00"
       end: "22:00"
     once_per_day: true
-    push_record_retention_days: 7
 ```
 
 **场景：工作时间内每小时推送**
@@ -2543,7 +2673,6 @@ notification:
       start: "09:00"
       end: "18:00"
     once_per_day: false
-    push_record_retention_days: 7
 ```
 
 </details>
@@ -2829,6 +2958,123 @@ notification:
 
 </details>
 
+### 11. 存储配置
+
+<details id="storage-config">
+<summary>👉 点击展开：<strong>存储架构配置详解</strong></summary>
+<br>
+
+#### 存储后端选择
+
+**配置位置**：`config/config.yaml` 的 `storage` 部分
+
+v4.0.0 版本重构了存储架构，支持多种存储后端：
+
+```yaml
+storage:
+  backend: auto  # 存储后端：auto（自动选择）/ local（本地SQLite）/ remote（远程云存储）
+
+  formats:
+    sqlite: true   # 是否启用SQLite存储
+    txt: true      # 是否生成TXT快照
+    html: true     # 是否生成HTML报告
+
+  local:
+    data_dir: "output"    # 本地存储目录
+    retention_days: 0     # 本地数据保留天数，0表示永久保留
+
+  remote:
+    endpoint_url: ""      # S3 API 端点
+    bucket_name: ""       # 存储桶名称
+    access_key_id: ""     # 访问密钥ID
+    secret_access_key: "" # 访问密钥
+    region: ""            # 区域（可选）
+    retention_days: 0     # 远程数据保留天数，0表示永久保留
+
+  pull:
+    enabled: false        # 是否启用启动时从远程拉取数据
+    days: 7               # 拉取最近N天的数据
+```
+
+#### 后端选择策略
+
+| backend 值 | 说明 | 适用场景 |
+|-----------|------|---------|
+| `auto` | **自动选择**（推荐） | 根据运行环境智能选择：<br>• GitHub Actions → Remote<br>• Docker/本地 → Local |
+| `local` | 本地 SQLite 数据库 | Docker 部署、本地开发 |
+| `remote` | 远程云存储（S3 兼容，如 Cloudflare R2） | GitHub Actions、多机器同步 |
+
+
+#### 远程云存储配置
+
+**环境变量**（推荐方式）：
+
+```bash
+# GitHub Actions / Docker 环境变量
+STORAGE_BACKEND=remote  # 或 auto
+
+# 本地/远程数据保留天数（0 表示永久保留）
+LOCAL_RETENTION_DAYS=0
+REMOTE_RETENTION_DAYS=0
+
+# S3 兼容存储配置（以 Cloudflare R2 为例）
+S3_BUCKET_NAME=your-bucket-name
+S3_ACCESS_KEY_ID=your-access-key-id
+S3_SECRET_ACCESS_KEY=your-secret-access-key
+S3_ENDPOINT_URL=https://<account-id>.r2.cloudflarestorage.com
+S3_REGION=auto
+
+# 数据拉取配置（可选，从远程同步到本地）
+PULL_ENABLED=false
+PULL_DAYS=7
+```
+
+**获取凭据**：参见 [快速开始 - 远程存储配置](#-快速开始)
+
+#### 数据清理策略
+
+**自动清理**：每次运行结束时检查并删除超过保留天数的数据。
+
+```yaml
+storage:
+  local:
+    retention_days: 30  # 本地保留最近30天数据
+  remote:
+    retention_days: 30  # 远程保留最近30天数据
+```
+
+**清理逻辑**：
+- 本地存储：删除过期日期的文件夹（如 `output/2025-11-10/`）
+- 远程存储：批量删除过期的云端对象（如 `news/2025-11-10.db`）
+
+#### 时区配置（v4.0.0 新增）
+
+**全球时区支持**：解决非中国用户推送时间窗口问题。
+
+```yaml
+app:
+  timezone: "Asia/Shanghai"  # 默认中国时区
+  # 其他示例：
+  # timezone: "America/Los_Angeles"  # 美西时间
+  # timezone: "Europe/London"        # 英国时间
+```
+
+**支持所有 IANA 时区名称**：[时区列表](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
+
+
+#### 不兼容变更
+
+⚠️ **v4.0.0 不兼容 v3.x 数据**：
+
+1. 数据库结构完全重构，无法读取旧数据
+2. 文件路径格式变更（ISO 格式）
+
+**迁移建议**：
+- 从 v4.0.0 开始重新收集数据
+- 旧数据如需保留，请手动重命名目录格式（不推荐）
+
+</details>
+
 <br>
 
 ## 🤖 AI 智能分析
@@ -2846,7 +3092,7 @@ AI 分析功能**不是**直接查询网络实时数据，而是分析你**本�
 
 #### 使用说明：
 
-1. **项目自带测试数据**：`output` 目录默认包含 **2025年11月1日～11月15日** 的新闻数据，可用于快速体验 AI 功能
+1. **项目自带测试数据**：`output` 目录默认包含 **2025-11-01～2025-11-15** 的新闻数据，可用于快速体验 AI 功能
 
 2. **查询限制**：
    - ✅ 只能查询已有日期范围内的数据（11月1-15日）

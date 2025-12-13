@@ -32,7 +32,6 @@ services:
       - PUSH_WINDOW_START=${PUSH_WINDOW_START:-}
       - PUSH_WINDOW_END=${PUSH_WINDOW_END:-}
       - PUSH_WINDOW_ONCE_PER_DAY=${PUSH_WINDOW_ONCE_PER_DAY:-}
-      - PUSH_WINDOW_RETENTION_DAYS=${PUSH_WINDOW_RETENTION_DAYS:-}
       # 通知渠道
       - FEISHU_WEBHOOK_URL=${FEISHU_WEBHOOK_URL:-}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
@@ -54,6 +53,21 @@ services:
       - BARK_URL=${BARK_URL:-}
       # Slack配置
       - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      # 存储配置
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-auto}
+      - LOCAL_RETENTION_DAYS=${LOCAL_RETENTION_DAYS:-0}
+      - REMOTE_RETENTION_DAYS=${REMOTE_RETENTION_DAYS:-0}
+      - STORAGE_TXT_ENABLED=${STORAGE_TXT_ENABLED:-true}
+      - STORAGE_HTML_ENABLED=${STORAGE_HTML_ENABLED:-true}
+      # 远程存储配置（S3 兼容协议）
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-}
+      - S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID:-}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY:-}
+      - S3_REGION=${S3_REGION:-}
+      # 数据拉取配置
+      - PULL_ENABLED=${PULL_ENABLED:-false}
+      - PULL_DAYS=${PULL_DAYS:-7}
       # 运行模式
       - CRON_SCHEDULE=${CRON_SCHEDULE:-*/5 * * * *}
       - RUN_MODE=${RUN_MODE:-cron}
@@ -71,7 +85,7 @@ services:
 
     volumes:
       - ../config:/app/config:ro
-      - ../output:/app/output:ro
+      - ../output:/app/output
 
     environment:
       - TZ=Asia/Shanghai
