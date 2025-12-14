@@ -1181,6 +1181,15 @@ For long-term stable operation, we recommend [Docker Deployment](#6-docker-deplo
    - Note: To prevent email bulk sending abuse, current bulk sending allows all recipients to see each other's email addresses.
    - If you haven't configured email sending before, not recommended to try
 
+   > ⚠️ **Important Configuration Dependency**: Email push requires HTML report file. Make sure `formats.html` is set to `true` in `config/config.yaml`:
+   > ```yaml
+   > formats:
+   >   sqlite: true
+   >   txt: false
+   >   html: true   # Must be enabled, otherwise email push will fail
+   > ```
+   > If set to `false`, email push will report error: `Error: HTML file does not exist or not provided: None`
+
    <br>
 
    **GitHub Secret Configuration (⚠️ Name must match exactly):**
