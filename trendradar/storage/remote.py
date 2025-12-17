@@ -21,11 +21,13 @@ from typing import Dict, List, Optional, Any
 
 try:
     import boto3
+    from botocore.config import Config as BotoConfig
     from botocore.exceptions import ClientError
     HAS_BOTO3 = True
 except ImportError:
     HAS_BOTO3 = False
     boto3 = None
+    BotoConfig = None
     ClientError = Exception
 
 from trendradar.storage.base import StorageBackend, NewsItem, NewsData
@@ -90,10 +92,14 @@ class RemoteStorageBackend(StorageBackend):
         self.temp_dir.mkdir(parents=True, exist_ok=True)
 
         # 初始化 S3 客户端
+        # 使用 virtual-hosted style addressing（主流）
+        s3_config = BotoConfig(s3={"addressing_style": "virtual"})
+
         client_kwargs = {
             "endpoint_url": endpoint_url,
             "aws_access_key_id": access_key_id,
             "aws_secret_access_key": secret_access_key,
+            "config": s3_config,
         }
         if region:
             client_kwargs["region_name"] = region

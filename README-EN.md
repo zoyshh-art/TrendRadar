@@ -10,8 +10,7 @@
 
 <a href="https://trendshift.io/repositories/14726" target="_blank"><img src="https://trendshift.io/api/badge/repositories/14726" alt="sansan0%2FTrendRadar | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-<a href="https://share.302.ai/mEOUzG" target="_blank" title="One-stop AI Models & APIs Platform"><img src="_image/302ai.png" alt="302.AI logo" height="50"/></a>
-<a href="https://shandianshuo.cn" target="_blank" title="AI Voice Input, 4x Faster Than Typing ⚡"><img src="_image/shandianshuo.png" alt="FlashSpeak logo" height="51"/></a>
+<a href="https://shandianshuo.cn" target="_blank" title="AI Voice Input, 4x Faster Than Typing ⚡"><img src="_image/shandianshuo.png" alt="FlashSpeak logo" height="55"/></a>
 
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
@@ -365,14 +364,10 @@ Transform from "algorithm recommendation captivity" to "actively getting the inf
 - **Major Version Upgrade**: Upgrading from v1.x to v2.y, recommend deleting existing fork and re-forking to save effort and avoid config conflicts
 
 
-### 2025/12/13 - v4.0.0
+### 2025/12/17 - v4.0.1
 
-**🎉 Major Update: Comprehensive Refactoring of Storage and Core Architecture**
-
-- **Multi-Storage Backend Support**: Introduced a brand new storage module supporting local SQLite and remote cloud storage (S3-compatible protocols, Cloudflare R2 recommended for free tier), adaptable to GitHub Actions, Docker, and local environments.
-- **Database Structure Optimization**: Refactored SQLite database table structures to improve data efficiency and query performance.
-- **Enhanced Features**: Implemented date format standardization, data retention policies, timezone configuration support, and optimized time display. Fixed remote storage data persistence issues to ensure accurate data merging.
-- **Cleanup and Compatibility**: Removed most legacy compatibility code and unified data storage and retrieval methods.
+- StorageManager adds push record proxy methods
+- S3 client switches to virtual-hosted style for better compatibility (supports Tencent Cloud COS and more services)
 
 ### 2025/12/13 - mcp-v1.1.0
 
@@ -386,6 +381,16 @@ Transform from "algorithm recommendation captivity" to "actively getting the inf
 
 <details>
 <summary>👉 Click to expand: <strong>Historical Updates</strong></summary>
+
+
+### 2025/12/13 - v4.0.0
+
+**🎉 Major Update: Comprehensive Refactoring of Storage and Core Architecture**
+
+- **Multi-Storage Backend Support**: Introduced a brand new storage module supporting local SQLite and remote cloud storage (S3-compatible protocols, Cloudflare R2 recommended for free tier), adaptable to GitHub Actions, Docker, and local environments.
+- **Database Structure Optimization**: Refactored SQLite database table structures to improve data efficiency and query performance.
+- **Enhanced Features**: Implemented date format standardization, data retention policies, timezone configuration support, and optimized time display. Fixed remote storage data persistence issues to ensure accurate data merging.
+- **Cleanup and Compatibility**: Removed most legacy compatibility code and unified data storage and retrieval methods.
 
 
 ### 2025/12/03 - v3.5.0
@@ -878,16 +883,6 @@ In GitHub Actions environment, data is stored in **Remote Cloud Storage** (suppo
 #### 🚀 Recommended: Docker Deployment
 
 For long-term stable operation, we recommend [Docker Deployment](#6-docker-deployment), with data stored locally and no check-in required—though it does require purchasing a cloud server.
-
-<br>
-
-> 🎉 **Now Supported: Multi-Cloud Storage Options**
->
-> This project now supports S3-compatible protocols. You can choose:
-> - **Cloudflare R2** (Recommended, generous free tier)
-> - Other S3-compatible storage services
->
-> Simply configure the corresponding `S3_ENDPOINT_URL`, `S3_BUCKET_NAME` and other environment variables to switch.
 
 ---
 
@@ -3196,7 +3191,7 @@ Cherry Studio provides GUI config interface, 5-minute quick deployment, complex 
 
 > 💡 **Tip**: Actually not recommended to ask multiple questions at once. If your chosen AI model cannot even sequentially call as shown below, suggest switching models.
 
-<img src="/_image/ai3.png" alt="MCP usage effect" width="600">
+<img src="/_image/ai2.png" alt="MCP usage effect" width="600">
 
 </details>
 
@@ -3521,51 +3516,6 @@ Any client supporting Model Context Protocol can connect to TrendRadar:
 ---
 
 ## 🪄 Sponsors
-
-### 🤖 302.AI - Enterprise AI Resource Platform
-
-> **302.AI** is a pay-as-you-go enterprise-level AI resource platform
-> Providing the latest and most comprehensive **AI models** and **APIs** on the market, plus various ready-to-use online AI applications
-
-<div align="center">
-
-[![Register & Claim](https://img.shields.io/badge/Register_302.AI-Claim_$1_Credit-8B5CF6?style=for-the-badge&logo=openai&logoColor=white)](https://share.302.ai/mEOUzG)
-<a href="https://share.302.ai/mEOUzG" target="_blank">
-  <img src="_image/banner-302ai-en.jpg" alt="302.AI" width="700"/>
-</a>
-</div>
-
-
-<details id="sponsor-tutorial">
-<summary><b>👉 Click to expand: 302.AI Usage Tutorial</b></summary>
-
-
-### Step 1: Get API Key
-
-1. After registration, go to [Management Dashboard](https://302.ai/dashboard/overview) at top right
-2. Click [API Keys](https://302.ai/apis/list) on the left
-3. Find default API KEY at page bottom, **click eye icon to view**, then copy
-   (⚠️ Note: Don't click the copy button on the far right)
-
-
-### Step 2: Configure in Cherry Studio
-
-1. Open Cherry Studio, go to settings
-2. Select **"302.AI"** as model provider
-3. Paste the API Key you just copied
-4. Click **Manage**, now you can use all supported AI models
-
-**Tip:** Cherry Studio has natively integrated 302.AI, you can see the complete model list after configuration.
-
-
-**Q: How long does $1 free credit last?**
-A: Depends on usage frequency and model selection, can run multiple test sessions.
-
-**Q: What after free credit runs out?**
-A: You can top up as needed, pay-as-you-go. Major AI model prices are now relatively affordable.
-
-</details>
-
 
 > Tracking so many trending topics daily, writing reports, replying messages making your wrists tired?
 >

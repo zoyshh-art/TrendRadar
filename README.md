@@ -10,8 +10,7 @@
 
 <a href="https://trendshift.io/repositories/14726" target="_blank"><img src="https://trendshift.io/api/badge/repositories/14726" alt="sansan0%2FTrendRadar | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-<a href="https://share.302.ai/mEOUzG" target="_blank" title="一站式 AI 模型和 API 平台"><img src="_image/302ai.png" alt="302.AI logo" height="50"/></a>
-<a href="https://shandianshuo.cn" target="_blank" title="AI 语音输入，比打字快 4 倍 ⚡"><img src="_image/shandianshuo.png" alt="闪电说 logo" height="51"/></a>
+<a href="https://shandianshuo.cn" target="_blank" title="AI 语音输入，比打字快 4 倍 ⚡"><img src="_image/shandianshuo.png" alt="闪电说 logo" height="55"/></a>
 
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
@@ -411,15 +410,11 @@ GitHub 一键 Fork 即可使用，无需编程基础。
 - **大版本升级**：从 v1.x 升级到 v2.y，建议删除现有 fork 后重新 fork，这样更省力且避免配置冲突
 
 
-### 2025/12/13 - v4.0.0
 
-**🎉 重大更新：全面重构存储和核心架构**
+### 2025/12/17 - v4.0.1
 
-- **多存储后端支持**：引入全新的存储模块，支持本地 SQLite 和远程云存储（S3 兼容协议，推荐免费的 Cloudflare R2），适应 GitHub Actions、Docker 和本地环境。
-- **数据库结构优化**：重构 SQLite 数据库表结构，提升数据效率和查询能力。
-- **核心代码模块化**：将主程序逻辑拆分为 trendradar 包的多个模块，显著提升代码可维护性。
-- **增强功能**：实现日期格式标准化、数据保留策略、时区配置支持、时间显示优化，并修复远程存储数据持久化问题，确保数据合并的准确性。
-- **清理和兼容**：移除了大部分历史兼容代码，统一了数据存储和读取方式。
+- StorageManager 添加推送记录代理方法
+- S3 客户端切换至 virtual-hosted style 以提升兼容性（支持腾讯云 COS 等更多服务）
 
 
 ### 2025/12/13 - mcp-v1.1.0
@@ -434,6 +429,17 @@ GitHub 一键 Fork 即可使用，无需编程基础。
 
 <details>
 <summary>👉 点击展开：<strong>历史更新</strong></summary>
+
+
+### 2025/12/13 - v4.0.0
+
+**🎉 重大更新：全面重构存储和核心架构**
+
+- **多存储后端支持**：引入全新的存储模块，支持本地 SQLite 和远程云存储（S3 兼容协议，推荐免费的 Cloudflare R2），适应 GitHub Actions、Docker 和本地环境。
+- **数据库结构优化**：重构 SQLite 数据库表结构，提升数据效率和查询能力。
+- **核心代码模块化**：将主程序逻辑拆分为 trendradar 包的多个模块，显著提升代码可维护性。
+- **增强功能**：实现日期格式标准化、数据保留策略、时区配置支持、时间显示优化，并修复远程存储数据持久化问题，确保数据合并的准确性。
+- **清理和兼容**：移除了大部分历史兼容代码，统一了数据存储和读取方式。
 
 
 ### 2025/12/03 - v3.5.0
@@ -916,16 +922,6 @@ GitHub Actions 环境下，数据存储在 **远程云存储**（支持 S3 兼�
 #### 🚀 推荐：Docker 部署
 
 如需长期稳定运行，建议使用 [Docker 部署](#6-docker-部署)，数据存储在本地，无需签到，不过需要额外付费购买云服务器。
-
-<br>
-
-> 🎉 **已支持：多云存储方案**
->
-> 本项目现已支持 S3 兼容协议，你可以选择：
-> - **Cloudflare R2**（推荐，免费额度充足）
-> - 其他 S3 兼容存储服务
->
-> 只需配置对应的 `S3_ENDPOINT_URL`、`S3_BUCKET_NAME` 等环境变量即可切换。
 
 ---
 
@@ -3135,7 +3131,7 @@ Cherry Studio 提供 GUI 配置界面，5 分钟快速部署，复杂的部分�
 
 > 💡 **提示**：实际不建议一次性问多个问题。如果你选择的 AI 模型连下图的按顺序调用都无法做到，建议换一个。
 
-<img src="/_image/ai3.png" alt="mcp 使用效果图" width="600">
+<img src="/_image/ai2.png" alt="mcp 使用效果图" width="600">
 
 </details>
 
@@ -3540,52 +3536,6 @@ MCP Inspector 是官方调试工具，用于测试 MCP 连接：
 
 
 ## 🪄 赞助商
-
-> **302.AI** 是按用量付费的企业级 AI 资源平台      
-> 提供市场上最新、最全面的 **AI 模型**和 **API**，以及多种开箱即用的在线 AI 应用
-
-<div align="center">
-
-[![注册领取](https://img.shields.io/badge/注册_302.AI-领取_1_美元免费测试额度-8B5CF6?style=for-the-badge&logo=openai&logoColor=white)](https://share.302.ai/mEOUzG)
-<a href="https://share.302.ai/mEOUzG" target="_blank">
-  <img src="_image/banner-302ai-zh.jpg" alt="302.AI" width="700"/>
-</a>
-</div>
-
-
-<details id="sponsor-tutorial">
-<summary>👉 点击展开：<b>302.AI 使用教程</b></summary>
-<br>
-
-> 领取的 1 美元可用于调用各种 AI 大模型（如 Claude、GPT 等）
-> 本项目 AI 分析功能需配置大模型使用，配置教程详见 [AI 智能分析](#-ai-智能分析)
-
-### 第 1 步：获取 API Key
-
-1. 注册后，进入右上角 [管理后台](https://302.ai/dashboard/overview)
-2. 点击左侧 [API Keys](https://302.ai/apis/list)
-3. 在页面下方找到默认 API KEY，**点击眼睛图标查看**，然后复制
-   （⚠️ 注意：不是点最右侧的复制按钮）
-
-
-### 第 2 步：在 Cherry Studio 中配置
-
-1. 打开 Cherry Studio，进入设置
-2. 模型提供商选择 **"302.AI"**
-3. 粘贴刚才复制的 API Key
-4. 点击**管理**，现在可以使用所有支持的 AI 模型了
-
-**提示：** Cherry Studio 已原生集成 302.AI，配置后即可看到完整模型列表。
-
-
-**Q: 1 美元免费额度能用多久？**
-A: 取决于使用频率和模型选择，可以进行多次测试体验。
-
-**Q: 免费额度用完后怎么办？**
-A: 可以按需充值，按量付费。目前大厂模型价格已相对亲民。
-
-</details>
-
 
 > 每天追踪这么多热点，写报告、回复消息是否让手腕疲惫？        
 > 试试「闪电说」AI 语音输入法 —— 用说的，比打字快 4 倍 ⚡ 。从看热点到输出内容，让效率翻倍 👇
