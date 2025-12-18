@@ -93,10 +93,15 @@ class RemoteStorageBackend(StorageBackend):
 
         # 初始化 S3 客户端
         # 使用 virtual-hosted style addressing（主流）
-        # 使用 s3 签名版本（v2），避免 s3v4 签名可能导致的 chunked encoding 问题
+        # 根据服务商选择签名版本：
+        # - Cloudflare R2 只支持 SigV4
+        # - 腾讯云 COS 等使用 SigV2 以避免 chunked encoding 问题
+        is_cloudflare_r2 = "r2.cloudflarestorage.com" in endpoint_url.lower()
+        signature_version = 's3v4' if is_cloudflare_r2 else 's3'
+
         s3_config = BotoConfig(
             s3={"addressing_style": "virtual"},
-            signature_version='s3',  # 使用 S3v2 签名，兼容性更好
+            signature_version=signature_version,
         )
 
         client_kwargs = {
@@ -114,7 +119,7 @@ class RemoteStorageBackend(StorageBackend):
         self._downloaded_files: List[Path] = []
         self._db_connections: Dict[str, sqlite3.Connection] = {}
 
-        print(f"[远程存储] 初始化完成，存储桶: {bucket_name}")
+        print(f"[远程存储] 初始化完成，存储桶: {bucket_name}，签名版本: {signature_version}")
 
     @property
     def backend_name(self) -> str:
