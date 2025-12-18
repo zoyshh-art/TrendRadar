@@ -14,9 +14,7 @@ from typing import Dict, List, Tuple, Optional
 import requests
 
 from trendradar.context import AppContext
-
-# 版本号直接定义，避免循环导入
-VERSION = "4.0.0"
+from trendradar import __version__
 from trendradar.core import load_config
 from trendradar.crawler import DataFetcher
 from trendradar.storage import convert_crawl_results_to_news_data
@@ -105,7 +103,7 @@ class NewsAnalyzer:
         # 加载配置
         print("正在加载配置...")
         config = load_config()
-        print(f"TrendRadar v{VERSION} 配置加载完成")
+        print(f"TrendRadar v{__version__} 配置加载完成")
         print(f"监控平台数量: {len(config['PLATFORMS'])}")
         print(f"时区: {config.get('TIMEZONE', 'Asia/Shanghai')}")
 
@@ -174,15 +172,15 @@ class NewsAnalyzer:
         """检查版本更新"""
         try:
             need_update, remote_version = check_version_update(
-                VERSION, self.ctx.config["VERSION_CHECK_URL"], self.proxy_url
+                __version__, self.ctx.config["VERSION_CHECK_URL"], self.proxy_url
             )
 
             if need_update and remote_version:
                 self.update_info = {
-                    "current_version": VERSION,
+                    "current_version": __version__,
                     "remote_version": remote_version,
                 }
-                print(f"发现新版本: {remote_version} (当前: {VERSION})")
+                print(f"发现新版本: {remote_version} (当前: {__version__})")
             else:
                 print("版本检查完成，当前为最新版本")
         except Exception as e:
