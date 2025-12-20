@@ -13,7 +13,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.0.2-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v4.0.3-blue.svg)](https://github.com/sansan0/TrendRadar)
 [![MCP](https://img.shields.io/badge/MCP-v1.1.0-green.svg)](https://github.com/sansan0/TrendRadar)
 
 [![企业微信通知](https://img.shields.io/badge/企业微信-通知-00D4AA?style=flat-square)](https://work.weixin.qq.com/)
@@ -377,10 +377,10 @@ GitHub 一键 Fork 即可使用，无需编程基础。
 
 
 
-### 2025/12/17 - v4.0.1
+### 2025/12/20 - v4.0.3
 
-- StorageManager 添加推送记录代理方法
-- S3 客户端切换至 virtual-hosted style 以提升兼容性（支持腾讯云 COS 等更多服务）
+- 新增 URL 标准化功能，解决微博等平台因动态参数（如 `band_rank`）导致的重复推送问题
+- 修复增量模式检测逻辑，正确识别历史标题
 
 
 ### 2025/12/13 - mcp-v1.1.0
@@ -395,6 +395,13 @@ GitHub 一键 Fork 即可使用，无需编程基础。
 
 <details>
 <summary>👉 点击展开：<strong>历史更新</strong></summary>
+
+
+
+### 2025/12/17 - v4.0.1
+
+- StorageManager 添加推送记录代理方法
+- S3 客户端切换至 virtual-hosted style 以提升兼容性（支持腾讯云 COS 等更多服务）
 
 
 ### 2025/12/13 - v4.0.0

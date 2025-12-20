@@ -214,8 +214,14 @@ class NewsAnalyzer:
         self, stats: List[Dict], new_titles: Optional[Dict] = None
     ) -> bool:
         """检查是否有有效的新闻内容"""
-        if self.report_mode in ["incremental", "current"]:
-            # 增量模式和current模式下，只要stats有内容就说明有匹配的新闻
+        if self.report_mode == "incremental":
+            # 增量模式：必须有新增标题才推送
+            has_new_titles = bool(
+                new_titles and any(len(titles) > 0 for titles in new_titles.values())
+            )
+            return has_new_titles
+        elif self.report_mode == "current":
+            # current模式：只要stats有内容就说明有匹配的新闻
             return any(stat["count"] > 0 for stat in stats)
         else:
             # 当日汇总模式下，检查是否有匹配的频率词新闻或新增新闻
@@ -227,15 +233,17 @@ class NewsAnalyzer:
 
     def _load_analysis_data(
         self,
+        quiet: bool = False,
     ) -> Optional[Tuple[Dict, Dict, Dict, Dict, List, List]]:
         """统一的数据加载和预处理，使用当前监控平台列表过滤历史数据"""
         try:
             # 获取当前配置的监控平台ID列表
             current_platform_ids = self.ctx.platform_ids
-            print(f"当前监控平台: {current_platform_ids}")
+            if not quiet:
+                print(f"当前监控平台: {current_platform_ids}")
 
             all_results, id_to_name, title_info = self.ctx.read_today_titles(
-                current_platform_ids
+                current_platform_ids, quiet=quiet
             )
 
             if not all_results:
@@ -243,9 +251,10 @@ class NewsAnalyzer:
                 return None
 
             total_titles = sum(len(titles) for titles in all_results.values())
-            print(f"读取到 {total_titles} 个标题（已按当前监控平台过滤）")
+            if not quiet:
+                print(f"读取到 {total_titles} 个标题（已按当前监控平台过滤）")
 
-            new_titles = self.ctx.detect_new_titles(current_platform_ids)
+            new_titles = self.ctx.detect_new_titles(current_platform_ids, quiet=quiet)
             word_groups, filter_words, global_filters = self.ctx.load_frequency_words()
 
             return (
@@ -293,6 +302,7 @@ class NewsAnalyzer:
         failed_ids: Optional[List] = None,
         is_daily_summary: bool = False,
         global_filters: Optional[List[str]] = None,
+        quiet: bool = False,
     ) -> Tuple[List[Dict], Optional[str]]:
         """统一的分析流水线：数据处理 → 统计计算 → HTML生成"""
 
@@ -306,6 +316,7 @@ class NewsAnalyzer:
             new_titles,
             mode=mode,
             global_filters=global_filters,
+            quiet=quiet,
         )
 
         # HTML生成（如果启用）
@@ -406,9 +417,12 @@ class NewsAnalyzer:
         ):
             mode_strategy = self._get_mode_strategy()
             if "实时" in report_type:
-                print(
-                    f"跳过实时推送通知：{mode_strategy['mode_name']}下未检测到匹配的新闻"
-                )
+                if self.report_mode == "incremental":
+                    print("跳过实时推送通知：增量模式下未检测到新增的新闻")
+                else:
+                    print(
+                        f"跳过实时推送通知：{mode_strategy['mode_name']}下未检测到匹配的新闻"
+                    )
             else:
                 print(
                     f"跳过{mode_strategy['summary_report_type']}通知：未匹配到有效的新闻内容"
@@ -466,8 +480,8 @@ class NewsAnalyzer:
         summary_type = "当前榜单汇总" if mode == "current" else "当日汇总"
         print(f"生成{summary_type}HTML...")
 
-        # 加载分析数据
-        analysis_data = self._load_analysis_data()
+        # 加载分析数据（静默模式，避免重复输出日志）
+        analysis_data = self._load_analysis_data(quiet=True)
         if not analysis_data:
             return None
 
@@ -475,7 +489,7 @@ class NewsAnalyzer:
             analysis_data
         )
 
-        # 运行分析流水线
+        # 运行分析流水线（静默模式，避免重复输出日志）
         _, html_file = self._run_analysis_pipeline(
             all_results,
             mode,
@@ -486,6 +500,7 @@ class NewsAnalyzer:
             id_to_name,
             is_daily_summary=True,
             global_filters=global_filters,
+            quiet=True,
         )
 
         if html_file:

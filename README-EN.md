@@ -13,7 +13,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.0.0-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v4.0.3-blue.svg)](https://github.com/sansan0/TrendRadar)
 [![MCP](https://img.shields.io/badge/MCP-v1.1.0-green.svg)](https://github.com/sansan0/TrendRadar)
 
 [![WeWork](https://img.shields.io/badge/WeWork-Notification-00D4AA?style=flat-square)](https://work.weixin.qq.com/)
@@ -330,10 +330,11 @@ Transform from "algorithm recommendation captivity" to "actively getting the inf
 - **Major Version Upgrade**: Upgrading from v1.x to v2.y, recommend deleting existing fork and re-forking to save effort and avoid config conflicts
 
 
-### 2025/12/17 - v4.0.1
+### 2025/12/20 - v4.0.3
 
-- StorageManager adds push record proxy methods
-- S3 client switches to virtual-hosted style for better compatibility (supports Tencent Cloud COS and more services)
+- Added URL normalization to fix duplicate push issues caused by dynamic parameters (e.g., Weibo's `band_rank`)
+- Fixed incremental mode detection logic to correctly identify historical titles
+
 
 ### 2025/12/13 - mcp-v1.1.0
 
@@ -347,6 +348,12 @@ Transform from "algorithm recommendation captivity" to "actively getting the inf
 
 <details>
 <summary>👉 Click to expand: <strong>Historical Updates</strong></summary>
+
+
+### 2025/12/17 - v4.0.1
+
+- StorageManager adds push record proxy methods
+- S3 client switches to virtual-hosted style for better compatibility (supports Tencent Cloud COS and more services)
 
 
 ### 2025/12/13 - v4.0.0
