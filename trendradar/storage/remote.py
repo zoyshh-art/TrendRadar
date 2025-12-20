@@ -7,8 +7,6 @@
 数据流程：下载当天 SQLite → 合并新数据 → 上传回远程
 """
 
-import atexit
-import os
 import pytz
 import re
 import shutil
@@ -17,7 +15,7 @@ import tempfile
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 
 try:
     import boto3
@@ -94,10 +92,10 @@ class RemoteStorageBackend(StorageBackend):
         # 初始化 S3 客户端
         # 使用 virtual-hosted style addressing（主流）
         # 根据服务商选择签名版本：
-        # - Cloudflare R2 只支持 SigV4
-        # - 腾讯云 COS 等使用 SigV2 以避免 chunked encoding 问题
-        is_cloudflare_r2 = "r2.cloudflarestorage.com" in endpoint_url.lower()
-        signature_version = 's3v4' if is_cloudflare_r2 else 's3'
+        # - 腾讯云 COS 使用 SigV2 以避免 chunked encoding 问题
+        # - 其他服务商（AWS S3、Cloudflare R2、阿里云 OSS、MinIO 等）默认使用 SigV4
+        is_tencent_cos = "myqcloud.com" in endpoint_url.lower()
+        signature_version = 's3' if is_tencent_cos else 's3v4'
 
         s3_config = BotoConfig(
             s3={"addressing_style": "virtual"},
@@ -257,7 +255,7 @@ class RemoteStorageBackend(StorageBackend):
                 Key=r2_key,
                 Body=file_content,
                 ContentLength=local_size,
-                ContentType='application/octet-stream',
+                ContentType='application/x-sqlite3',
             )
             print(f"[远程存储] 已上传: {local_path} -> {r2_key}")
 

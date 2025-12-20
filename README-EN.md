@@ -1,7 +1,5 @@
 <div align="center" id="trendradar">
 
-> **📢 Announcement:** **v4.0.0** has been released! Including storage architecture refactoring, database optimization, modularization improvements, and more major updates
-
 <a href="https://github.com/sansan0/TrendRadar" title="TrendRadar">
   <img src="/_image/banner.webp" alt="TrendRadar Banner" width="80%">
 </a>
@@ -59,47 +57,15 @@
 
 * **Best for**: Users with their own server, NAS, or an always-on PC.
 
-* 👉 [Jump to Docker Deployment Tutorial](#6-docker-deployment)
+👉 **[Jump to Docker Deployment Tutorial](#6-docker-deployment)**
 
 ---
 
 #### 🅱️ Option 2: GitHub Actions Deployment (Restored ✅)
 
-* **Features**: Data is no longer committed directly to the repo. Instead, it is stored in **Remote Cloud Storage** (supports S3-compatible protocols: Cloudflare R2, Alibaba Cloud OSS, Tencent Cloud COS, etc.).
+* **Features**: Data is no longer committed directly to the repo. Instead, it is stored in **Remote Cloud Storage**.
 
-* **Requirement**: You **must** configure an S3-compatible object storage service (Cloudflare R2 recommended, it's free).
-
-> **⚠️ Note**: If you choose this option, you must complete the following two configuration steps:
-
-#### 1. 🚀 Recommended Start: Use this template
-
-To keep the repository clean and avoid inheriting redundant history, I **recommend** using Template mode:
-
-1.  **Click** the green **[Use this template]** button at the top right of the original repository page.
-
-2.  **Select** "Create a new repository".
-
-> **💡 Why do this?**
-> * **Use this template**: Creates a brand new, clean repository with no historical baggage.
-> * **Fork**: Retains the complete commit history and relationships, consuming more GitHub resources.
-
-#### 2. ☁️ About the Mandatory Remote Storage for GitHub Actions
-
-If you choose **Option 2 (GitHub Actions)**, you must configure an S3-compatible object storage service.
-
-**Supported Storage Services:**
-- **Cloudflare R2** (Recommended, generous free tier)
-- Other S3-compatible services
-
-**⚠️ Configuration Prerequisites (Using Cloudflare R2 as Example):**
-
-According to Cloudflare platform rules, enabling R2 requires binding a payment method.
-
-* **Purpose**: Identity verification only (Verify Only). **No charges will be incurred**.
-
-* **Payment**: Supports international credit cards or PayPal.
-
-* **Usage**: The R2 free tier (10GB storage/month) is sufficient to cover the daily operation of this project. No need to worry about costs.
+* **Recommended**: Configure a remote cloud storage service (Cloudflare R2, Alibaba Cloud OSS, Tencent Cloud COS, etc.).
 
 👉 **[Click to View Detailed Configuration Tutorial](#-quick-start)**
 
@@ -863,12 +829,11 @@ frequency_words.txt file added **required word** feature, using + sign
 
 > **📖 Reminder**: Fork users should first **[check the latest official documentation](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)** to ensure the configuration steps are up to date.
 
-### ⚠️ GitHub Actions Usage Instructions
+**⚠️ GitHub Actions Usage Instructions**
 
 **v4.0.0 Important Change**: Introduced "Activity Detection" mechanism—GitHub Actions now requires periodic check-in to maintain operation.
 
-#### 🔄 Check-In Renewal Mechanism
-
+**🔄 Check-In Renewal Mechanism**:
 - **Running Cycle**: Valid for **7 days**—service will automatically suspend when countdown ends.
 - **Renewal Method**: Manually trigger the "Check In" workflow on the Actions page to reset the 7-day validity period.
 - **Operation Path**: `Actions` → `Check In` → `Run workflow`
@@ -876,48 +841,74 @@ frequency_words.txt file added **required word** feature, using + sign
     - If you forget for 7 days, maybe you don't really need it. Letting it stop is a digital detox, freeing you from the constant impact.
     - GitHub Actions is a valuable public computing resource. The check-in mechanism aims to prevent wasted computing cycles, ensuring resources are allocated to truly active users who need them. Thank you for your understanding and support.
 
-#### 📦 Data Storage (Required Configuration)
+<details>
+<summary>👉 Click to expand: <strong>Lite Mode vs Full Mode + AI Analysis</strong></summary>
+<br>
 
-In GitHub Actions environment, data is stored in **Remote Cloud Storage** (supports S3-compatible protocols, Cloudflare R2 recommended for free tier), keeping your repository clean (see **Required Configuration: Remote Cloud Storage** below).
+**📦 Data Storage (Recommended Configuration)**
 
-#### 🚀 Recommended: Docker Deployment
+**Two Deployment Modes:**
+
+| Mode | Configuration Required | Features |
+|------|------------------------|----------|
+| **Lite Mode** | No storage configuration needed | Real-time crawling + Keyword filtering + Multi-channel push |
+| **Full Mode** | Configure remote cloud storage | Lite Mode + New detection + Trend tracking + Incremental push + AI analysis |
+
+**Lite Mode Description**:
+- ✅ Available: Real-time news crawling, keyword filtering, hotspot weight ranking, current list push
+- ❌ Not Available: New news detection (🆕), trend tracking, incremental mode, daily summary accumulation, MCP AI analysis
+
+**Full Mode Description**:
+Configure remote cloud storage to unlock all features (see **Recommended Configuration: Remote Cloud Storage** below)
+
+**🚀 Recommended: Docker Deployment**
 
 For long-term stable operation, we recommend [Docker Deployment](#6-docker-deployment), with data stored locally and no check-in required—though it does require purchasing a cloud server.
 
+</details>
+
 ---
 
-1. **Fork this project** to your GitHub account
+1️⃣ **Get project code**
 
-   - Click the "Fork" button at the top right of this page
+   Click the green **[Use this template]** button at the top right of this repository page → Select "Create a new repository".
 
-2. **Setup GitHub Secrets (Required + Optional Platforms)**:
+   > ⚠️ Note:
+   > - Any mention of "Fork" in this document can be understood as "Use this template"
+   > - Using Fork may cause runtime issues, see [Issue #606](https://github.com/sansan0/TrendRadar/issues/606)
+
+2️⃣ **Setup GitHub Secrets (Required + Optional Platforms)**:
 
    In your forked repo, go to `Settings` > `Secrets and variables` > `Actions` > `New repository secret`
 
    **📌 Important Instructions (Please Read Carefully):**
 
-   - ✅ **One Name for One Secret**: For each configuration item, click the "New repository secret" button once and fill in a pair of "Name" and "Secret"
-   - ✅ **Cannot See Value After Saving is Normal**: For security reasons, after saving, you can only see the Name when re-editing, but not the Secret value
-   - ⚠️ **DO NOT Create Custom Names**: The Secret Name must **strictly use** the names listed below (e.g., `WEWORK_WEBHOOK_URL`, `FEISHU_WEBHOOK_URL`, etc.). Do not modify or create new names arbitrarily, or the system will not recognize them
-   - 💡 **Can Configure Multiple Platforms**: The system will send notifications to all configured platforms
+   - **One Name for One Secret**: For each configuration item, click the "New repository secret" button once and fill in a pair of "Name" and "Secret"
+   - **Cannot See Value After Saving is Normal**: For security reasons, after saving, you can only see the Name when re-editing, but not the Secret value
+   - **DO NOT Create Custom Names**: The Secret Name must **strictly use** the names listed below (e.g., `WEWORK_WEBHOOK_URL`, `FEISHU_WEBHOOK_URL`, etc.). Do not modify or create new names arbitrarily, or the system will not recognize them
+   - **Can Configure Multiple Platforms**: The system will send notifications to all configured platforms
 
-   **📌 Multi-Account Push Notes (v3.5.0 New Feature):**
+<details>
+<summary>👉 Click to expand: <strong>Multi-Account Push Notes (v3.5.0 New Feature)</strong></summary>
+<br>
 
-   - ✅ **Multi-Account Configuration Support**: All push channels (Feishu, DingTalk, WeWork, Telegram, ntfy, Bark, Slack) support configuring multiple accounts
-   - ✅ **Configuration Method**: Use English semicolon `;` to separate multiple account values
-   - ✅ **Example**: Set `FEISHU_WEBHOOK_URL` Secret value to `https://webhook1;https://webhook2`
-   - ⚠️ **Paired Configuration**: Telegram and ntfy require paired parameter quantities to match (e.g., token and chat_id both have 2 values)
-   - ⚠️ **Quantity Limit**: Default maximum 3 accounts per channel, exceeded values will be truncated
+- **Multi-Account Configuration Support**: All push channels (Feishu, DingTalk, WeWork, Telegram, ntfy, Bark, Slack) support configuring multiple accounts
+- **Configuration Method**: Use English semicolon `;` to separate multiple account values
+- **Example**: Set `FEISHU_WEBHOOK_URL` Secret value to `https://webhook1;https://webhook2`
+- **Paired Configuration**: Telegram and ntfy require paired parameter quantities to match (e.g., token and chat_id both have 2 values)
+- **Quantity Limit**: Default maximum 3 accounts per channel, exceeded values will be truncated
 
-   **Multi-Account Configuration Examples**:
+**Multi-Account Configuration Examples**:
 
-   | Name | Secret (Value) Example |
-   |------|------------------------|
-   | `FEISHU_WEBHOOK_URL` | `https://webhook1;https://webhook2;https://webhook3` |
-   | `TELEGRAM_BOT_TOKEN` | `token1;token2` |
-   | `TELEGRAM_CHAT_ID` | `chatid1;chatid2` |
-   | `NTFY_TOPIC` | `topic1;topic2` |
-   | `NTFY_TOKEN` | `;token2` (1st has no token, use empty string as placeholder) |
+| Name | Secret (Value) Example |
+|------|------------------------|
+| `FEISHU_WEBHOOK_URL` | `https://webhook1;https://webhook2;https://webhook3` |
+| `TELEGRAM_BOT_TOKEN` | `token1;token2` |
+| `TELEGRAM_CHAT_ID` | `chatid1;chatid2` |
+| `NTFY_TOPIC` | `topic1;topic2` |
+| `NTFY_TOKEN` | `;token2` (1st has no token, use empty string as placeholder) |
+
+</details>
 
    **Configuration Example:**
 
@@ -929,628 +920,636 @@ For long-term stable operation, we recommend [Docker Deployment](#6-docker-deplo
 
    <br>
 
-   <details>
-   <summary>⚠️ <strong>Required Configuration: Remote Cloud Storage</strong> (Required for GitHub Actions Environment, Cloudflare R2 Recommended)</summary>
-   <br>
+<details>
+<summary>👉 Click to expand: <strong>Recommended Configuration: Remote Cloud Storage</strong></summary>
+<br>
 
-   **GitHub Secret Configuration (⚠️ All 4 configuration items below are required):**
+**GitHub Secret Configuration:**
 
-   | Name | Secret (Value) Description |
-   |------|----------------------------|
-   | `S3_BUCKET_NAME` | Bucket name (e.g., `trendradar-data`) |
-   | `S3_ACCESS_KEY_ID` | Access key ID |
-   | `S3_SECRET_ACCESS_KEY` | Access key |
-   | `S3_ENDPOINT_URL` | S3 API endpoint (e.g., R2: `https://<account-id>.r2.cloudflarestorage.com`) |
+**Required Configuration (4 items):**
 
-   <br>
+| Name | Secret (Value) Description |
+|------|----------------------------|
+| `S3_BUCKET_NAME` | Bucket name (e.g., `trendradar-data`) |
+| `S3_ACCESS_KEY_ID` | Access key ID |
+| `S3_SECRET_ACCESS_KEY` | Access key |
+| `S3_ENDPOINT_URL` | S3 API endpoint (e.g., R2: `https://<account-id>.r2.cloudflarestorage.com`) |
 
-   **How to Get Credentials (Using Cloudflare R2 as Example):**
+**Optional Configuration:**
 
-   1. Visit [Cloudflare Dashboard](https://dash.cloudflare.com/) and log in
-   2. Select `R2` in left menu → Click `Create Bucket` → Enter name (e.g., `trendradar-data`)
-   3. Click `Manage R2 API Tokens` at top right → `Create API Token`
-   4. Select `Object Read & Write` permission → After creation, it will display `Access Key ID` and `Secret Access Key`
-   5. Endpoint URL can be found in bucket details page (format: `https://<account-id>.r2.cloudflarestorage.com`)
+| Name | Secret (Value) Description |
+|------|----------------------------|
+| `S3_REGION` | Region (default `auto`, some providers may require specification) |
 
-   **Notes**:
-   - R2 free tier: 10GB storage + 1 million reads per month, sufficient for this project
-   - Activation requires binding a payment method (identity verification only, no charges)
-   - Data stored in cloud, keeps GitHub repository clean
+> 💡 **More storage configuration options**: See [Storage Configuration Details](#11-storage-configuration-v400-new)
 
-   </details>
+<br>
 
-   <details>
-   <summary> <strong>👉 Click to expand: WeWork Bot</strong> (Simplest and fastest configuration)</summary>
-   <br>
+**How to Get Credentials (Using Cloudflare R2 as Example):**
 
-   **GitHub Secret Configuration (⚠️ Name must match exactly):**
-   - **Name**: `WEWORK_WEBHOOK_URL` (Please copy and paste this name, do not type manually to avoid typos)
-   - **Secret (Value)**: Your WeWork bot Webhook address
+1. Visit [Cloudflare Dashboard](https://dash.cloudflare.com/) and log in
+2. Select `R2` in left menu → Click `Create Bucket` → Enter name (e.g., `trendradar-data`)
+3. Click `Manage R2 API Tokens` at top right → `Create API Token`
+4. Select `Object Read & Write` permission → After creation, it will display `Access Key ID` and `Secret Access Key`
+5. Endpoint URL can be found in bucket details page (format: `https://<account-id>.r2.cloudflarestorage.com`)
 
-   <br>
+**Notes**:
+- Data stored in cloud, keeps GitHub repository clean
 
-   **Bot Setup Steps:**
+</details>
 
-   #### Mobile Setup:
-   1. Open WeWork App → Enter target internal group chat
-   2. Click "…" button at top right → Select "Message Push"
-   3. Click "Add" → Name input "TrendRadar"
-   4. Copy Webhook address, click save, paste the copied content into GitHub Secret above
+<details>
+<summary> <strong>👉 Click to expand: WeWork Bot</strong> (Simplest and fastest configuration)</summary>
+<br>
 
-   #### PC Setup Process Similar
-   </details>
+**GitHub Secret Configuration (⚠️ Name must match exactly):**
+- **Name**: `WEWORK_WEBHOOK_URL` (Please copy and paste this name, do not type manually to avoid typos)
+- **Secret (Value)**: Your WeWork bot Webhook address
 
-   <details>
-   <summary> <strong>👉 Click to expand: Personal WeChat Push</strong> (Based on WeWork app, push to personal WeChat)</summary>
-   <br>
+<br>
 
-   > This solution is based on WeWork's plugin mechanism. The push style is plain text (no markdown format), but it can push directly to personal WeChat without installing WeWork App.
+**Bot Setup Steps:**
 
-   **GitHub Secret Configuration (⚠️ Name must match exactly):**
-   - **Name**: `WEWORK_WEBHOOK_URL` (Please copy and paste this name, do not type manually)
-   - **Secret (Value)**: Your WeWork app Webhook address
+#### Mobile Setup:
+1. Open WeWork App → Enter target internal group chat
+2. Click "…" button at top right → Select "Message Push"
+3. Click "Add" → Name input "TrendRadar"
+4. Copy Webhook address, click save, paste the copied content into GitHub Secret above
 
-   - **Name**: `WEWORK_MSG_TYPE` (Please copy and paste this name, do not type manually)
-   - **Secret (Value)**: `text`
+#### PC Setup Process Similar
+</details>
 
-   <br>
+<details>
+<summary> <strong>👉 Click to expand: Personal WeChat Push</strong> (Based on WeWork app, push to personal WeChat)</summary>
+<br>
 
-   **Setup Steps:**
+> This solution is based on WeWork's plugin mechanism. The push style is plain text (no markdown format), but it can push directly to personal WeChat without installing WeWork App.
 
-   1. Complete the WeWork bot Webhook setup above
-   2. Add `WEWORK_MSG_TYPE` Secret with value `text`
-   3. Follow the image below to link personal WeChat
-   4. After configuration, WeWork App can be deleted from phone
+**GitHub Secret Configuration (⚠️ Name must match exactly):**
+- **Name**: `WEWORK_WEBHOOK_URL` (Please copy and paste this name, do not type manually)
+- **Secret (Value)**: Your WeWork app Webhook address
 
-   <img src="_image/wework.png" title="Personal WeChat Push Configuration"/>
+- **Name**: `WEWORK_MSG_TYPE` (Please copy and paste this name, do not type manually)
+- **Secret (Value)**: `text`
 
-   **Notes**:
-   - Uses the same Webhook address as WeWork bot
-   - Difference is message format: `text` for plain text, `markdown` for rich text (default)
-   - Plain text format will automatically remove all markdown syntax (bold, links, etc.)
+<br>
 
-   </details>
+**Setup Steps:**
 
-   <details>
-   <summary> <strong>👉 Click to expand: Feishu Bot</strong> (Most user-friendly message display)</summary>
-   <br>
+1. Complete the WeWork bot Webhook setup above
+2. Add `WEWORK_MSG_TYPE` Secret with value `text`
+3. Follow the image below to link personal WeChat
+4. After configuration, WeWork App can be deleted from phone
 
-   **GitHub Secret Configuration (⚠️ Name must match exactly):**
-   - **Name**: `FEISHU_WEBHOOK_URL` (Please copy and paste this name, do not type manually)
-   - **Secret (Value)**: Your Feishu bot Webhook address (link starts with https://www.feishu.cn/flow/api/trigger-webhook/********)
-   <br>
+<img src="_image/wework.png" title="Personal WeChat Push Configuration"/>
 
-   Two methods available, **Method 1** is simpler, **Method 2** is more complex (but stable push)
+**Notes**:
+- Uses the same Webhook address as WeWork bot
+- Difference is message format: `text` for plain text, `markdown` for rich text (default)
+- Plain text format will automatically remove all markdown syntax (bold, links, etc.)
 
-   Method 1 discovered and suggested by **ziventian**, thanks to them. Default is personal push, group push can be configured via [#97](https://github.com/sansan0/TrendRadar/issues/97)
+</details>
 
-   **Method 1:**
+<details>
+<summary> <strong>👉 Click to expand: Feishu Bot</strong> (Most user-friendly message display)</summary>
+<br>
 
-   > For some users, additional operations needed to avoid "System Error". Need to search for the bot on mobile and enable Feishu bot application (suggestion from community, can refer)
+**GitHub Secret Configuration (⚠️ Name must match exactly):**
+- **Name**: `FEISHU_WEBHOOK_URL` (Please copy and paste this name, do not type manually)
+- **Secret (Value)**: Your Feishu bot Webhook address (link starts with https://www.feishu.cn/flow/api/trigger-webhook/********)
+<br>
 
-   1. Open in PC browser https://botbuilder.feishu.cn/home/my-command
+Two methods available, **Method 1** is simpler, **Method 2** is more complex (but stable push)
 
-   2. Click "New Bot Command"
+Method 1 discovered and suggested by **ziventian**, thanks to them. Default is personal push, group push can be configured via [#97](https://github.com/sansan0/TrendRadar/issues/97)
 
-   3. Click "Select Trigger", scroll down, click "Webhook Trigger"
+**Method 1:**
 
-   4. Now you'll see "Webhook Address", copy this link to local notepad temporarily, continue with next steps
+> For some users, additional operations needed to avoid "System Error". Need to search for the bot on mobile and enable Feishu bot application (suggestion from community, can refer)
 
-   5. In "Parameters" put the following content, then click "Done"
+1. Open in PC browser https://botbuilder.feishu.cn/home/my-command
 
-   ```json
-   {
-     "message_type": "text",
-     "content": {
-       "total_titles": "{{Content}}",
-       "timestamp": "{{Content}}",
-       "report_type": "{{Content}}",
-       "text": "{{Content}}"
-     }
-   }
+2. Click "New Bot Command"
+
+3. Click "Select Trigger", scroll down, click "Webhook Trigger"
+
+4. Now you'll see "Webhook Address", copy this link to local notepad temporarily, continue with next steps
+
+5. In "Parameters" put the following content, then click "Done"
+
+```json
+{
+  "message_type": "text",
+  "content": {
+    "total_titles": "{{Content}}",
+    "timestamp": "{{Content}}",
+    "report_type": "{{Content}}",
+    "text": "{{Content}}"
+  }
+}
+```
+
+6. Click "Select Action" > "Send via Official Bot"
+
+7. Message title fill "TrendRadar Trending Monitor"
+
+8. Most critical part, click + button, select "Webhook Trigger", then arrange as shown in image
+
+![Feishu Bot Config Example](_image/image.png)
+
+9. After configuration, put Webhook address from step 4 into GitHub Secrets `FEISHU_WEBHOOK_URL`
+
+<br>
+
+**Method 2:**
+
+1. Open in PC browser https://botbuilder.feishu.cn/home/my-app
+
+2. Click "New Bot Application"
+
+3. After entering the created application, click "Process Design" > "Create Process" > "Select Trigger"
+
+4. Scroll down, click "Webhook Trigger"
+
+5. Now you'll see "Webhook Address", copy this link to local notepad temporarily, continue with next steps
+
+6. In "Parameters" put the following content, then click "Done"
+
+```json
+{
+  "message_type": "text",
+  "content": {
+    "total_titles": "{{Content}}",
+    "timestamp": "{{Content}}",
+    "report_type": "{{Content}}",
+    "text": "{{Content}}"
+  }
+}
+```
+
+7. Click "Select Action" > "Send Feishu Message", check "Group Message", then click the input box below, click "Groups I Manage" (if no group, you can create one in Feishu app)
+
+8. Message title fill "TrendRadar Trending Monitor"
+
+9. Most critical part, click + button, select "Webhook Trigger", then arrange as shown in image
+
+![Feishu Bot Config Example](_image/image.png)
+
+10. After configuration, put Webhook address from step 5 into GitHub Secrets `FEISHU_WEBHOOK_URL`
+
+</details>
+
+<details>
+<summary> <strong>👉 Click to expand: DingTalk Bot</strong></summary>
+<br>
+
+**GitHub Secret Configuration (⚠️ Name must match exactly):**
+- **Name**: `DINGTALK_WEBHOOK_URL` (Please copy and paste this name, do not type manually)
+- **Secret (Value)**: Your DingTalk bot Webhook address
+
+<br>
+
+**Bot Setup Steps:**
+
+1. **Create Bot (PC Only)**:
+   - Open DingTalk PC client, enter target group chat
+   - Click group settings icon (⚙️) → Scroll down to find "Bot" and click
+   - Select "Add Bot" → "Custom"
+
+2. **Configure Bot**:
+   - Set bot name
+   - **Security Settings**:
+     - **Custom Keywords**: Set "Trending" or "热点"
+
+3. **Complete Setup**:
+   - Check service terms agreement → Click "Done"
+   - Copy the obtained Webhook URL
+   - Put URL into GitHub Secrets `DINGTALK_WEBHOOK_URL`
+
+**Note**: Mobile can only receive messages, cannot create new bots.
+</details>
+
+<details>
+<summary> <strong>👉 Click to expand: Telegram Bot</strong></summary>
+<br>
+
+**GitHub Secret Configuration (⚠️ Name must match exactly):**
+- **Name**: `TELEGRAM_BOT_TOKEN` (Please copy and paste this name, do not type manually)
+- **Secret (Value)**: Your Telegram Bot Token
+
+- **Name**: `TELEGRAM_CHAT_ID` (Please copy and paste this name, do not type manually)
+- **Secret (Value)**: Your Telegram Chat ID
+
+**Note**: Telegram requires **two** Secrets, please click "New repository secret" button twice to add them separately
+
+<br>
+
+**Bot Setup Steps:**
+
+1. **Create Bot**:
+   - Search `@BotFather` in Telegram (note case, has blue verification checkmark, shows ~37849827 monthly users, this is official, beware of fake accounts)
+   - Send `/newbot` command to create new bot
+   - Set bot name (must end with "bot", easily runs into duplicate names, so think creatively)
+   - Get Bot Token (format like: `123456789:AAHfiqksKZ8WmR2zSjiQ7_v4TMAKdiHm9T0`)
+
+2. **Get Chat ID**:
+
+   **Method 1: Via Official API**
+   - First send a message to your bot
+   - Visit: `https://api.telegram.org/bot<Your Bot Token>/getUpdates`
+   - Find the number in `"chat":{"id":number}` in returned JSON
+
+   **Method 2: Using Third-Party Tool**
+   - Search `@userinfobot` and send `/start`
+   - Get your user ID as Chat ID
+
+3. **Configure to GitHub**:
+   - `TELEGRAM_BOT_TOKEN`: Fill in Bot Token from step 1
+   - `TELEGRAM_CHAT_ID`: Fill in Chat ID from step 2
+</details>
+
+<details>
+<summary> <strong>👉 Click to expand: Email Push</strong> (Supports all mainstream email providers)</summary>
+<br>
+
+- Note: To prevent email bulk sending abuse, current bulk sending allows all recipients to see each other's email addresses.
+- If you haven't configured email sending before, not recommended to try
+
+> ⚠️ **Important Configuration Dependency**: Email push requires HTML report file. Make sure `formats.html` is set to `true` in `config/config.yaml`:
+> ```yaml
+> formats:
+>   sqlite: true
+>   txt: false
+>   html: true   # Must be enabled, otherwise email push will fail
+> ```
+> If set to `false`, email push will report error: `Error: HTML file does not exist or not provided: None`
+
+<br>
+
+**GitHub Secret Configuration (⚠️ Name must match exactly):**
+- **Name**: `EMAIL_FROM` (Please copy and paste this name, do not type manually)
+- **Secret (Value)**: Sender email address
+
+- **Name**: `EMAIL_PASSWORD` (Please copy and paste this name, do not type manually)
+- **Secret (Value)**: Email password or authorization code
+
+- **Name**: `EMAIL_TO` (Please copy and paste this name, do not type manually)
+- **Secret (Value)**: Recipient email address (multiple separated by comma, or can be same as EMAIL_FROM to send to yourself)
+
+- **Name**: `EMAIL_SMTP_SERVER` (Optional, please copy and paste this name)
+- **Secret (Value)**: SMTP server address (leave empty for auto-detection)
+
+- **Name**: `EMAIL_SMTP_PORT` (Optional, please copy and paste this name)
+- **Secret (Value)**: SMTP port (leave empty for auto-detection)
+
+**Note**: Email push requires at least **3 required** Secrets (EMAIL_FROM, EMAIL_PASSWORD, EMAIL_TO), the last two are optional
+
+<br>
+
+**Supported Email Providers** (Auto-detect SMTP config):
+
+| Provider | Domain | SMTP Server | Port | Encryption |
+|----------|--------|-------------|------|-----------|
+| **Gmail** | gmail.com | smtp.gmail.com | 587 | TLS |
+| **QQ Mail** | qq.com | smtp.qq.com | 465 | SSL |
+| **Outlook** | outlook.com | smtp-mail.outlook.com | 587 | TLS |
+| **Hotmail** | hotmail.com | smtp-mail.outlook.com | 587 | TLS |
+| **Live** | live.com | smtp-mail.outlook.com | 587 | TLS |
+| **163 Mail** | 163.com | smtp.163.com | 465 | SSL |
+| **126 Mail** | 126.com | smtp.126.com | 465 | SSL |
+| **Sina Mail** | sina.com | smtp.sina.com | 465 | SSL |
+| **Sohu Mail** | sohu.com | smtp.sohu.com | 465 | SSL |
+| **189 Mail** | 189.cn | smtp.189.cn | 465 | SSL |
+| **Aliyun Mail** | aliyun.com | smtp.aliyun.com | 465 | TLS |
+| **Yandex Mail** | yandex.com | smtp.yandex.com | 465 | TLS |
+
+> **Auto-detect**: When using above emails, no need to manually configure `EMAIL_SMTP_SERVER` and `EMAIL_SMTP_PORT`, system auto-detects.
+>
+> **Feedback Notice**:
+> - If you successfully test with **other email providers**, please open an [Issue](https://github.com/sansan0/TrendRadar/issues) to let us know, we'll add to support list
+> - If above email configurations are incorrect or unusable, please also open an [Issue](https://github.com/sansan0/TrendRadar/issues) for feedback to help improve the project
+>
+> **Special Thanks**:
+> - Thanks to [@DYZYD](https://github.com/DYZYD) for contributing 189 Mail (189.cn) configuration and completing self-send-receive testing ([#291](https://github.com/sansan0/TrendRadar/issues/291))
+> - Thanks to [@longzhenren](https://github.com/longzhenren) for contributing Aliyun Mail (aliyun.com) configuration and completing testing ([#344](https://github.com/sansan0/TrendRadar/issues/344))
+> - Thanks to [@ACANX](https://github.com/ACANX) for contributing Yandex Mail (yandex.com) configuration and completing testing ([#663](https://github.com/sansan0/TrendRadar/issues/663))
+
+**Common Email Settings:**
+
+#### QQ Mail:
+1. Login QQ Mail web version → Settings → Account
+2. Enable POP3/SMTP service
+3. Generate authorization code (16-letter code)
+4. `EMAIL_PASSWORD` fill authorization code, not QQ password
+
+#### Gmail:
+1. Enable two-step verification
+2. Generate app-specific password
+3. `EMAIL_PASSWORD` fill app-specific password
+
+#### 163/126 Mail:
+1. Login web version → Settings → POP3/SMTP/IMAP
+2. Enable SMTP service
+3. Set client authorization code
+4. `EMAIL_PASSWORD` fill authorization code
+<br>
+
+**Advanced Configuration**:
+If auto-detect fails, manually configure SMTP:
+- `EMAIL_SMTP_SERVER`: Like smtp.gmail.com
+- `EMAIL_SMTP_PORT`: Like 587 (TLS) or 465 (SSL)
+<br>
+
+**Multiple Recipients (note: English comma separator)**:
+- EMAIL_TO="user1@example.com,user2@example.com,user3@example.com"
+
+</details>
+
+<details>
+<summary> <strong>👉 Click to expand: ntfy Push</strong> (Open-source, free, self-hostable)</summary>
+<br>
+
+**Two Usage Methods:**
+
+### Method 1: Free Use (Recommended for Beginners) 🆓
+
+**Features**:
+- ✅ No account registration, use immediately
+- ✅ 250 messages/day (enough for 90% users)
+- ✅ Topic name is "password" (need to choose hard-to-guess name)
+- ⚠️ Messages unencrypted, not for sensitive info, but suitable for our non-sensitive project info
+
+**Quick Start:**
+
+1. **Download ntfy App**:
+   - Android: [Google Play](https://play.google.com/store/apps/details?id=io.heckel.ntfy) / [F-Droid](https://f-droid.org/en/packages/io.heckel.ntfy/)
+   - iOS: [App Store](https://apps.apple.com/us/app/ntfy/id1625396347)
+   - Desktop: Visit [ntfy.sh](https://ntfy.sh)
+
+2. **Subscribe to Topic** (choose a hard-to-guess name):
+   ```
+   Suggested format: trendradar-{your initials}-{random numbers}
+
+   Cannot use Chinese
+
+   ✅ Good example: trendradar-zs-8492
+   ❌ Bad example: news, alerts (too easy to guess)
    ```
 
-   6. Click "Select Action" > "Send via Official Bot"
+3. **Configure GitHub Secret (⚠️ Name must match exactly)**:
+   - **Name**: `NTFY_TOPIC` (Please copy and paste this name, do not type manually)
+   - **Secret (Value)**: Fill in your subscribed topic name
 
-   7. Message title fill "TrendRadar Trending Monitor"
+   - **Name**: `NTFY_SERVER_URL` (Optional, please copy and paste this name)
+   - **Secret (Value)**: Leave empty (default uses ntfy.sh)
 
-   8. Most critical part, click + button, select "Webhook Trigger", then arrange as shown in image
+   - **Name**: `NTFY_TOKEN` (Optional, please copy and paste this name)
+   - **Secret (Value)**: Leave empty
 
-   ![Feishu Bot Config Example](_image/image.png)
+   **Note**: ntfy requires at least 1 required Secret (NTFY_TOPIC), the last two are optional
 
-   9. After configuration, put Webhook address from step 4 into GitHub Secrets `FEISHU_WEBHOOK_URL`
-
-   <br>
-
-   **Method 2:**
-
-   1. Open in PC browser https://botbuilder.feishu.cn/home/my-app
-
-   2. Click "New Bot Application"
-
-   3. After entering the created application, click "Process Design" > "Create Process" > "Select Trigger"
-
-   4. Scroll down, click "Webhook Trigger"
-
-   5. Now you'll see "Webhook Address", copy this link to local notepad temporarily, continue with next steps
-
-   6. In "Parameters" put the following content, then click "Done"
-
-   ```json
-   {
-     "message_type": "text",
-     "content": {
-       "total_titles": "{{Content}}",
-       "timestamp": "{{Content}}",
-       "report_type": "{{Content}}",
-       "text": "{{Content}}"
-     }
-   }
-   ```
-
-   7. Click "Select Action" > "Send Feishu Message", check "Group Message", then click the input box below, click "Groups I Manage" (if no group, you can create one in Feishu app)
-
-   8. Message title fill "TrendRadar Trending Monitor"
-
-   9. Most critical part, click + button, select "Webhook Trigger", then arrange as shown in image
-
-   ![Feishu Bot Config Example](_image/image.png)
-
-   10. After configuration, put Webhook address from step 5 into GitHub Secrets `FEISHU_WEBHOOK_URL`
-
-   </details>
-
-   <details>
-   <summary> <strong>👉 Click to expand: DingTalk Bot</strong></summary>
-   <br>
-
-   **GitHub Secret Configuration (⚠️ Name must match exactly):**
-   - **Name**: `DINGTALK_WEBHOOK_URL` (Please copy and paste this name, do not type manually)
-   - **Secret (Value)**: Your DingTalk bot Webhook address
-
-   <br>
-
-   **Bot Setup Steps:**
-
-   1. **Create Bot (PC Only)**:
-      - Open DingTalk PC client, enter target group chat
-      - Click group settings icon (⚙️) → Scroll down to find "Bot" and click
-      - Select "Add Bot" → "Custom"
-
-   2. **Configure Bot**:
-      - Set bot name
-      - **Security Settings**:
-        - **Custom Keywords**: Set "Trending" or "热点"
-
-   3. **Complete Setup**:
-      - Check service terms agreement → Click "Done"
-      - Copy the obtained Webhook URL
-      - Put URL into GitHub Secrets `DINGTALK_WEBHOOK_URL`
-
-   **Note**: Mobile can only receive messages, cannot create new bots.
-   </details>
-
-   <details>
-   <summary> <strong>👉 Click to expand: Telegram Bot</strong></summary>
-   <br>
-
-   **GitHub Secret Configuration (⚠️ Name must match exactly):**
-   - **Name**: `TELEGRAM_BOT_TOKEN` (Please copy and paste this name, do not type manually)
-   - **Secret (Value)**: Your Telegram Bot Token
-
-   - **Name**: `TELEGRAM_CHAT_ID` (Please copy and paste this name, do not type manually)
-   - **Secret (Value)**: Your Telegram Chat ID
-
-   **Note**: Telegram requires **two** Secrets, please click "New repository secret" button twice to add them separately
-
-   <br>
-
-   **Bot Setup Steps:**
-
-   1. **Create Bot**:
-      - Search `@BotFather` in Telegram (note case, has blue verification checkmark, shows ~37849827 monthly users, this is official, beware of fake accounts)
-      - Send `/newbot` command to create new bot
-      - Set bot name (must end with "bot", easily runs into duplicate names, so think creatively)
-      - Get Bot Token (format like: `123456789:AAHfiqksKZ8WmR2zSjiQ7_v4TMAKdiHm9T0`)
-
-   2. **Get Chat ID**:
-
-      **Method 1: Via Official API**
-      - First send a message to your bot
-      - Visit: `https://api.telegram.org/bot<Your Bot Token>/getUpdates`
-      - Find the number in `"chat":{"id":number}` in returned JSON
-
-      **Method 2: Using Third-Party Tool**
-      - Search `@userinfobot` and send `/start`
-      - Get your user ID as Chat ID
-
-   3. **Configure to GitHub**:
-      - `TELEGRAM_BOT_TOKEN`: Fill in Bot Token from step 1
-      - `TELEGRAM_CHAT_ID`: Fill in Chat ID from step 2
-   </details>
-
-   <details>
-   <summary> <strong>👉 Click to expand: Email Push</strong> (Supports all mainstream email providers)</summary>
-   <br>
-
-   - Note: To prevent email bulk sending abuse, current bulk sending allows all recipients to see each other's email addresses.
-   - If you haven't configured email sending before, not recommended to try
-
-   > ⚠️ **Important Configuration Dependency**: Email push requires HTML report file. Make sure `formats.html` is set to `true` in `config/config.yaml`:
-   > ```yaml
-   > formats:
-   >   sqlite: true
-   >   txt: false
-   >   html: true   # Must be enabled, otherwise email push will fail
-   > ```
-   > If set to `false`, email push will report error: `Error: HTML file does not exist or not provided: None`
-
-   <br>
-
-   **GitHub Secret Configuration (⚠️ Name must match exactly):**
-   - **Name**: `EMAIL_FROM` (Please copy and paste this name, do not type manually)
-   - **Secret (Value)**: Sender email address
-
-   - **Name**: `EMAIL_PASSWORD` (Please copy and paste this name, do not type manually)
-   - **Secret (Value)**: Email password or authorization code
-
-   - **Name**: `EMAIL_TO` (Please copy and paste this name, do not type manually)
-   - **Secret (Value)**: Recipient email address (multiple separated by comma, or can be same as EMAIL_FROM to send to yourself)
-
-   - **Name**: `EMAIL_SMTP_SERVER` (Optional, please copy and paste this name)
-   - **Secret (Value)**: SMTP server address (leave empty for auto-detection)
-
-   - **Name**: `EMAIL_SMTP_PORT` (Optional, please copy and paste this name)
-   - **Secret (Value)**: SMTP port (leave empty for auto-detection)
-
-   **Note**: Email push requires at least **3 required** Secrets (EMAIL_FROM, EMAIL_PASSWORD, EMAIL_TO), the last two are optional
-
-   <br>
-
-   **Supported Email Providers** (Auto-detect SMTP config):
-
-   | Provider | Domain | SMTP Server | Port | Encryption |
-   |----------|--------|-------------|------|-----------|
-   | **Gmail** | gmail.com | smtp.gmail.com | 587 | TLS |
-   | **QQ Mail** | qq.com | smtp.qq.com | 465 | SSL |
-   | **Outlook** | outlook.com | smtp-mail.outlook.com | 587 | TLS |
-   | **Hotmail** | hotmail.com | smtp-mail.outlook.com | 587 | TLS |
-   | **Live** | live.com | smtp-mail.outlook.com | 587 | TLS |
-   | **163 Mail** | 163.com | smtp.163.com | 465 | SSL |
-   | **126 Mail** | 126.com | smtp.126.com | 465 | SSL |
-   | **Sina Mail** | sina.com | smtp.sina.com | 465 | SSL |
-   | **Sohu Mail** | sohu.com | smtp.sohu.com | 465 | SSL |
-   | **189 Mail** | 189.cn | smtp.189.cn | 465 | SSL |
-   | **Aliyun Mail** | aliyun.com | smtp.aliyun.com | 465 | TLS |
-
-   > **Auto-detect**: When using above emails, no need to manually configure `EMAIL_SMTP_SERVER` and `EMAIL_SMTP_PORT`, system auto-detects.
-   >
-   > **Feedback Notice**:
-   > - If you successfully test with **other email providers**, please open an [Issue](https://github.com/sansan0/TrendRadar/issues) to let us know, we'll add to support list
-   > - If above email configurations are incorrect or unusable, please also open an [Issue](https://github.com/sansan0/TrendRadar/issues) for feedback to help improve the project
-   >
-   > **Special Thanks**:
-   > - Thanks to [@DYZYD](https://github.com/DYZYD) for contributing 189 Mail (189.cn) configuration and completing self-send-receive testing ([#291](https://github.com/sansan0/TrendRadar/issues/291))
-   > - Thanks to [@longzhenren](https://github.com/longzhenren) for contributing Aliyun Mail (aliyun.com) configuration and completing testing ([#344](https://github.com/sansan0/TrendRadar/issues/344))
-
-   **Common Email Settings:**
-
-   #### QQ Mail:
-   1. Login QQ Mail web version → Settings → Account
-   2. Enable POP3/SMTP service
-   3. Generate authorization code (16-letter code)
-   4. `EMAIL_PASSWORD` fill authorization code, not QQ password
-
-   #### Gmail:
-   1. Enable two-step verification
-   2. Generate app-specific password
-   3. `EMAIL_PASSWORD` fill app-specific password
-
-   #### 163/126 Mail:
-   1. Login web version → Settings → POP3/SMTP/IMAP
-   2. Enable SMTP service
-   3. Set client authorization code
-   4. `EMAIL_PASSWORD` fill authorization code
-   <br>
-
-   **Advanced Configuration**:
-   If auto-detect fails, manually configure SMTP:
-   - `EMAIL_SMTP_SERVER`: Like smtp.gmail.com
-   - `EMAIL_SMTP_PORT`: Like 587 (TLS) or 465 (SSL)
-   <br>
-
-   **Multiple Recipients (note: English comma separator)**:
-   - EMAIL_TO="user1@example.com,user2@example.com,user3@example.com"
-
-   </details>
-
-   <details>
-   <summary> <strong>👉 Click to expand: ntfy Push</strong> (Open-source, free, self-hostable)</summary>
-   <br>
-
-   **Two Usage Methods:**
-
-   ### Method 1: Free Use (Recommended for Beginners) 🆓
-
-   **Features**:
-   - ✅ No account registration, use immediately
-   - ✅ 250 messages/day (enough for 90% users)
-   - ✅ Topic name is "password" (need to choose hard-to-guess name)
-   - ⚠️ Messages unencrypted, not for sensitive info, but suitable for our non-sensitive project info
-
-   **Quick Start:**
-
-   1. **Download ntfy App**:
-      - Android: [Google Play](https://play.google.com/store/apps/details?id=io.heckel.ntfy) / [F-Droid](https://f-droid.org/en/packages/io.heckel.ntfy/)
-      - iOS: [App Store](https://apps.apple.com/us/app/ntfy/id1625396347)
-      - Desktop: Visit [ntfy.sh](https://ntfy.sh)
-
-   2. **Subscribe to Topic** (choose a hard-to-guess name):
-      ```
-      Suggested format: trendradar-{your initials}-{random numbers}
-
-      Cannot use Chinese
-
-      ✅ Good example: trendradar-zs-8492
-      ❌ Bad example: news, alerts (too easy to guess)
-      ```
-
-   3. **Configure GitHub Secret (⚠️ Name must match exactly)**:
-      - **Name**: `NTFY_TOPIC` (Please copy and paste this name, do not type manually)
-      - **Secret (Value)**: Fill in your subscribed topic name
-
-      - **Name**: `NTFY_SERVER_URL` (Optional, please copy and paste this name)
-      - **Secret (Value)**: Leave empty (default uses ntfy.sh)
-
-      - **Name**: `NTFY_TOKEN` (Optional, please copy and paste this name)
-      - **Secret (Value)**: Leave empty
-
-      **Note**: ntfy requires at least 1 required Secret (NTFY_TOPIC), the last two are optional
-
-   4. **Test**:
-      ```bash
-      curl -d "Test message" ntfy.sh/your-topic-name
-      ```
-
-   ---
-
-   ### Method 2: Self-Hosting (Complete Privacy Control) 🔒
-
-   **Target Users**: Have server, pursue complete privacy, strong technical ability
-
-   **Advantages**:
-   - ✅ Completely open-source (Apache 2.0 + GPLv2)
-   - ✅ Complete data self-control
-   - ✅ No restrictions
-   - ✅ Zero cost
-
-   **Docker One-Click Deploy**:
+4. **Test**:
    ```bash
-   docker run -d \
-     --name ntfy \
-     -p 80:80 \
-     -v /var/cache/ntfy:/var/cache/ntfy \
-     binwiederhier/ntfy \
-     serve --cache-file /var/cache/ntfy/cache.db
+   curl -d "Test message" ntfy.sh/your-topic-name
    ```
 
-   **Configure TrendRadar**:
-   ```yaml
-   NTFY_SERVER_URL: https://ntfy.yourdomain.com
-   NTFY_TOPIC: trendradar-alerts  # Self-hosting can use simple name
-   NTFY_TOKEN: tk_your_token  # Optional: Enable access control
-   ```
+---
 
-   **Subscribe in App**:
-   - Click "Use another server"
-   - Enter your server address
-   - Enter topic name
-   - (Optional) Enter login credentials
+### Method 2: Self-Hosting (Complete Privacy Control) 🔒
 
-   ---
+**Target Users**: Have server, pursue complete privacy, strong technical ability
 
-   **FAQ:**
+**Advantages**:
+- ✅ Completely open-source (Apache 2.0 + GPLv2)
+- ✅ Complete data self-control
+- ✅ No restrictions
+- ✅ Zero cost
 
-   <details>
-   <summary><strong>Q1: Is the free version enough?</strong></summary>
+**Docker One-Click Deploy**:
+```bash
+docker run -d \
+  --name ntfy \
+  -p 80:80 \
+  -v /var/cache/ntfy:/var/cache/ntfy \
+  binwiederhier/ntfy \
+  serve --cache-file /var/cache/ntfy/cache.db
+```
 
-   250 messages/day is enough for most users. With 30-minute crawl intervals, about 48 pushes/day, completely sufficient.
-   </details>
+**Configure TrendRadar**:
+```yaml
+NTFY_SERVER_URL: https://ntfy.yourdomain.com
+NTFY_TOPIC: trendradar-alerts  # Self-hosting can use simple name
+NTFY_TOKEN: tk_your_token  # Optional: Enable access control
+```
 
-   <details>
-   <summary><strong>Q2: Is the Topic name really secure?</strong></summary>
+**Subscribe in App**:
+- Click "Use another server"
+- Enter your server address
+- Enter topic name
+- (Optional) Enter login credentials
 
-   If you choose a random, sufficiently long name (like `trendradar-zs-8492-news`), brute force is nearly impossible:
-   - ntfy has strict rate limiting (1 request/second)
-   - 64 character choices (A-Z, a-z, 0-9, _, -)
-   - 10 random characters have 64^10 possibilities (would take years to crack)
-   </details>
+---
 
-   ---
+**FAQ:**
 
-   **Recommended Choice:**
+<details>
+<summary><strong>Q1: Is the free version enough?</strong></summary>
 
-   | User Type | Recommended | Reason |
-   |-----------|-------------|--------|
-   | Regular Users | Method 1 (Free) | Simple, fast, enough |
-   | Technical Users | Method 2 (Self-Host) | Complete control, unlimited |
-   | High-Frequency Users | Method 3 (Paid) | Check official website |
+250 messages/day is enough for most users. With 30-minute crawl intervals, about 48 pushes/day, completely sufficient.
+</details>
 
-   **Related Links:**
-   - [ntfy Official Docs](https://docs.ntfy.sh/)
-   - [Self-Hosting Tutorial](https://docs.ntfy.sh/install/)
-   - [GitHub Repository](https://github.com/binwiederhier/ntfy)
+<details>
+<summary><strong>Q2: Is the Topic name really secure?</strong></summary>
 
-   </details>
+If you choose a random, sufficiently long name (like `trendradar-zs-8492-news`), brute force is nearly impossible:
+- ntfy has strict rate limiting (1 request/second)
+- 64 character choices (A-Z, a-z, 0-9, _, -)
+- 10 random characters have 64^10 possibilities (would take years to crack)
+</details>
 
-   <details>
-   <summary>👉 Click to expand: <strong>Bark Push</strong> (iOS exclusive, clean & efficient)</summary>
-   <br>
+---
 
-   **GitHub Secret Configuration (⚠️ Name must be exact):**
-   - **Name**: `BARK_URL` (copy and paste this name, don't type manually)
-   - **Secret**: Your Bark push URL
+**Recommended Choice:**
 
-   <br>
+| User Type | Recommended | Reason |
+|-----------|-------------|--------|
+| Regular Users | Method 1 (Free) | Simple, fast, enough |
+| Technical Users | Method 2 (Self-Host) | Complete control, unlimited |
+| High-Frequency Users | Method 3 (Paid) | Check official website |
 
-   **Bark Introduction:**
+**Related Links:**
+- [ntfy Official Docs](https://docs.ntfy.sh/)
+- [Self-Hosting Tutorial](https://docs.ntfy.sh/install/)
+- [GitHub Repository](https://github.com/binwiederhier/ntfy)
 
-   Bark is a free open-source push tool for iOS platform, featuring simplicity, speed, and no ads.
+</details>
 
-   **Usage Methods:**
+<details>
+<summary>👉 Click to expand: <strong>Bark Push</strong> (iOS exclusive, clean & efficient)</summary>
+<br>
 
-   ### Method 1: Use Official Server (Recommended for beginners) 🆓
+**GitHub Secret Configuration (⚠️ Name must be exact):**
+- **Name**: `BARK_URL` (copy and paste this name, don't type manually)
+- **Secret**: Your Bark push URL
 
-   1. **Download Bark App**:
-      - iOS: [App Store](https://apps.apple.com/us/app/bark-customed-notifications/id1403753865)
+<br>
 
-   2. **Get Push URL**:
-      - Open Bark App
-      - Copy the push URL displayed on the home page (format: `https://api.day.app/your_device_key`)
-      - Configure the URL to GitHub Secrets as `BARK_URL`
+**Bark Introduction:**
 
-   ### Method 2: Self-Hosted Server (Complete Privacy Control) 🔒
+Bark is a free open-source push tool for iOS platform, featuring simplicity, speed, and no ads.
 
-   **Suitable for**: Users with servers, pursuing complete privacy, strong technical skills
+**Usage Methods:**
 
-   **Docker One-Click Deployment**:
-   ```bash
-   docker run -d \
-     --name bark-server \
-     -p 8080:8080 \
-     finab/bark-server
-   ```
+### Method 1: Use Official Server (Recommended for beginners) 🆓
 
-   **Configure TrendRadar**:
-   ```yaml
-   BARK_URL: http://your-server-ip:8080/your_device_key
-   ```
+1. **Download Bark App**:
+   - iOS: [App Store](https://apps.apple.com/us/app/bark-customed-notifications/id1403753865)
 
-   ---
+2. **Get Push URL**:
+   - Open Bark App
+   - Copy the push URL displayed on the home page (format: `https://api.day.app/your_device_key`)
+   - Configure the URL to GitHub Secrets as `BARK_URL`
 
-   **Notes:**
-   - ✅ Bark uses APNs push, max 4KB per message
-   - ✅ Supports automatic batch sending, no worry about long messages
-   - ✅ Push format is plain text (automatically removes Markdown syntax)
-   - ⚠️ Only supports iOS platform
+### Method 2: Self-Hosted Server (Complete Privacy Control) 🔒
 
-   **Related Links:**
-   - [Bark Official Website](https://bark.day.app/)
-   - [Bark GitHub Repository](https://github.com/Finb/Bark)
-   - [Bark Server Self-Hosting Tutorial](https://github.com/Finb/bark-server)
+**Suitable for**: Users with servers, pursuing complete privacy, strong technical skills
 
-   </details>
+**Docker One-Click Deployment**:
+```bash
+docker run -d \
+  --name bark-server \
+  -p 8080:8080 \
+  finab/bark-server
+```
 
-   <details>
-   <summary>👉 Click to expand: <strong>Slack Push</strong></summary>
-   <br>
+**Configure TrendRadar**:
+```yaml
+BARK_URL: http://your-server-ip:8080/your_device_key
+```
 
-   **GitHub Secret Configuration (⚠️ Name must be exact):**
-   - **Name**: `SLACK_WEBHOOK_URL` (copy and paste this name, don't type manually)
-   - **Secret**: Your Slack Incoming Webhook URL
+---
 
-   <br>
+**Notes:**
+- ✅ Bark uses APNs push, max 4KB per message
+- ✅ Supports automatic batch sending, no worry about long messages
+- ✅ Push format is plain text (automatically removes Markdown syntax)
+- ⚠️ Only supports iOS platform
 
-   **Slack Introduction:**
+**Related Links:**
+- [Bark Official Website](https://bark.day.app/)
+- [Bark GitHub Repository](https://github.com/Finb/Bark)
+- [Bark Server Self-Hosting Tutorial](https://github.com/Finb/bark-server)
 
-   Slack is a team collaboration tool, Incoming Webhooks can push messages to Slack channels.
+</details>
 
-   **Setup Steps:**
+<details>
+<summary>👉 Click to expand: <strong>Slack Push</strong></summary>
+<br>
 
-   ### Step 1: Create Slack App
+**GitHub Secret Configuration (⚠️ Name must be exact):**
+- **Name**: `SLACK_WEBHOOK_URL` (copy and paste this name, don't type manually)
+- **Secret**: Your Slack Incoming Webhook URL
 
-   1. **Visit Slack API Page**:
-      - Open https://api.slack.com/apps?new_app=1
-      - Login to your Slack workspace if not logged in
+<br>
 
-   2. **Choose Creation Method**:
-      - Click **"From scratch"**
+**Slack Introduction:**
 
-   3. **Fill in App Information**:
-      - **App Name**: Enter app name (e.g., `TrendRadar` or `Hot News Monitor`)
-      - **Workspace**: Select your workspace from dropdown
-      - Click **"Create App"** button
+Slack is a team collaboration tool, Incoming Webhooks can push messages to Slack channels.
 
-   ### Step 2: Enable Incoming Webhooks
+**Setup Steps:**
 
-   1. **Navigate to Incoming Webhooks**:
-      - Find and click **"Incoming Webhooks"** in left menu
+### Step 1: Create Slack App
 
-   2. **Enable Feature**:
-      - Find **"Activate Incoming Webhooks"** toggle
-      - Switch from `OFF` to `ON`
-      - Page will auto-refresh showing new configuration options
+1. **Visit Slack API Page**:
+   - Open https://api.slack.com/apps?new_app=1
+   - Login to your Slack workspace if not logged in
 
-   ### Step 3: Generate Webhook URL
+2. **Choose Creation Method**:
+   - Click **"From scratch"**
 
-   1. **Add New Webhook**:
-      - Scroll to page bottom
-      - Click **"Add New Webhook to Workspace"** button
+3. **Fill in App Information**:
+   - **App Name**: Enter app name (e.g., `TrendRadar` or `Hot News Monitor`)
+   - **Workspace**: Select your workspace from dropdown
+   - Click **"Create App"** button
 
-   2. **Select Target Channel**:
-      - System will show authorization page
-      - Select channel to receive messages from dropdown (e.g., `#hot-news`)
-      - ⚠️ For private channels, must join the channel first
+### Step 2: Enable Incoming Webhooks
 
-   3. **Authorize App**:
-      - Click **"Allow"** button to complete authorization
-      - System will auto-redirect back to config page
+1. **Navigate to Incoming Webhooks**:
+   - Find and click **"Incoming Webhooks"** in left menu
 
-   ### Step 4: Copy and Save Webhook URL
+2. **Enable Feature**:
+   - Find **"Activate Incoming Webhooks"** toggle
+   - Switch from `OFF` to `ON`
+   - Page will auto-refresh showing new configuration options
 
-   1. **View Generated URL**:
-      - In "Webhook URLs for Your Workspace" section
-      - You'll see the newly generated Webhook URL
-      - Format: `https://hooks.slack.com/services/example-webhook-path`
+### Step 3: Generate Webhook URL
 
-   2. **Copy URL**:
-      - Click **"Copy"** button on the right of URL
-      - Or manually select and copy URL
+1. **Add New Webhook**:
+   - Scroll to page bottom
+   - Click **"Add New Webhook to Workspace"** button
 
-   3. **Configure to TrendRadar**:
-      - **GitHub Actions**: Add URL to GitHub Secrets as `SLACK_WEBHOOK_URL`
-      - **Local Testing**: Fill URL in `config/config.yaml` `slack_webhook_url` field
-      - **Docker Deployment**: Add URL to `docker/.env` file as `SLACK_WEBHOOK_URL` variable
+2. **Select Target Channel**:
+   - System will show authorization page
+   - Select channel to receive messages from dropdown (e.g., `#hot-news`)
+   - ⚠️ For private channels, must join the channel first
 
-   ---
+3. **Authorize App**:
+   - Click **"Allow"** button to complete authorization
+   - System will auto-redirect back to config page
 
-   **Notes:**
-   - ✅ Supports Markdown format (auto-converts to Slack mrkdwn)
-   - ✅ Supports automatic batch sending (4KB per batch)
-   - ✅ Suitable for team collaboration, centralized message management
-   - ⚠️ Webhook URL contains secret key, never make it public
+### Step 4: Copy and Save Webhook URL
 
-   **Message Format Preview:**
-   ```
-   *[Batch 1/2]*
+1. **View Generated URL**:
+   - In "Webhook URLs for Your Workspace" section
+   - You'll see the newly generated Webhook URL
+   - Format: `https://hooks.slack.com/services/example-webhook-path`
 
-   📊 *Trending Topics Statistics*
+2. **Copy URL**:
+   - Click **"Copy"** button on the right of URL
+   - Or manually select and copy URL
 
-   🔥 *[1/3] AI ChatGPT* : 2 articles
+3. **Configure to TrendRadar**:
+   - **GitHub Actions**: Add URL to GitHub Secrets as `SLACK_WEBHOOK_URL`
+   - **Local Testing**: Fill URL in `config/config.yaml` `slack_webhook_url` field
+   - **Docker Deployment**: Add URL to `docker/.env` file as `SLACK_WEBHOOK_URL` variable
 
-     1. [Baidu Hot] 🆕 ChatGPT-5 Official Release *[1]* - 09:15 (1 time)
+---
 
-     2. [Toutiao] AI Chip Stocks Surge *[3]* - [08:30 ~ 10:45] (3 times)
-   ```
+**Notes:**
+- ✅ Supports Markdown format (auto-converts to Slack mrkdwn)
+- ✅ Supports automatic batch sending (4KB per batch)
+- ✅ Suitable for team collaboration, centralized message management
+- ⚠️ Webhook URL contains secret key, never make it public
 
-   **Related Links:**
-   - [Slack Incoming Webhooks Official Docs](https://api.slack.com/messaging/webhooks)
-   - [Slack API App Management](https://api.slack.com/apps)
+**Message Format Preview:**
+```
+*[Batch 1/2]*
 
-   </details>
+📊 *Trending Topics Statistics*
 
-   > **💡 Beginner Quick Start Tip**:
-   >
-   > For first deployment, suggest completing **GitHub Secrets** configuration first (choose one push platform), then jump to [Step 3] to test push success.
-   >
-   > **Don't modify** `config/config.yaml` and `frequency_words.txt` temporarily, adjust these configs after push test succeeds as needed.
+🔥 *[1/3] AI ChatGPT* : 2 articles
+
+  1. [Baidu Hot] 🆕 ChatGPT-5 Official Release *[1]* - 09:15 (1 time)
+
+  2. [Toutiao] AI Chip Stocks Surge *[3]* - [08:30 ~ 10:45] (3 times)
+```
+
+**Related Links:**
+- [Slack Incoming Webhooks Official Docs](https://api.slack.com/messaging/webhooks)
+- [Slack API App Management](https://api.slack.com/apps)
+
+</details>
+
+> ⚠️ Note:
+> - For first deployment, suggest completing **GitHub Secrets** configuration first (choose one push platform), then jump to [Step 3] to test push success.
+> - **Don't modify** `config/config.yaml` and `frequency_words.txt` temporarily, adjust these configs after push test succeeds as needed.
 
 
-3. **Manual Test News Push**:
+3️⃣ **Manual Test News Push**:
 
-   > 💡 **Complete Step 1-2 first, then test immediately!** Test success first, then adjust configuration (Step 4) as needed.
-   >
-   > ⚠️ **IMPORTANT: Enter your own forked project, not this project!**
+   > ⚠️ Note:
+   > - Complete Step 1-2 first, then test immediately! Test success first, then adjust configuration (Step 4) as needed.
+   > - IMPORTANT: Enter your own forked project, not this project!
 
    **How to find your Actions page**:
 
@@ -1568,44 +1567,42 @@ For long-term stable operation, we recommend [Docker Deployment](#6-docker-deplo
    3. Click **"Run workflow"** button on the right to run
    4. Wait about 1 minute, messages will be pushed to your configured platform
 
-   > ⏱️ **Testing Tips**:
+   > ⚠️ Note:
    > - Don't test too frequently to avoid triggering GitHub Actions limits
    > - After clicking Run workflow, you need to **refresh the browser page** to see the new run record
 
-4. **Configuration Notes (Optional)**:
+4️⃣ **Configuration Notes (Optional)**:
 
-    > 💡 **Default configuration works normally**, only adjust if you need personalization, understand these three files:
+   Default configuration works normally. Only adjust if you need personalization, understanding these three files:
 
-    | File | Purpose |
-    |------|---------|
-    | `config/config.yaml` | Main config file: push mode, time window, platform list, hotspot weights, etc. |
-    | `config/frequency_words.txt` | Keyword file: set your interested keywords, filter push content |
-    | `.github/workflows/crawler.yml` | Execution frequency: control how often to run (⚠️ modify carefully) |
+   | File | Purpose |
+   |------|---------|
+   | `config/config.yaml` | Main config file: push mode, time window, platform list, hotspot weights, etc. |
+   | `config/frequency_words.txt` | Keyword file: set your interested keywords, filter push content |
+   | `.github/workflows/crawler.yml` | Execution frequency: control how often to run (⚠️ modify carefully) |
 
-    👉 **Detailed Configuration Tutorial**: [Configuration Guide](#configuration-guide)
+   👉 **Detailed Configuration Tutorial**: [Configuration Guide](#configuration-guide)
 
-5. **🎉 Deployment Success! Share Your Experience**
+5️⃣ **🎉 Deployment Success! Share Your Experience**
 
-   Congratulations on completing TrendRadar configuration! You can now start tracking trending news.
+   Congratulations on completing the TrendRadar configuration! You can now start tracking trending news.
 
-   💬 **Join our community to share your experience~**
+   💬 Many users are sharing their experiences on the official account, we look forward to your insights~
 
    - Want to learn more tips and advanced techniques?
-   - Need quick help with issues?
+   - Need quick answers to problems?
    - Have great ideas to share?
 
-   👉 **Follow our WeChat Official Account「硅基茶水间」(Silicon Tea Room)**, your likes and comments are the driving force for continuous updates!
+   👉 Follow the WeChat Official Account「**[硅基茶水间](#-faq--support)**」, your likes and comments are the motivation for continuous updates.
 
-   For detailed communication methods, please check → [FAQ & Support](#-faq--support)
-
-6. **🤖 Want Smarter Analysis? Try AI-Enhanced Features** (Optional)
+6️⃣ **🤖 Want Smarter Analysis? Try AI-Enhanced Features** (Optional)
 
    Basic configuration already meets daily needs, but if you want:
 
-   - 📊 Let AI automatically analyze trending topics and data insights
-   - 🔍 Search and query news using natural language
-   - 💡 Get sentiment analysis, topic prediction, and deep analytics
-   - ⚡ Directly access data in AI tools like Claude, Cursor, etc.
+   - Let AI automatically analyze trending topics and data insights
+   - Search and query news using natural language
+   - Get sentiment analysis, topic prediction, and deep analytics
+   - Directly access data in AI tools like Claude, Cursor, etc.
 
    👉 **Learn More**: [AI Analysis](#-ai-analysis) — Unlock hidden capabilities and make trend tracking more efficient!
 
