@@ -4,7 +4,7 @@
 实现P0核心的数据查询工具。
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from ..services.data_service import DataService
 from ..utils.validators import (
@@ -90,7 +90,7 @@ class DataQueryTools:
     def search_news_by_keyword(
         self,
         keyword: str,
-        date_range: Optional[Dict] = None,
+        date_range: Optional[Union[Dict, str]] = None,
         platforms: Optional[List[str]] = None,
         limit: Optional[int] = None
     ) -> Dict:

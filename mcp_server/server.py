@@ -6,7 +6,7 @@ TrendRadar MCP Server - FastMCP 2.0 实现
 """
 
 import json
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union
 
 from fastmcp import FastMCP
 
@@ -230,7 +230,7 @@ async def get_news_by_date(
 async def analyze_topic_trend(
     topic: str,
     analysis_type: str = "trend",
-    date_range: Optional[Dict[str, str]] = None,
+    date_range: Optional[Union[Dict[str, str], str]] = None,
     granularity: str = "day",
     threshold: float = 3.0,
     time_window: int = 24,
@@ -294,7 +294,7 @@ async def analyze_topic_trend(
 async def analyze_data_insights(
     insight_type: str = "platform_compare",
     topic: Optional[str] = None,
-    date_range: Optional[Dict[str, str]] = None,
+    date_range: Optional[Union[Dict[str, str], str]] = None,
     min_frequency: int = 3,
     top_n: int = 20
 ) -> str:
@@ -337,7 +337,7 @@ async def analyze_data_insights(
 async def analyze_sentiment(
     topic: Optional[str] = None,
     platforms: Optional[List[str]] = None,
-    date_range: Optional[Dict[str, str]] = None,
+    date_range: Optional[Union[Dict[str, str], str]] = None,
     limit: int = 50,
     sort_by_weight: bool = True,
     include_url: bool = False
@@ -436,7 +436,7 @@ async def find_similar_news(
 @mcp.tool
 async def generate_summary_report(
     report_type: str = "daily",
-    date_range: Optional[Dict[str, str]] = None
+    date_range: Optional[Union[Dict[str, str], str]] = None
 ) -> str:
     """
     每日/每周摘要生成器 - 自动生成热点摘要报告
@@ -465,7 +465,7 @@ async def generate_summary_report(
 async def search_news(
     query: str,
     search_mode: str = "keyword",
-    date_range: Optional[Dict[str, str]] = None,
+    date_range: Optional[Union[Dict[str, str], str]] = None,
     platforms: Optional[List[str]] = None,
     limit: int = 50,
     sort_by: str = "relevance",

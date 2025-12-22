@@ -5,8 +5,9 @@
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Union
 import os
+import json
 import yaml
 
 from .errors import InvalidParameterError
@@ -142,12 +143,12 @@ def validate_date(date_str: str) -> datetime:
         )
 
 
-def validate_date_range(date_range: Optional[dict]) -> Optional[tuple]:
+def validate_date_range(date_range: Optional[Union[dict, str]]) -> Optional[tuple]:
     """
     验证日期范围
 
     Args:
-        date_range: 日期范围字典 {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}
+        date_range: 日期范围字典或JSON字符串 {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}
 
     Returns:
         (start_date, end_date) 元组，或 None
@@ -158,8 +159,21 @@ def validate_date_range(date_range: Optional[dict]) -> Optional[tuple]:
     if date_range is None:
         return None
 
+    # 支持字符串形式的JSON输入（某些MCP客户端会将JSON对象序列化为字符串）
+    if isinstance(date_range, str):
+        try:
+            date_range = json.loads(date_range)
+        except json.JSONDecodeError as e:
+            raise InvalidParameterError(
+                f"date_range JSON 解析失败: {e}",
+                suggestion='请使用正确的JSON格式: {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}'
+            )
+
     if not isinstance(date_range, dict):
-        raise InvalidParameterError("date_range 必须是字典类型")
+        raise InvalidParameterError(
+            "date_range 必须是字典类型或有效的JSON字符串",
+            suggestion='例如: {"start": "2025-10-01", "end": "2025-10-11"}'
+        )
 
     start_str = date_range.get("start")
     end_str = date_range.get("end")

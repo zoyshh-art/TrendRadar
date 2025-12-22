@@ -7,7 +7,7 @@
 import re
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from difflib import SequenceMatcher
 
 from ..services.data_service import DataService
@@ -89,7 +89,7 @@ class AnalyticsTools:
         self,
         insight_type: str = "platform_compare",
         topic: Optional[str] = None,
-        date_range: Optional[Dict[str, str]] = None,
+        date_range: Optional[Union[Dict[str, str], str]] = None,
         min_frequency: int = 3,
         top_n: int = 20
     ) -> Dict:
@@ -156,7 +156,7 @@ class AnalyticsTools:
         self,
         topic: str,
         analysis_type: str = "trend",
-        date_range: Optional[Dict[str, str]] = None,
+        date_range: Optional[Union[Dict[str, str], str]] = None,
         granularity: str = "day",
         threshold: float = 3.0,
         time_window: int = 24,
@@ -243,7 +243,7 @@ class AnalyticsTools:
     def get_topic_trend_analysis(
         self,
         topic: str,
-        date_range: Optional[Dict[str, str]] = None,
+        date_range: Optional[Union[Dict[str, str], str]] = None,
         granularity: str = "day"
     ) -> Dict:
         """
@@ -401,7 +401,7 @@ class AnalyticsTools:
     def compare_platforms(
         self,
         topic: Optional[str] = None,
-        date_range: Optional[Dict[str, str]] = None
+        date_range: Optional[Union[Dict[str, str], str]] = None
     ) -> Dict:
         """
         平台对比分析 - 对比不同平台对同一话题的关注度
@@ -631,7 +631,7 @@ class AnalyticsTools:
         self,
         topic: Optional[str] = None,
         platforms: Optional[List[str]] = None,
-        date_range: Optional[Dict[str, str]] = None,
+        date_range: Optional[Union[Dict[str, str], str]] = None,
         limit: int = 50,
         sort_by_weight: bool = True,
         include_url: bool = False
@@ -1157,7 +1157,7 @@ class AnalyticsTools:
     def generate_summary_report(
         self,
         report_type: str = "daily",
-        date_range: Optional[Dict[str, str]] = None
+        date_range: Optional[Union[Dict[str, str], str]] = None
     ) -> Dict:
         """
         每日/每周摘要生成器 - 自动生成热点摘要报告
@@ -1336,7 +1336,7 @@ class AnalyticsTools:
 
     def get_platform_activity_stats(
         self,
-        date_range: Optional[Dict[str, str]] = None
+        date_range: Optional[Union[Dict[str, str], str]] = None
     ) -> Dict:
         """
         平台活跃度统计 - 统计各平台的发布频率和活跃时间段
@@ -1464,7 +1464,7 @@ class AnalyticsTools:
     def analyze_topic_lifecycle(
         self,
         topic: str,
-        date_range: Optional[Dict[str, str]] = None
+        date_range: Optional[Union[Dict[str, str], str]] = None
     ) -> Dict:
         """
         话题生命周期分析 - 追踪话题从出现到消失的完整周期

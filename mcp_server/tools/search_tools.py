@@ -8,7 +8,7 @@ import re
 from collections import Counter
 from datetime import datetime, timedelta
 from difflib import SequenceMatcher
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 from ..services.data_service import DataService
 from ..utils.validators import validate_keyword, validate_limit
@@ -39,7 +39,7 @@ class SearchTools:
         self,
         query: str,
         search_mode: str = "keyword",
-        date_range: Optional[Dict[str, str]] = None,
+        date_range: Optional[Union[Dict[str, str], str]] = None,
         platforms: Optional[List[str]] = None,
         limit: int = 50,
         sort_by: str = "relevance",
