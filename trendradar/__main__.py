@@ -215,11 +215,12 @@ class NewsAnalyzer:
     ) -> bool:
         """检查是否有有效的新闻内容"""
         if self.report_mode == "incremental":
-            # 增量模式：必须有新增标题才推送
+            # 增量模式：必须有新增标题且匹配了关键词才推送
             has_new_titles = bool(
                 new_titles and any(len(titles) > 0 for titles in new_titles.values())
             )
-            return has_new_titles
+            has_matched_news = any(stat["count"] > 0 for stat in stats)
+            return has_new_titles and has_matched_news
         elif self.report_mode == "current":
             # current模式：只要stats有内容就说明有匹配的新闻
             return any(stat["count"] > 0 for stat in stats)
@@ -418,7 +419,13 @@ class NewsAnalyzer:
             mode_strategy = self._get_mode_strategy()
             if "实时" in report_type:
                 if self.report_mode == "incremental":
-                    print("跳过实时推送通知：增量模式下未检测到新增的新闻")
+                    has_new = bool(
+                        new_titles and any(len(titles) > 0 for titles in new_titles.values())
+                    )
+                    if not has_new:
+                        print("跳过实时推送通知：增量模式下未检测到新增的新闻")
+                    else:
+                        print("跳过实时推送通知：增量模式下新增新闻未匹配到关键词")
                 else:
                     print(
                         f"跳过实时推送通知：{mode_strategy['mode_name']}下未检测到匹配的新闻"
