@@ -8,13 +8,11 @@
 
 <a href="https://trendshift.io/repositories/14726" target="_blank"><img src="https://trendshift.io/api/badge/repositories/14726" alt="sansan0%2FTrendRadar | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-<a href="https://shandianshuo.cn" target="_blank" title="AI Voice Input, 4x Faster Than Typing ⚡"><img src="_image/shandianshuo.png" alt="FlashSpeak logo" height="55"/></a>
-
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
 [![Version](https://img.shields.io/badge/version-v4.0.3-blue.svg)](https://github.com/sansan0/TrendRadar)
-[![MCP](https://img.shields.io/badge/MCP-v1.1.1-green.svg)](https://github.com/sansan0/TrendRadar)
+[![MCP](https://img.shields.io/badge/MCP-v1.2.0-green.svg)](https://github.com/sansan0/TrendRadar)
 
 [![WeWork](https://img.shields.io/badge/WeWork-Notification-00D4AA?style=flat-square)](https://work.weixin.qq.com/)
 [![WeChat](https://img.shields.io/badge/WeChat-Notification-00D4AA?style=flat-square)](https://weixin.qq.com/)
@@ -42,44 +40,13 @@
 
 > This project is designed to be lightweight and easy to deploy
 
-<br>
-
-<details>
-<summary>🚨 <strong>【Must Read】Important Announcement: v4.0.0 Deployment & Storage Architecture Changes</strong></summary>
-
-<br>
-
-### 🛠️ Choose the Deployment Method That Fits You
-
-#### 🅰️ Option 1: Docker Deployment (Recommended 🔥)
-
-* **Features**: Most stable and simplest. Data is stored in **local SQLite**, fully under your control.
-
-* **Best for**: Users with their own server, NAS, or an always-on PC.
-
-👉 **[Jump to Docker Deployment Tutorial](#6-docker-deployment)**
-
----
-
-#### 🅱️ Option 2: GitHub Actions Deployment (Restored ✅)
-
-* **Features**: Data is no longer committed directly to the repo. Instead, it is stored in **Remote Cloud Storage**.
-
-* **Recommended**: Configure a remote cloud storage service (Cloudflare R2, Alibaba Cloud OSS, Tencent Cloud COS, etc.).
-
-👉 **[Click to View Detailed Configuration Tutorial](#-quick-start)**
-
-</details>
-
-<br>
-
 ## 📑 Quick Navigation
 
 <div align="center">
 
 | [🚀 Quick Start](#-quick-start) | [🤖 AI Analysis](#-ai-analysis) | [⚙️ Configuration Guide](#configuration-guide) | [📝 Changelog](#-changelog) | [❓ FAQ & Support](#-faq--support) |
 |:---:|:---:|:---:|:---:|:---:|
-| [🐳 Docker Deployment](#6-docker-deployment) | [🔌 MCP Clients](#-mcp-clients) | [📚 Related Projects](#-related-projects) | [🪄 Sponsors](#-sponsors) | |
+| [🐳 Docker Deployment](#6-docker-deployment) | [🔌 MCP Clients](#-mcp-clients) | [📚 Related Projects](#-related-projects) | | |
 
 </div>
 
@@ -146,194 +113,34 @@ After communication, the author indicated no concerns about server pressure, but
 
 <br>
 
-## ✨ Core Features
-
-### **Multi-Platform Trending News Aggregation**
-
-- Zhihu (知乎)
-- Douyin (抖音)
-- Bilibili Hot Search
-- Wallstreetcn (华尔街见闻)
-- Tieba (贴吧)
-- Baidu Hot Search
-- Yicai (财联社)
-- Thepaper (澎湃新闻)
-- Ifeng (凤凰网)
-- Toutiao (今日头条)
-- Weibo (微博)
-
-Default monitoring of 11 mainstream platforms, with support for adding custom platforms.
-
-> 💡 For detailed configuration, see [Configuration Guide - Platform Configuration](#1-platform-configuration)
-
-### **Smart Push Strategies**
-
-**Three Push Modes**:
-
-| Mode | Target Users | Push Feature |
-|------|--------------|--------------|
-| **Daily Summary** (daily) | Managers/Regular Users | Push all matched news of the day (includes previously pushed) |
-| **Current Rankings** (current) | Content Creators | Push current ranking matches (continuously ranked news appear each time) |
-| **Incremental Monitor** (incremental) | Traders/Investors | Push only new content, zero duplication |
-
-> 💡 **Quick Selection Guide:**
-> - 🔄 Don't want duplicate news → Use `incremental`
-> - 📊 Want complete ranking trends → Use `current`
-> - 📝 Need daily summary reports → Use `daily`
->
-> For detailed comparison and configuration, see [Configuration Guide - Push Mode Details](#3-push-mode-details)
-
-**Additional Features** (Optional):
-
-| Feature | Description | Default |
-|---------|-------------|---------|
-| **Push Time Window Control** | Set push time range (e.g., 09:00-18:00) to avoid non-work hours notifications | Disabled |
-| **Content Order Configuration** | Adjust display order of "Trending Keywords Stats" and "New Trending News" (v3.5.0 new) | Stats first |
-
-> 💡 For detailed configuration, see [Configuration Guide - Report Configuration](#7-report-configuration) and [Configuration Guide - Push Window](#8-push-window-configuration)
-
-### **Precise Content Filtering**
-
-Set personal keywords (e.g., AI, BYD, Education Policy) to receive only relevant trending news, filtering out noise.
-
-**Basic Syntax** (5 types):
-- Normal words: Basic matching
-- Required words `+`: Narrow scope
-- Filter words `!`: Exclude noise
-- Count limit `@`: Control display count (v3.2.0 new)
-- Global filter `[GLOBAL_FILTER]`: Globally exclude specified content (v3.5.0 new)
-
-**Advanced Features** (v3.2.0 new):
-- 🔢 **Keyword Sorting Control**: Sort by popularity or config order
-- 📊 **Display Count Limit**: Global config + individual override for flexible control
-
-**Group-based Management**:
-- Separate with blank lines, independent statistics for different topics
-
-> 💡 **Basic Configuration**: [Keyword Configuration - Basic Syntax](#keyword-basic-syntax)
->
-> 💡 **Advanced Configuration**: [Keyword Configuration - Advanced Settings](#keyword-advanced-settings)
->
-> 💡 You can also skip filtering and receive all trending news (leave frequency_words.txt empty)
-
-
-### **Trending Analysis**
-
-Real-time tracking of news popularity changes helps you understand not just "what's trending" but "how trends evolve."
-
-- **Timeline Tracking**: Records complete time span from first to last appearance
-- **Popularity Changes**: Tracks ranking changes and appearance frequency across time periods
-- **New Detection**: Real-time identification of emerging topics, marked with 🆕
-- **Continuity Analysis**: Distinguishes between one-time hot topics and continuously developing news
-- **Cross-Platform Comparison**: Same news across different platforms, showing media attention differences
-
-> 💡 Push format reference: [Configuration Guide - Push Format Reference](#5-push-format-reference)
-
-### **Personalized Trending Algorithm**
-
-No longer controlled by platform algorithms, TrendRadar reorganizes all trending searches:
-
-- **Prioritize High-Ranking News** (60%): Top-ranked news from each platform appears first
-- **Focus on Persistent Topics** (30%): Repeatedly appearing news is more important
-- **Consider Ranking Quality** (10%): Not just frequent, but consistently top-ranked
-
-> 💡 Weight adjustment guide: [Configuration Guide - Advanced Configuration](#4-advanced-configuration---hotspot-weight-adjustment)
-
-### **Multi-Channel Real-Time Push**
-
-Supports **WeWork** (+ WeChat push solution), **Feishu**, **DingTalk**, **Telegram**, **Email**, **ntfy**, **Bark**, **Slack** — messages delivered directly to phone and email.
-
-**📌 Multi-Account Push Notes (v3.5.0 New Feature):**
-
-- ✅ **Multi-Account Configuration Support**: All push channels (Feishu, DingTalk, WeWork, Telegram, ntfy, Bark, Slack) support configuring multiple accounts
-- ✅ **Configuration Method**: Use English semicolon `;` to separate multiple account values
-- ✅ **Example**: Set `FEISHU_WEBHOOK_URL` Secret value to `https://webhook1;https://webhook2`
-- ⚠️ **Paired Configuration**: Telegram and ntfy require paired parameter quantities to match (e.g., token and chat_id both have 2 values)
-- ⚠️ **Quantity Limit**: Default maximum 3 accounts per channel, exceeded values will be truncated
-
-### **Flexible Storage Architecture (v4.0.0 Major Update)**
-
-**Multi-Backend Support**:
-- ☁️ **Remote Cloud Storage**: GitHub Actions environment default, supports S3-compatible protocols (R2/OSS/COS, etc.), data stored in cloud, keeping repository clean
-- 💾 **Local SQLite**: Traditional SQLite database, stable and efficient (Docker/local deployment)
-- 🔀 **Auto Selection**: Auto-selects appropriate backend based on runtime environment
-
-**Data Format Hierarchy**:
-
-| Format | Role | Description |
-|--------|------|-------------|
-| **SQLite** | Primary storage | Complete data with statistics information |
-| **TXT** | Human-readable backup | Optional text records for manual viewing |
-| **HTML** | Web report | Beautiful visual report (GitHub Pages) |
-
-**Data Management Features**:
-- Auto data cleanup (configurable retention period)
-- Timezone support (configurable IANA time zone)
-- Cloud/local seamless switching
-
-> 💡 For storage configuration details, see [Configuration Details - Storage Configuration](#11-storage-configuration-v400-new)
-
-### **Multi-Platform Deployment**
-- **GitHub Actions**: Cloud automated operations (7-day check-in cycle + remote cloud storage)
-- **Docker Deployment**: Supports multi-architecture containerized operation
-- **Local Running**: Python environment direct execution
-
-
-### **AI Smart Analysis (v3.0.0 New)**
-
-AI conversational analysis system based on MCP (Model Context Protocol), enabling deep data mining with natural language.
-
-- **Conversational Query**: Ask in natural language, like "Query yesterday's Zhihu trending" or "Analyze recent Bitcoin popularity trends"
-- **14 Analysis Tools**: Date parsing, basic query, smart search, trend analysis, data insights, sentiment analysis, etc.
-- **Multi-Client Support**: Cherry Studio (GUI config), Claude Desktop, Cursor, Cline, etc.
-- **Deep Analysis Capabilities**:
-  - Topic trend tracking (popularity changes, lifecycle, viral detection, trend prediction)
-  - Cross-platform data comparison (activity stats, keyword co-occurrence)
-  - Smart summary generation, similar news finding, historical correlation search
-
-> **💡 Usage Tip**: AI features require local news data support
-> - Project includes **November 1-15** test data for immediate experience
-> - Recommend deploying the project yourself to get more real-time data
->
-> See [AI Analysis](#-ai-analysis) for details
-
-### **Zero Technical Barrier Deployment**
-
-One-click GitHub Fork to use, no programming required.
-
-> 30-second deployment: GitHub Pages (web browsing) supports one-click save as image for easy sharing
->
-> 1-minute deployment: WeWork (mobile notification)
-
-**💡 Tip:** Want a **real-time updated** web version? After forking, go to your repo Settings → Pages and enable GitHub Pages. [Preview Effect](https://sansan0.github.io/TrendRadar/).
-
-### **Reduce APP Dependencies**
-
-Transform from "algorithm recommendation captivity" to "actively getting the information you want"
-
-**Target Users:** Investors, content creators, PR professionals, news-conscious general users
-
-**Typical Scenarios:** Stock investment monitoring, brand sentiment tracking, industry trend watching, lifestyle news gathering
-
-
-| Github Pages Effect (Mobile Adapted, Email Push) | Feishu Push Effect |
-|:---:|:---:|
-| ![Github Pages Effect](_image/github-pages.png) | ![Feishu Push Effect](_image/feishu.jpg) |
+## 🪄 Sponsors
 
 <br>
 
 ## 📝 Changelog
 
->**Upgrade Instructions**:
-- **📌 Check Latest Updates**: **[Original Repository Changelog](https://github.com/sansan0/TrendRadar?tab=readme-ov-file#-changelog)**
-- **Tip**: Do NOT update this project via **Sync fork**. Check [Changelog] to understand specific [Upgrade Methods] and [Features]
-- **Major Version Upgrade**: Upgrading from v1.x to v2.y, recommend deleting existing fork and re-forking to save effort and avoid config conflicts
-
+>**📌 Check Latest Updates**: **[Original Repository Changelog](https://github.com/sansan0/TrendRadar?tab=readme-ov-file#-changelog)**:
+- **Tip**: Check [Changelog] to understand specific [Features]
 
 ### 2025/12/20 - v4.0.3
 
 - Added URL normalization to fix duplicate push issues caused by dynamic parameters (e.g., Weibo's `band_rank`)
 - Fixed incremental mode detection logic to correctly identify historical titles
+
+
+### 2025/12/26 - mcp-v1.2.0
+
+  **MCP Module Update - Optimized toolset, added aggregation & comparison features, merged redundant tools:**
+  - Added `aggregate_news` tool - Cross-platform news deduplication and aggregation
+  - Added `compare_periods` tool - Period comparison analysis (week-over-week/month-over-month)
+  - Merged `find_similar_news` + `search_related_news_history` → `find_related_news`
+  - Enhanced `get_trending_topics` - Added `auto_extract` mode for automatic trending extraction
+  - Fixed miscellaneous bugs
+  - Updated README-MCP-FAQ.md documentation in both Chinese and English (Q1-Q18)
+
+
+<details>
+<summary>👉 Click to expand: <strong>Historical Updates</strong></summary>
 
 
 ### 2025/12/13 - mcp-v1.1.0
@@ -344,10 +151,6 @@ Transform from "algorithm recommendation captivity" to "actively getting the inf
   - `sync_from_remote`: Pull data from remote storage to local
   - `get_storage_status`: Get storage configuration and status
   - `list_available_dates`: List available dates in local/remote storage
-
-
-<details>
-<summary>👉 Click to expand: <strong>Historical Updates</strong></summary>
 
 
 ### 2025/12/17 - v4.0.1
@@ -832,27 +635,232 @@ frequency_words.txt file added **required word** feature, using + sign
 
 <br>
 
-## 🚀 Quick Start
+## ✨ Core Features
 
-> **📖 Reminder**: Fork users should first **[check the latest official documentation](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)** to ensure the configuration steps are up to date.
+### **Multi-Platform Trending News Aggregation**
 
-**⚠️ GitHub Actions Usage Instructions**
+- Zhihu (知乎)
+- Douyin (抖音)
+- Bilibili Hot Search
+- Wallstreetcn (华尔街见闻)
+- Tieba (贴吧)
+- Baidu Hot Search
+- Yicai (财联社)
+- Thepaper (澎湃新闻)
+- Ifeng (凤凰网)
+- Toutiao (今日头条)
+- Weibo (微博)
 
-**v4.0.0 Important Change**: Introduced "Activity Detection" mechanism—GitHub Actions now requires periodic check-in to maintain operation.
+Default monitoring of 11 mainstream platforms, with support for adding custom platforms.
 
-**🔄 Check-In Renewal Mechanism**:
-- **Running Cycle**: Valid for **7 days**—service will automatically suspend when countdown ends.
-- **Renewal Method**: Manually trigger the "Check In" workflow on the Actions page to reset the 7-day validity period.
-- **Operation Path**: `Actions` → `Check In` → `Run workflow`
-- **Design Philosophy**:
-    - If you forget for 7 days, maybe you don't really need it. Letting it stop is a digital detox, freeing you from the constant impact.
-    - GitHub Actions is a valuable public computing resource. The check-in mechanism aims to prevent wasted computing cycles, ensuring resources are allocated to truly active users who need them. Thank you for your understanding and support.
+> 💡 For detailed configuration, see [Configuration Guide - Platform Configuration](#1-platform-configuration)
 
-<details>
-<summary>👉 Click to expand: <strong>Lite Mode vs Full Mode + AI Analysis</strong></summary>
+### **Smart Push Strategies**
+
+**Three Push Modes**:
+
+| Mode | Target Users | Push Feature |
+|------|--------------|--------------|
+| **Daily Summary** (daily) | Managers/Regular Users | Push all matched news of the day (includes previously pushed) |
+| **Current Rankings** (current) | Content Creators | Push current ranking matches (continuously ranked news appear each time) |
+| **Incremental Monitor** (incremental) | Traders/Investors | Push only new content, zero duplication |
+
+> 💡 **Quick Selection Guide:**
+> - 🔄 Don't want duplicate news → Use `incremental`
+> - 📊 Want complete ranking trends → Use `current`
+> - 📝 Need daily summary reports → Use `daily`
+>
+> For detailed comparison and configuration, see [Configuration Guide - Push Mode Details](#3-push-mode-details)
+
+**Additional Features** (Optional):
+
+| Feature | Description | Default |
+|---------|-------------|---------|
+| **Push Time Window Control** | Set push time range (e.g., 09:00-18:00) to avoid non-work hours notifications | Disabled |
+| **Content Order Configuration** | Adjust display order of "Trending Keywords Stats" and "New Trending News" (v3.5.0 new) | Stats first |
+
+> 💡 For detailed configuration, see [Configuration Guide - Report Configuration](#7-report-configuration) and [Configuration Guide - Push Window](#8-push-window-configuration)
+
+### **Precise Content Filtering**
+
+Set personal keywords (e.g., AI, BYD, Education Policy) to receive only relevant trending news, filtering out noise.
+
+**Basic Syntax** (5 types):
+- Normal words: Basic matching
+- Required words `+`: Narrow scope
+- Filter words `!`: Exclude noise
+- Count limit `@`: Control display count (v3.2.0 new)
+- Global filter `[GLOBAL_FILTER]`: Globally exclude specified content (v3.5.0 new)
+
+**Advanced Features** (v3.2.0 new):
+- 🔢 **Keyword Sorting Control**: Sort by popularity or config order
+- 📊 **Display Count Limit**: Global config + individual override for flexible control
+
+**Group-based Management**:
+- Separate with blank lines, independent statistics for different topics
+
+> 💡 **Basic Configuration**: [Keyword Configuration - Basic Syntax](#keyword-basic-syntax)
+>
+> 💡 **Advanced Configuration**: [Keyword Configuration - Advanced Settings](#keyword-advanced-settings)
+>
+> 💡 You can also skip filtering and receive all trending news (leave frequency_words.txt empty)
+
+
+### **Trending Analysis**
+
+Real-time tracking of news popularity changes helps you understand not just "what's trending" but "how trends evolve."
+
+- **Timeline Tracking**: Records complete time span from first to last appearance
+- **Popularity Changes**: Tracks ranking changes and appearance frequency across time periods
+- **New Detection**: Real-time identification of emerging topics, marked with 🆕
+- **Continuity Analysis**: Distinguishes between one-time hot topics and continuously developing news
+- **Cross-Platform Comparison**: Same news across different platforms, showing media attention differences
+
+> 💡 Push format reference: [Configuration Guide - Push Format Reference](#5-push-format-reference)
+
+### **Personalized Trending Algorithm**
+
+No longer controlled by platform algorithms, TrendRadar reorganizes all trending searches:
+
+- **Prioritize High-Ranking News** (60%): Top-ranked news from each platform appears first
+- **Focus on Persistent Topics** (30%): Repeatedly appearing news is more important
+- **Consider Ranking Quality** (10%): Not just frequent, but consistently top-ranked
+
+> 💡 Weight adjustment guide: [Configuration Guide - Advanced Configuration](#4-advanced-configuration---hotspot-weight-adjustment)
+
+### **Multi-Channel Real-Time Push**
+
+Supports **WeWork** (+ WeChat push solution), **Feishu**, **DingTalk**, **Telegram**, **Email**, **ntfy**, **Bark**, **Slack** — messages delivered directly to phone and email.
+
+**📌 Multi-Account Push Notes (v3.5.0 New Feature):**
+
+- ✅ **Multi-Account Configuration Support**: All push channels (Feishu, DingTalk, WeWork, Telegram, ntfy, Bark, Slack) support configuring multiple accounts
+- ✅ **Configuration Method**: Use English semicolon `;` to separate multiple account values
+- ✅ **Example**: Set `FEISHU_WEBHOOK_URL` Secret value to `https://webhook1;https://webhook2`
+- ⚠️ **Paired Configuration**: Telegram and ntfy require paired parameter quantities to match (e.g., token and chat_id both have 2 values)
+- ⚠️ **Quantity Limit**: Default maximum 3 accounts per channel, exceeded values will be truncated
+
+### **Flexible Storage Architecture (v4.0.0 Major Update)**
+
+**Multi-Backend Support**:
+- ☁️ **Remote Cloud Storage**: GitHub Actions environment default, supports S3-compatible protocols (R2/OSS/COS, etc.), data stored in cloud, keeping repository clean
+- 💾 **Local SQLite**: Traditional SQLite database, stable and efficient (Docker/local deployment)
+- 🔀 **Auto Selection**: Auto-selects appropriate backend based on runtime environment
+
+**Data Format Hierarchy**:
+
+| Format | Role | Description |
+|--------|------|-------------|
+| **SQLite** | Primary storage | Complete data with statistics information |
+| **TXT** | Human-readable backup | Optional text records for manual viewing |
+| **HTML** | Web report | Beautiful visual report (GitHub Pages) |
+
+**Data Management Features**:
+- Auto data cleanup (configurable retention period)
+- Timezone support (configurable IANA time zone)
+- Cloud/local seamless switching
+
+> 💡 For storage configuration details, see [Configuration Details - Storage Configuration](#11-storage-configuration-v400-new)
+
+### **Multi-Platform Deployment**
+- **GitHub Actions**: Cloud automated operations (7-day check-in cycle + remote cloud storage)
+- **Docker Deployment**: Supports multi-architecture containerized operation
+- **Local Running**: Python environment direct execution
+
+
+### **AI Smart Analysis (v3.0.0 New)**
+
+AI conversational analysis system based on MCP (Model Context Protocol), enabling deep data mining with natural language.
+
+- **Conversational Query**: Ask in natural language, like "Query yesterday's Zhihu trending" or "Analyze recent Bitcoin popularity trends"
+- **14 Analysis Tools**: Date parsing, basic query, smart search, trend analysis, data insights, sentiment analysis, etc.
+- **Multi-Client Support**: Cherry Studio (GUI config), Claude Desktop, Cursor, Cline, etc.
+- **Deep Analysis Capabilities**:
+  - Topic trend tracking (popularity changes, lifecycle, viral detection, trend prediction)
+  - Cross-platform data comparison (activity stats, keyword co-occurrence)
+  - Smart summary generation, similar news finding, historical correlation search
+
+> **💡 Usage Tip**: AI features require local news data support
+> - Project includes **November 1-15** test data for immediate experience
+> - Recommend deploying the project yourself to get more real-time data
+>
+> See [AI Analysis](#-ai-analysis) for details
+
+### **Zero Technical Barrier Deployment**
+
+One-click GitHub Fork to use, no programming required.
+
+> 30-second deployment: GitHub Pages (web browsing) supports one-click save as image for easy sharing
+>
+> 1-minute deployment: WeWork (mobile notification)
+
+**💡 Tip:** Want a **real-time updated** web version? After forking, go to your repo Settings → Pages and enable GitHub Pages. [Preview Effect](https://sansan0.github.io/TrendRadar/).
+
+### **Reduce APP Dependencies**
+
+Transform from "algorithm recommendation captivity" to "actively getting the information you want"
+
+**Target Users:** Investors, content creators, PR professionals, news-conscious general users
+
+**Typical Scenarios:** Stock investment monitoring, brand sentiment tracking, industry trend watching, lifestyle news gathering
+
+
+| Github Pages Effect (Mobile Adapted, Email Push) | Feishu Push Effect |
+|:---:|:---:|
+| ![Github Pages Effect](_image/github-pages.png) | ![Feishu Push Effect](_image/feishu.jpg) |
+
+
 <br>
 
-**📦 Data Storage (Recommended Configuration)**
+## 🚀 Quick Start
+
+> **📖 Reminder**: You should first **[check the latest official documentation](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)** to ensure the configuration steps are up to date.
+
+### 🛠️ Choose the Deployment Method That Fits You
+
+#### 🅰️ Option A: Docker Deployment (Recommended 🔥)
+
+* **Features**: More stable than GitHub Actions
+* **Best for**: Users with their own server, NAS, or an always-on PC
+
+👉 **[Jump to Docker Deployment Tutorial](#6-docker-deployment)**
+
+#### 🅱️ Option B: GitHub Actions Deployment (This Chapter ⬇️)
+
+* **Features**: Data is stored in **Remote Cloud Storage** (no longer written to Git repo)
+* **Recommended**: Configure cloud storage service (Cloudflare R2 free tier is sufficient, Alibaba Cloud OSS, Tencent Cloud COS, etc.)
+* **Note**: Requires periodic check-in renewal (every 7 days)
+
+1️⃣ **Get project code**
+
+   Click the green **[Use this template]** button at the top right of this repository page → Select "Create a new repository".
+
+   > ⚠️ Note:
+   > - Any mention of "Fork" in this document can be understood as "Use this template"
+   > - Using Fork may cause runtime issues, see [Issue #606](https://github.com/sansan0/TrendRadar/issues/606)
+
+2️⃣ **Setup GitHub Secrets**:
+
+   In your forked repo, go to `Settings` > `Secrets and variables` > `Actions` > `New repository secret`
+
+   **📌 Important Instructions (Please Read Carefully):**
+
+   - **One Name for One Secret**: For each configuration item, click the "New repository secret" button once and fill in a pair of "Name" and "Secret"
+   - **Cannot See Value After Saving is Normal**: For security reasons, after saving, you can only see the Name when re-editing, but not the Secret value
+   - **DO NOT Create Custom Names**: The Secret Name must **strictly use** the names listed below (e.g., `WEWORK_WEBHOOK_URL`, `FEISHU_WEBHOOK_URL`, etc.). Do not modify or create new names arbitrarily, or the system will not recognize them
+   - **Can Configure Multiple Platforms**: The system will send notifications to all configured platforms
+
+   **GitHub Actions Check-In Renewal Mechanism**:
+   - **Running Cycle**: Valid for **7 days**—service will automatically suspend when countdown ends.
+   - **Renewal Method**: Manually trigger the "Check In" workflow on the Actions page to reset the 7-day validity period.
+   - **Operation Path**: `Actions` → `Check In` → `Run workflow`
+   - **Design Philosophy**:
+     - If you forget for 7 days, maybe you don't really need it. Letting it stop is a digital detox, freeing you from the constant impact.
+     - GitHub Actions is a valuable public computing resource. The check-in mechanism aims to prevent wasted computing cycles, ensuring resources are allocated to truly active users who need them. Thank you for your understanding and support.
+
+   <details>
+   <summary>👉 Click to expand: <strong>Lite Mode vs Full Mode + AI Analysis</strong></summary>
+   <br>
 
 **Two Deployment Modes:**
 
@@ -868,36 +876,11 @@ frequency_words.txt file added **required word** feature, using + sign
 **Full Mode Description**:
 Configure remote cloud storage to unlock all features (see **Recommended Configuration: Remote Cloud Storage** below)
 
-**🚀 Recommended: Docker Deployment**
+   </details>
 
-For long-term stable operation, we recommend [Docker Deployment](#6-docker-deployment), with data stored locally and no check-in required—though it does require purchasing a cloud server.
-
-</details>
-
----
-
-1️⃣ **Get project code**
-
-   Click the green **[Use this template]** button at the top right of this repository page → Select "Create a new repository".
-
-   > ⚠️ Note:
-   > - Any mention of "Fork" in this document can be understood as "Use this template"
-   > - Using Fork may cause runtime issues, see [Issue #606](https://github.com/sansan0/TrendRadar/issues/606)
-
-2️⃣ **Setup GitHub Secrets (Required + Optional Platforms)**:
-
-   In your forked repo, go to `Settings` > `Secrets and variables` > `Actions` > `New repository secret`
-
-   **📌 Important Instructions (Please Read Carefully):**
-
-   - **One Name for One Secret**: For each configuration item, click the "New repository secret" button once and fill in a pair of "Name" and "Secret"
-   - **Cannot See Value After Saving is Normal**: For security reasons, after saving, you can only see the Name when re-editing, but not the Secret value
-   - **DO NOT Create Custom Names**: The Secret Name must **strictly use** the names listed below (e.g., `WEWORK_WEBHOOK_URL`, `FEISHU_WEBHOOK_URL`, etc.). Do not modify or create new names arbitrarily, or the system will not recognize them
-   - **Can Configure Multiple Platforms**: The system will send notifications to all configured platforms
-
-<details>
-<summary>👉 Click to expand: <strong>Multi-Account Push Notes (v3.5.0 New Feature)</strong></summary>
-<br>
+   <details>
+   <summary>👉 Click to expand: <strong>Multi-Account Push Notes (v3.5.0 New Feature)</strong></summary>
+   <br>
 
 - **Multi-Account Configuration Support**: All push channels (Feishu, DingTalk, WeWork, Telegram, ntfy, Bark, Slack) support configuring multiple accounts
 - **Configuration Method**: Use English semicolon `;` to separate multiple account values
@@ -915,7 +898,7 @@ For long-term stable operation, we recommend [Docker Deployment](#6-docker-deplo
 | `NTFY_TOPIC` | `topic1;topic2` |
 | `NTFY_TOKEN` | `;token2` (1st has no token, use empty string as placeholder) |
 
-</details>
+   </details>
 
    **Configuration Example:**
 
@@ -3494,53 +3477,6 @@ Any client supporting Model Context Protocol can connect to TrendRadar:
 
 </details>
 
-<br>
-
-## ☕ FAQ & Support
-
-> If you want to support this project, you can search **Tencent Charity** on WeChat and donate to **Education Support Programs** as you wish
->
-> Thanks to those who participated in the **one-yuan donation**! You are listed in the **Acknowledgments** at the top. Your support gives more motivation to open source maintenance. Personal donation QR code has been removed.
-
-- **GitHub Issues**: Suitable for targeted answers. Please provide complete info when asking (screenshots, error logs, system environment, etc.)
-- **WeChat Official Account**: Suitable for quick consultation. Suggest priority to communicate in public comment area of related articles. If private message, please use polite language 😉
-- 💡 Deployment successful? Come to our official account to share your experience! Your likes and suggestions are the driving force for continuous updates~
-
-
-<div align="center">
-
-| WeChat Official Account |
-|:---:|
-| <img src="_image/weixin.png" width="400" title="Silicon Tea Room"/> |
-
-</div>
-
-<br>
-
----
-
-## 🪄 Sponsors
-
-> Tracking so many trending topics daily, writing reports, replying messages making your wrists tired?
->
-> Try「FlashSpeak」AI Voice Input - Speak instead of type, 4x faster ⚡
->
-> On-device Model • Lightning Fast • Absolute Privacy • Mac/Win Support
->
-> From reading trends to content output, double your efficiency 👇
-
-<div align="center">
-
-[![Mac Download](https://img.shields.io/badge/Mac-Free_Download-FF6B6B?style=for-the-badge&logo=apple&logoColor=white)](https://shandianshuo.cn) [![Windows Download](https://img.shields.io/badge/Windows-Free_Download-FF6B6B?style=for-the-badge&logo=lightning&logoColor=white)](https://shandianshuo.cn)
-<a href="https://shandianshuo.cn" target="_blank">
-  <img src="_image/banner-shandianshuo.png" alt="FlashSpeak" width="700"/>
-</a>
-</div>
-
-
-
----
-
 
 ### Common Questions
 
@@ -3621,6 +3557,29 @@ Any client supporting Model Context Protocol can connect to TrendRadar:
    - Check config file format is correct
 
 </details>
+
+<br>
+
+## ☕ FAQ & Support
+
+> If you want to support this project, you can search **Tencent Charity** on WeChat and donate to **Education Support Programs** as you wish
+>
+> Thanks to those who participated in the **one-yuan donation**! You are listed in the **Acknowledgments** at the top. Your support gives more motivation to open source maintenance. Personal donation QR code has been removed.
+>
+> 🎯 Interested in sponsoring this project? Your banner will be displayed in the Sponsors section at the top.
+
+- **GitHub Issues**: Suitable for targeted answers. Please provide complete info when asking (screenshots, error logs, system environment, etc.)
+- **WeChat Official Account**: Suitable for quick consultation. Suggest priority to communicate in public comment area of related articles. If private message, please use polite language 😉
+- **Contact**: path@linux.do
+
+
+<div align="center">
+
+| WeChat Official Account |
+|:---:|
+| <img src="_image/weixin.png" width="400" title="Silicon Tea Room"/> |
+
+</div>
 
 <br>
 
