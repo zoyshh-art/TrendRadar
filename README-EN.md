@@ -8,6 +8,8 @@
 
 <a href="https://trendshift.io/repositories/14726" target="_blank"><img src="https://trendshift.io/api/badge/repositories/14726" alt="sansan0%2FTrendRadar | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
+<a href="https://shandianshuo.cn" target="_blank" title="AI Voice Input, 4x Faster Than Typing ⚡"><img src="_image/shandianshuo.png" alt="FlashSpeak logo" height="50"/></a>
+
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
@@ -114,6 +116,16 @@ After communication, the author indicated no concerns about server pressure, but
 <br>
 
 ## 🪄 Sponsors
+
+> Writing reports, replying messages making your wrists tired? Try「FlashSpeak」AI Voice Input - Speak instead of type, 4x faster ⚡
+
+<div align="center">
+
+[![Mac Download](https://img.shields.io/badge/Mac-Free_Download-FF6B6B?style=for-the-badge&logo=apple&logoColor=white)](https://shandianshuo.cn) [![Windows Download](https://img.shields.io/badge/Windows-Free_Download-FF6B6B?style=for-the-badge&logo=lightning&logoColor=white)](https://shandianshuo.cn)
+<a href="https://shandianshuo.cn" target="_blank">
+  <img src="_image/banner-shandianshuo.png" alt="FlashSpeak" width="700"/>
+</a>
+</div>
 
 <br>
 
@@ -814,9 +826,9 @@ Transform from "algorithm recommendation captivity" to "actively getting the inf
 
 ## 🚀 Quick Start
 
-> **📖 Reminder**: You should first **[check the latest official documentation](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)** to ensure the configuration steps are up to date.
+> **Reminder**: You should first **[check the latest official documentation](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)** to ensure the configuration steps are up to date.
 
-### 🛠️ Choose the Deployment Method That Fits You
+### Choose the Deployment Method That Fits You
 
 #### 🅰️ Option A: Docker Deployment (Recommended 🔥)
 
@@ -839,6 +851,8 @@ Transform from "algorithm recommendation captivity" to "actively getting the inf
    > - Any mention of "Fork" in this document can be understood as "Use this template"
    > - Using Fork may cause runtime issues, see [Issue #606](https://github.com/sansan0/TrendRadar/issues/606)
 
+   <br>
+
 2️⃣ **Setup GitHub Secrets**:
 
    In your forked repo, go to `Settings` > `Secrets and variables` > `Actions` > `New repository secret`
@@ -850,55 +864,13 @@ Transform from "algorithm recommendation captivity" to "actively getting the inf
    - **DO NOT Create Custom Names**: The Secret Name must **strictly use** the names listed below (e.g., `WEWORK_WEBHOOK_URL`, `FEISHU_WEBHOOK_URL`, etc.). Do not modify or create new names arbitrarily, or the system will not recognize them
    - **Can Configure Multiple Platforms**: The system will send notifications to all configured platforms
 
-   **GitHub Actions Check-In Renewal Mechanism**:
-   - **Running Cycle**: Valid for **7 days**—service will automatically suspend when countdown ends.
-   - **Renewal Method**: Manually trigger the "Check In" workflow on the Actions page to reset the 7-day validity period.
-   - **Operation Path**: `Actions` → `Check In` → `Run workflow`
-   - **Design Philosophy**:
-     - If you forget for 7 days, maybe you don't really need it. Letting it stop is a digital detox, freeing you from the constant impact.
-     - GitHub Actions is a valuable public computing resource. The check-in mechanism aims to prevent wasted computing cycles, ensuring resources are allocated to truly active users who need them. Thank you for your understanding and support.
+   **📌 Multi-Account Push Notes (v3.5.0 New Feature):**
 
-   <details>
-   <summary>👉 Click to expand: <strong>Lite Mode vs Full Mode + AI Analysis</strong></summary>
-   <br>
-
-**Two Deployment Modes:**
-
-| Mode | Configuration Required | Features |
-|------|------------------------|----------|
-| **Lite Mode** | No storage configuration needed | Real-time crawling + Keyword filtering + Multi-channel push |
-| **Full Mode** | Configure remote cloud storage | Lite Mode + New detection + Trend tracking + Incremental push + AI analysis |
-
-**Lite Mode Description**:
-- ✅ Available: Real-time news crawling, keyword filtering, hotspot weight ranking, current list push
-- ❌ Not Available: New news detection (🆕), trend tracking, incremental mode, daily summary accumulation, MCP AI analysis
-
-**Full Mode Description**:
-Configure remote cloud storage to unlock all features (see **Recommended Configuration: Remote Cloud Storage** below)
-
-   </details>
-
-   <details>
-   <summary>👉 Click to expand: <strong>Multi-Account Push Notes (v3.5.0 New Feature)</strong></summary>
-   <br>
-
-- **Multi-Account Configuration Support**: All push channels (Feishu, DingTalk, WeWork, Telegram, ntfy, Bark, Slack) support configuring multiple accounts
-- **Configuration Method**: Use English semicolon `;` to separate multiple account values
-- **Example**: Set `FEISHU_WEBHOOK_URL` Secret value to `https://webhook1;https://webhook2`
-- **Paired Configuration**: Telegram and ntfy require paired parameter quantities to match (e.g., token and chat_id both have 2 values)
-- **Quantity Limit**: Default maximum 3 accounts per channel, exceeded values will be truncated
-
-**Multi-Account Configuration Examples**:
-
-| Name | Secret (Value) Example |
-|------|------------------------|
-| `FEISHU_WEBHOOK_URL` | `https://webhook1;https://webhook2;https://webhook3` |
-| `TELEGRAM_BOT_TOKEN` | `token1;token2` |
-| `TELEGRAM_CHAT_ID` | `chatid1;chatid2` |
-| `NTFY_TOPIC` | `topic1;topic2` |
-| `NTFY_TOKEN` | `;token2` (1st has no token, use empty string as placeholder) |
-
-   </details>
+   - ✅ **Multi-Account Configuration Support**: All push channels (Feishu, DingTalk, WeWork, Telegram, ntfy, Bark, Slack) support configuring multiple accounts
+   - ✅ **Configuration Method**: Use English semicolon `;` to separate multiple account values
+   - ✅ **Example**: Set `FEISHU_WEBHOOK_URL` Secret value to `https://webhook1;https://webhook2`
+   - ⚠️ **Paired Configuration**: Telegram and ntfy require paired parameter quantities to match (e.g., token and chat_id both have 2 values)
+   - ⚠️ **Quantity Limit**: Default maximum 3 accounts per channel, exceeded values will be truncated
 
    **Configuration Example:**
 
@@ -909,44 +881,6 @@ Configure remote cloud storage to unlock all features (see **Recommended Configu
    - **Secret (Value)**: Fill in the actual content obtained from the corresponding platform (e.g., Webhook URL, Token, etc.)
 
    <br>
-
-<details>
-<summary>👉 Click to expand: <strong>Recommended Configuration: Remote Cloud Storage</strong></summary>
-<br>
-
-**GitHub Secret Configuration:**
-
-**Required Configuration (4 items):**
-
-| Name | Secret (Value) Description |
-|------|----------------------------|
-| `S3_BUCKET_NAME` | Bucket name (e.g., `trendradar-data`) |
-| `S3_ACCESS_KEY_ID` | Access key ID |
-| `S3_SECRET_ACCESS_KEY` | Access key |
-| `S3_ENDPOINT_URL` | S3 API endpoint (e.g., R2: `https://<account-id>.r2.cloudflarestorage.com`) |
-
-**Optional Configuration:**
-
-| Name | Secret (Value) Description |
-|------|----------------------------|
-| `S3_REGION` | Region (default `auto`, some providers may require specification) |
-
-> 💡 **More storage configuration options**: See [Storage Configuration Details](#11-storage-configuration-v400-new)
-
-<br>
-
-**How to Get Credentials (Using Cloudflare R2 as Example):**
-
-1. Visit [Cloudflare Dashboard](https://dash.cloudflare.com/) and log in
-2. Select `R2` in left menu → Click `Create Bucket` → Enter name (e.g., `trendradar-data`)
-3. Click `Manage R2 API Tokens` at top right → `Create API Token`
-4. Select `Object Read & Write` permission → After creation, it will display `Access Key ID` and `Secret Access Key`
-5. Endpoint URL can be found in bucket details page (format: `https://<account-id>.r2.cloudflarestorage.com`)
-
-**Notes**:
-- Data stored in cloud, keeps GitHub repository clean
-
-</details>
 
 <details>
 <summary> <strong>👉 Click to expand: WeWork Bot</strong> (Simplest and fastest configuration)</summary>
@@ -1534,6 +1468,7 @@ Slack is a team collaboration tool, Incoming Webhooks can push messages to Slack
 > - For first deployment, suggest completing **GitHub Secrets** configuration first (choose one push platform), then jump to [Step 3] to test push success.
 > - **Don't modify** `config/config.yaml` and `frequency_words.txt` temporarily, adjust these configs after push test succeeds as needed.
 
+   <br>
 
 3️⃣ **Manual Test News Push**:
 
@@ -1561,6 +1496,8 @@ Slack is a team collaboration tool, Incoming Webhooks can push messages to Slack
    > - Don't test too frequently to avoid triggering GitHub Actions limits
    > - After clicking Run workflow, you need to **refresh the browser page** to see the new run record
 
+   <br>
+
 4️⃣ **Configuration Notes (Optional)**:
 
    Default configuration works normally. Only adjust if you need personalization, understanding these three files:
@@ -1573,7 +1510,84 @@ Slack is a team collaboration tool, Incoming Webhooks can push messages to Slack
 
    👉 **Detailed Configuration Tutorial**: [Configuration Guide](#configuration-guide)
 
-5️⃣ **🎉 Deployment Success! Share Your Experience**
+   <br>
+
+5️⃣ **GitHub Actions Check-In Mechanism & Remote Cloud Storage Configuration**:
+
+   **v4.0.0 Important Change**: Introduced "Activity Detection" mechanism—GitHub Actions requires periodic check-in to remain active.
+
+   - **Running Cycle**: Valid for **7 days**—service will automatically suspend when countdown ends.
+   - **Renewal Method**: Manually trigger the "Check In" workflow on the Actions page to reset the 7-day validity period.
+   - **Operation Path**: `Actions` → `Check In` → `Run workflow`
+   - **Design Philosophy**:
+     - If you forget for 7 days, maybe you don't really need it. Letting it stop is a digital detox, freeing you from the constant impact.
+     - GitHub Actions is a valuable public computing resource. The check-in mechanism aims to prevent wasted computing cycles, ensuring resources are allocated to truly active users who need them. Thank you for your understanding and support.
+
+   ---
+
+   **You can also choose NOT to configure remote cloud storage**, but then you will be in **Lite Mode** with some advanced features unavailable.
+
+   **Two Deployment Modes Comparison:**
+
+   | Mode | Configuration Required | Features |
+   |------|------------------------|----------|
+   | **Lite Mode** | No storage configuration needed | Real-time crawling + Keyword filtering + Multi-channel push |
+   | **Full Mode** | Configure remote cloud storage | Lite Mode + New detection + Trend tracking + Incremental push + AI analysis |
+
+   **Lite Mode Description**:
+   - ✅ Available: Real-time news crawling, keyword filtering, hotspot weight ranking, current list push
+   - ❌ Not Available: New news detection (🆕), trend tracking, incremental mode, daily summary accumulation, MCP AI analysis
+
+   **Full Mode Description**: Configure remote cloud storage to unlock all features. Continue with the configuration below.
+
+   <details>
+   <summary>👉 Click to expand: <strong>Remote Cloud Storage Configuration (Determines Feature Completeness) (Optional)</strong></summary>
+   <br>
+
+   **⚠️ Prerequisites for Cloudflare R2 Configuration:**
+
+   According to Cloudflare platform rules, enabling R2 requires binding a payment method.
+
+   * **Purpose**: Verify identity only, **no charges will be incurred**.
+   * **Payment**: Supports dual-currency credit cards or regional PayPal.
+   * **Usage**: R2's free tier (10GB storage/month) is sufficient for this project's daily operation, no need to worry about costs.
+
+   ---
+
+   **GitHub Secret Configuration:**
+
+   **Required Configuration (4 items):**
+
+   | Name | Secret (Value) Description |
+   |------|----------------------------|
+   | `S3_BUCKET_NAME` | Bucket name (e.g., `trendradar-data`) |
+   | `S3_ACCESS_KEY_ID` | Access key ID |
+   | `S3_SECRET_ACCESS_KEY` | Access key |
+   | `S3_ENDPOINT_URL` | S3 API endpoint (e.g., R2: `https://<account-id>.r2.cloudflarestorage.com`) |
+
+   **Optional Configuration:**
+
+   | Name | Secret (Value) Description |
+   |------|----------------------------|
+   | `S3_REGION` | Region (default `auto`, some providers may require specification) |
+
+   > 💡 **More storage configuration options**: See [Storage Configuration Details](#11-storage-configuration-v400-new)
+
+   <br>
+
+   **How to Get Credentials (Using Cloudflare R2 as Example):**
+
+   1. Visit [Cloudflare Dashboard](https://dash.cloudflare.com/) and log in
+   2. Select `R2` in left menu → Click `Create Bucket` → Enter name (e.g., `trendradar-data`)
+   3. Click `Manage R2 API Tokens` at top right → `Create API Token`
+   4. Select `Object Read & Write` permission → After creation, it will display `Access Key ID` and `Secret Access Key`
+   5. Endpoint URL can be found in bucket details page (format: `https://<account-id>.r2.cloudflarestorage.com`)
+
+   </details>
+
+   <br>
+
+6️⃣ **🎉 Deployment Success! Share Your Experience**
 
    Congratulations on completing the TrendRadar configuration! You can now start tracking trending news.
 
@@ -1585,7 +1599,9 @@ Slack is a team collaboration tool, Incoming Webhooks can push messages to Slack
 
    👉 Follow the WeChat Official Account「**[硅基茶水间](#-faq--support)**」, your likes and comments are the motivation for continuous updates.
 
-6️⃣ **🤖 Want Smarter Analysis? Try AI-Enhanced Features** (Optional)
+   <br>
+
+7️⃣ **🤖 Want Smarter Analysis? Try AI-Enhanced Features** (Optional)
 
    Basic configuration already meets daily needs, but if you want:
 

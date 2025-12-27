@@ -8,6 +8,8 @@
 
 <a href="https://trendshift.io/repositories/14726" target="_blank"><img src="https://trendshift.io/api/badge/repositories/14726" alt="sansan0%2FTrendRadar | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
+<a href="https://shandianshuo.cn" target="_blank" title="AI 语音输入，比打字快 4 倍 ⚡"><img src="_image/shandianshuo.png" alt="闪电说 logo" height="50"/></a>
+
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
@@ -163,6 +165,16 @@
 <br>
 
 ## 🪄 赞助商
+
+> 每天写报告、回复消息是否让手腕疲惫？试试「闪电说」AI 语音输入法 —— 说话，比打字快 4 倍 ⚡ 
+
+<div align="center">
+
+[![Mac下载](https://img.shields.io/badge/Mac-免费下载-FF6B6B?style=for-the-badge&logo=apple&logoColor=white)](https://shandianshuo.cn) [![Windows下载](https://img.shields.io/badge/Windows-免费下载-FF6B6B?style=for-the-badge&logo=lightning&logoColor=white)](https://shandianshuo.cn)
+<a href="https://shandianshuo.cn" target="_blank">
+  <img src="_image/banner-shandianshuo.png" alt="闪电说" width="700"/>
+</a>
+</div>
 
 <br>
 
@@ -852,9 +864,9 @@ GitHub 一键 Fork 即可使用，无需编程基础。
 
 ## 🚀 快速开始
 
-> **📖 提醒**：建议先 **[查看最新官方文档](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)**，确保配置步骤是最新的。
+> **提醒**：建议先 **[查看最新官方文档](https://github.com/sansan0/TrendRadar?tab=readme-ov-file)**，确保配置步骤是最新的。
 
-### 🛠️ 请选择适合你的部署方式
+### 请选择适合你的部署方式
 
 #### 🅰️ 方案一：Docker 部署（推荐 🔥）
 
@@ -877,6 +889,8 @@ GitHub 一键 Fork 即可使用，无需编程基础。
    > - 后续文档中提到的 "Fork" 均可理解为 "Use this template"
    > - 使用 Fork 可能导致运行异常，详见 [Issue #606](https://github.com/sansan0/TrendRadar/issues/606)
 
+   <br>
+
 2️⃣ **设置 GitHub Secrets**:
 
    在你 Fork 后的仓库中，进入 `Settings` > `Secrets and variables` > `Actions` > `New repository secret`
@@ -888,55 +902,23 @@ GitHub 一键 Fork 即可使用，无需编程基础。
    - **严禁自创名称**：Secret 的 Name（名称）必须**严格使用**下方列出的名称（如 `WEWORK_WEBHOOK_URL`、`FEISHU_WEBHOOK_URL` 等），不能自己随意修改或创造新名称，否则系统无法识别
    - **可以同时配置多个平台**：系统会向所有配置的平台发送通知
 
-   **GitHub Actions 签到续期机制**：
-   - **运行周期**：有效期为 **7 天**，倒计时结束后服务将自动挂起。
-   - **续期方式**：在 Actions 页面手动触发 "Check In" workflow，即可重置 7 天有效期。
-   - **操作路径**：`Actions` → `Check In` → `Run workflow`
-   - **设计理念**：
-     - 如果 7 天都忘了签到，或许这些资讯对你来说并非刚需。适时的暂停，能帮你从信息流中抽离，给大脑留出喘息的空间。
-     - GitHub Actions 是宝贵的公共计算资源。引入签到机制旨在避免算力的无效空转，确保资源能分配给真正活跃且需要的用户。感谢你的理解与支持。
+   **📌 多账号推送说明（v3.5.0 新增）：**
 
-   <details>
-   <summary>👉 点击展开：<strong>轻量模式 vs 完整模式 + AI分析</strong></summary>
-   <br>
+   - **支持多账号配置**：所有推送渠道（飞书、钉钉、企业微信、Telegram、ntfy、Bark、Slack）均支持配置多个账号
+   - **配置方式**：使用英文分号 `;` 分隔多个账号值
+   - **示例**：`FEISHU_WEBHOOK_URL` 的 Secret 值填写 `https://webhook1;https://webhook2`
+   - **配对配置**：Telegram 和 ntfy 需要保证配对参数数量一致（如 token 和 chat_id 都是 2 个）
+   - **数量限制**：默认每个渠道最多 3 个账号，超出部分被截断
 
-**两种部署模式：**
+   **多账号配置示例**：
 
-| 模式 | 配置要求 | 功能范围 |
-|------|---------|---------|
-| **轻量模式** | 无需配置存储 | 实时抓取 + 关键词筛选 + 多渠道推送 |
-| **完整模式** | 配置远程云存储 | 轻量模式 + 新增检测 + 趋势追踪 + 增量推送 + AI分析 |
-
-**轻量模式说明**：
-- ✅ 可用：实时新闻抓取、关键词筛选、热点权重排序、当前榜单推送
-- ❌ 不可用：新增新闻检测(🆕)、热度趋势追踪、增量模式、每日汇总累积、MCP AI分析
-
-**完整模式说明**：
-配置远程云存储后解锁全部功能（见下方 **推荐配置：远程云存储**）
-
-   </details>
-
-   <details>
-   <summary>👉 点击展开：<strong>多账号推送说明（v3.5.0 新增）</strong></summary>
-   <br>
-
-- **支持多账号配置**：所有推送渠道（飞书、钉钉、企业微信、Telegram、ntfy、Bark、Slack）均支持配置多个账号
-- **配置方式**：使用英文分号 `;` 分隔多个账号值
-- **示例**：`FEISHU_WEBHOOK_URL` 的 Secret 值填写 `https://webhook1;https://webhook2`
-- **配对配置**：Telegram 和 ntfy 需要保证配对参数数量一致（如 token 和 chat_id 都是 2 个）
-- **数量限制**：默认每个渠道最多 3 个账号，超出部分被截断
-
-**多账号配置示例**：
-
-| Name（名称） | Secret（值）示例 |
-|-------------|-----------------|
-| `FEISHU_WEBHOOK_URL` | `https://webhook1;https://webhook2;https://webhook3` |
-| `TELEGRAM_BOT_TOKEN` | `token1;token2` |
-| `TELEGRAM_CHAT_ID` | `chatid1;chatid2` |
-| `NTFY_TOPIC` | `topic1;topic2` |
-| `NTFY_TOKEN` | `;token2`（第一个无 token 时留空占位） |
-
-   </details>
+   | Name（名称） | Secret（值）示例 |
+   |-------------|-----------------|
+   | `FEISHU_WEBHOOK_URL` | `https://webhook1;https://webhook2;https://webhook3` |
+   | `TELEGRAM_BOT_TOKEN` | `token1;token2` |
+   | `TELEGRAM_CHAT_ID` | `chatid1;chatid2` |
+   | `NTFY_TOPIC` | `topic1;topic2` |
+   | `NTFY_TOKEN` | `;token2`（第一个无 token 时留空占位） |
 
    **配置示例：**
 
@@ -947,65 +929,6 @@ GitHub 一键 Fork 即可使用，无需编程基础。
    - **Secret（值）**：填写你从对应平台获取的实际内容（如 Webhook 地址、Token 等）
 
    <br>
-
-   <details>
-   <summary>👉 点击展开：<strong>推荐配置：远程云存储</strong></summary>
-   <br>
-
-**⚠️ 以 Cloudflare R2 为例的配置前置条件：**
-
-根据 Cloudflare 平台规则，开通 R2 需绑定支付方式。
-
-* **目的**：仅作身份验证（Verify Only），**不产生扣费**。
-* **支付**：支持双币信用卡或国区 PayPal。
-* **用量**：R2 的免费额度（10GB存储/月）足以覆盖本项目日常运行，无需担心付费。
-
----
-
-**GitHub Secret 配置：**
-
-**必需配置（4 项）：**
-
-| Name（名称） | Secret（值）说明 |
-|-------------|-----------------|
-| `S3_BUCKET_NAME` | 存储桶名称（如 `trendradar-data`） |
-| `S3_ACCESS_KEY_ID` | 访问密钥 ID（Access Key ID） |
-| `S3_SECRET_ACCESS_KEY` | 访问密钥（Secret Access Key） |
-| `S3_ENDPOINT_URL` | S3 API 端点（如 R2：`https://<account-id>.r2.cloudflarestorage.com`） |
-
-**可选配置：**
-
-| Name（名称） | Secret（值）说明 |
-|-------------|-----------------|
-| `S3_REGION` | 区域（默认 `auto`，部分服务商可能需要指定） |
-
-> 💡 **更多存储配置选项**：参见 [存储配置详解](#11-存储配置)
-
-<br>
-
-**如何获取凭据（以 Cloudflare R2 为例）：**
-
-1. **进入 R2 概览**：
-   - 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)。
-   - 在左侧侧边栏找到并点击 `R2对象存储`。
-
-2. **创建存储桶**：
-   - 点击`概述`
-   - 点击右上角的 `创建存储桶` (Create bucket)。
-   - 输入名称（例如 `trendradar-data`），点击 `创建存储桶`。
-
-3. **创建 API 令牌**：
-   - 回到 **概述**页面。
-   - 点击**右下角** `Account Details `找到并点击 `Manage` (Manage R2 API Tokens)。
-   - 同时你会看到 `S3 API`：`https://<account-id>.r2.cloudflarestorage.com`(这就是 S3_ENDPOINT_URL)
-   - 点击 `创建 Account APl 令牌` 。
-   - **⚠️ 关键设置**：
-     - **令牌名称**：随意填写（如 `github-action-write`）。
-     - **权限**：选择 `管理员读和写` 。
-     - **指定存储桶**：为了安全，建议选择 `仅适用于指定存储桶` 并选中你的桶（如 `trendradar-data`）。
-   - 点击 `创建 API 令牌`，**立即复制** 显示的 `Access Key ID` 和 `Secret Access Key`（只显示一次！）。
-
-   </details>
 
    <details>
    <summary>👉 点击展开：<strong>企业微信机器人</strong>（配置最简单最迅速）</summary>
@@ -1589,6 +1512,8 @@ GitHub 一键 Fork 即可使用，无需编程基础。
 
    </details>
 
+   <br>
+
 3️⃣ **手动测试新闻推送**：
 
    > ⚠️ 提醒：
@@ -1616,6 +1541,8 @@ GitHub 一键 Fork 即可使用，无需编程基础。
    > - 手动测试不要太频繁，避免触发 GitHub Actions 限制
    > - 点击 Run workflow 后需要刷新浏览器页面才能看到新的运行记录
 
+   <br>
+
 4️⃣ **配置说明（可选）**：
 
    默认配置已可正常使用，如需个性化调整，了解以下三个文件即可：
@@ -1628,7 +1555,98 @@ GitHub 一键 Fork 即可使用，无需编程基础。
 
    👉 **详细配置教程**：[配置详解](#配置详解)
 
-5️⃣ **🎉 部署成功！分享你的使用体验**
+   <br>
+
+5️⃣ **GitHub Actions 签到续期机制 & 远程云存储配置**：
+
+   **v4.0.0 重要变更**：引入「活跃度检测」机制，GitHub Actions 需定期签到以维持运行。
+
+   - **运行周期**：有效期为 **7 天**，倒计时结束后服务将自动挂起。
+   - **续期方式**：在 Actions 页面手动触发 "Check In" workflow，即可重置 7 天有效期。
+   - **操作路径**：`Actions` → `Check In` → `Run workflow`
+   - **设计理念**：
+     - 如果 7 天都忘了签到，或许这些资讯对你来说并非刚需。适时的暂停，能帮你从信息流中抽离，给大脑留出喘息的空间。
+     - GitHub Actions 是宝贵的公共计算资源。引入签到机制旨在避免算力的无效空转，确保资源能分配给真正活跃且需要的用户。感谢你的理解与支持。
+
+   ---
+
+   **你也可以不配置远程云存储**，但此时项目处于**轻量模式**，部分高级功能不可用。
+
+   **两种部署模式对比：**
+
+   | 模式 | 配置要求 | 功能范围 |
+   |------|---------|---------|
+   | **轻量模式** | 无需配置存储 | 实时抓取 + 关键词筛选 + 多渠道推送 |
+   | **完整模式** | 配置远程云存储 | 轻量模式 + 新增检测 + 趋势追踪 + 增量推送 + AI分析 |
+
+   **轻量模式说明**：
+   - ✅ 可用：实时新闻抓取、关键词筛选、热点权重排序、当前榜单推送
+   - ❌ 不可用：新增新闻检测(🆕)、热度趋势追踪、增量模式、每日汇总累积、MCP AI分析
+
+   **完整模式说明**：配置远程云存储后即可解锁全部功能，继续按下方步骤配置即可。
+
+   <details>
+   <summary>👉 点击展开：<strong>远程云存储配置（决定功能完整性）（可选）</strong></summary>
+   <br>
+
+   **⚠️ 以 Cloudflare R2 为例的配置前置条件：**
+
+   根据 Cloudflare 平台规则，开通 R2 需绑定支付方式。
+
+   * **目的**：仅作身份验证（Verify Only），**不产生扣费**。
+   * **支付**：支持双币信用卡或国区 PayPal。
+   * **用量**：R2 的免费额度（10GB存储/月）足以覆盖本项目日常运行，无需担心付费。
+
+   ---
+
+   **GitHub Secret 配置：**
+
+   **必需配置（4 项）：**
+
+   | Name（名称） | Secret（值）说明 |
+   |-------------|-----------------|
+   | `S3_BUCKET_NAME` | 存储桶名称（如 `trendradar-data`） |
+   | `S3_ACCESS_KEY_ID` | 访问密钥 ID（Access Key ID） |
+   | `S3_SECRET_ACCESS_KEY` | 访问密钥（Secret Access Key） |
+   | `S3_ENDPOINT_URL` | S3 API 端点（如 R2：`https://<account-id>.r2.cloudflarestorage.com`） |
+
+   **可选配置：**
+
+   | Name（名称） | Secret（值）说明 |
+   |-------------|-----------------|
+   | `S3_REGION` | 区域（默认 `auto`，部分服务商可能需要指定） |
+
+   > 💡 **更多存储配置选项**：参见 [存储配置详解](#11-存储配置)
+
+   <br>
+
+   **如何获取凭据（以 Cloudflare R2 为例）：**
+
+   1. **进入 R2 概览**：
+      - 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)。
+      - 在左侧侧边栏找到并点击 `R2对象存储`。
+
+   2. **创建存储桶**：
+      - 点击`概述`
+      - 点击右上角的 `创建存储桶` (Create bucket)。
+      - 输入名称（例如 `trendradar-data`），点击 `创建存储桶`。
+
+   3. **创建 API 令牌**：
+      - 回到 **概述**页面。
+      - 点击**右下角** `Account Details `找到并点击 `Manage` (Manage R2 API Tokens)。
+      - 同时你会看到 `S3 API`：`https://<account-id>.r2.cloudflarestorage.com`(这就是 S3_ENDPOINT_URL)
+      - 点击 `创建 Account APl 令牌` 。
+      - **⚠️ 关键设置**：
+        - **令牌名称**：随意填写（如 `github-action-write`）。
+        - **权限**：选择 `管理员读和写` 。
+        - **指定存储桶**：为了安全，建议选择 `仅适用于指定存储桶` 并选中你的桶（如 `trendradar-data`）。
+      - 点击 `创建 API 令牌`，**立即复制** 显示的 `Access Key ID` 和 `Secret Access Key`（只显示一次！）。
+
+   </details>
+
+   <br>
+
+6️⃣ **🎉 部署成功！分享你的使用体验**
 
    恭喜你完成了 TrendRadar 的配置！现在你可以开始追踪热点资讯了。
 
@@ -1640,7 +1658,9 @@ GitHub 一键 Fork 即可使用，无需编程基础。
 
    👉 欢迎关注公众号「**[硅基茶水间](#问题答疑与交流)**」，你的点赞和留言都是项目持续更新的动力。
 
-6️⃣ **想要更智能的分析？试试 AI 增强功能**（可选）
+   <br>
+
+7️⃣ **想要更智能的分析？试试 AI 增强功能**（可选）
 
    基础配置已经能满足日常使用，但如果你想要：
 
