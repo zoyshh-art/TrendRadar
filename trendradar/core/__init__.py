@@ -23,6 +23,7 @@ from trendradar.core.analyzer import (
     calculate_news_weight,
     format_time_display,
     count_word_frequency,
+    count_rss_frequency,
 )
 
 __all__ = [
@@ -44,4 +45,5 @@ __all__ = [
     "calculate_news_weight",
     "format_time_display",
     "count_word_frequency",
+    "count_rss_frequency",
 ]

@@ -1,9 +1,9 @@
 services:
-  trend-radar:
+  trendradar:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: trend-radar
+    container_name: trendradar
     restart: unless-stopped
 
     ports:
@@ -73,11 +73,11 @@ services:
       - RUN_MODE=${RUN_MODE:-cron}
       - IMMEDIATE_RUN=${IMMEDIATE_RUN:-true}
 
-  trend-radar-mcp:
+  trendradar-mcp:
     build:
       context: ..
       dockerfile: docker/Dockerfile.mcp
-    container_name: trend-radar-mcp
+    container_name: trendradar-mcp
     restart: unless-stopped
 
     ports:

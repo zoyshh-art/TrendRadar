@@ -100,6 +100,21 @@ class AppContext:
         """获取平台ID列表"""
         return [p["id"] for p in self.platforms]
 
+    @property
+    def rss_config(self) -> Dict:
+        """获取 RSS 配置"""
+        return self.config.get("RSS", {})
+
+    @property
+    def rss_enabled(self) -> bool:
+        """RSS 是否启用"""
+        return self.rss_config.get("ENABLED", False)
+
+    @property
+    def rss_feeds(self) -> List[Dict]:
+        """获取 RSS 源列表"""
+        return self.rss_config.get("FEEDS", [])
+
     # === 时间操作 ===
 
     def get_time(self) -> datetime:
@@ -345,8 +360,23 @@ class AppContext:
         update_info: Optional[Dict] = None,
         max_bytes: Optional[int] = None,
         mode: str = "daily",
+        rss_items: Optional[list] = None,
+        rss_new_items: Optional[list] = None,
     ) -> List[str]:
-        """分批处理消息内容"""
+        """分批处理消息内容（支持热榜+RSS合并）
+
+        Args:
+            report_data: 报告数据
+            format_type: 格式类型
+            update_info: 更新信息
+            max_bytes: 最大字节数
+            mode: 报告模式
+            rss_items: RSS 统计条目列表
+            rss_new_items: RSS 新增条目列表
+
+        Returns:
+            分批后的消息内容列表
+        """
         return split_content_into_batches(
             report_data=report_data,
             format_type=format_type,
@@ -361,6 +391,9 @@ class AppContext:
             feishu_separator=self.config.get("FEISHU_MESSAGE_SEPARATOR", "---"),
             reverse_content_order=self.config.get("REVERSE_CONTENT_ORDER", False),
             get_time_func=self.get_time,
+            rss_items=rss_items,
+            rss_new_items=rss_new_items,
+            timezone=self.config.get("TIMEZONE", "Asia/Shanghai"),
         )
 
     # === 通知发送 ===

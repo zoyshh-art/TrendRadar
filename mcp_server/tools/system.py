@@ -140,10 +140,11 @@ class SystemManagementTools:
             print(f"开始临时爬取，平台: {[p.get('name', p['id']) for p in target_platforms]}")
 
             # 初始化数据获取器
-            crawler_config = config_data.get("crawler", {})
+            advanced = config_data.get("advanced", {})
+            crawler_config = advanced.get("crawler", {})
             proxy_url = None
             if crawler_config.get("use_proxy"):
-                proxy_url = crawler_config.get("proxy_url")
+                proxy_url = crawler_config.get("default_proxy")
             
             fetcher = DataFetcher(proxy_url=proxy_url)
             request_interval = crawler_config.get("request_interval", 100)

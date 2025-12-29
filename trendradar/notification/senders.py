@@ -71,9 +71,11 @@ def send_to_feishu(
     batch_interval: float = 1.0,
     split_content_func: Callable = None,
     get_time_func: Callable = None,
+    rss_items: Optional[list] = None,
+    rss_new_items: Optional[list] = None,
 ) -> bool:
     """
-    发送到飞书（支持分批发送）
+    发送到飞书（支持分批发送，支持热榜+RSS合并）
 
     Args:
         webhook_url: 飞书 Webhook URL
@@ -87,6 +89,8 @@ def send_to_feishu(
         batch_interval: 批次发送间隔（秒）
         split_content_func: 内容分批函数
         get_time_func: 获取当前时间的函数
+        rss_items: RSS 统计条目列表（可选，用于合并推送）
+        rss_new_items: RSS 新增条目列表（可选，用于新增区块）
 
     Returns:
         bool: 发送是否成功
@@ -107,6 +111,8 @@ def send_to_feishu(
         update_info,
         max_bytes=batch_size - header_reserve,
         mode=mode,
+        rss_items=rss_items,
+        rss_new_items=rss_new_items,
     )
 
     # 统一添加批次头部（已预留空间，不会超限）
@@ -179,9 +185,11 @@ def send_to_dingtalk(
     batch_size: int = 20000,
     batch_interval: float = 1.0,
     split_content_func: Callable = None,
+    rss_items: Optional[list] = None,
+    rss_new_items: Optional[list] = None,
 ) -> bool:
     """
-    发送到钉钉（支持分批发送）
+    发送到钉钉（支持分批发送，支持热榜+RSS合并）
 
     Args:
         webhook_url: 钉钉 Webhook URL
@@ -194,6 +202,8 @@ def send_to_dingtalk(
         batch_size: 批次大小（字节）
         batch_interval: 批次发送间隔（秒）
         split_content_func: 内容分批函数
+        rss_items: RSS 统计条目列表（可选，用于合并推送）
+        rss_new_items: RSS 新增条目列表（可选，用于新增区块）
 
     Returns:
         bool: 发送是否成功
@@ -214,6 +224,8 @@ def send_to_dingtalk(
         update_info,
         max_bytes=batch_size - header_reserve,
         mode=mode,
+        rss_items=rss_items,
+        rss_new_items=rss_new_items,
     )
 
     # 统一添加批次头部（已预留空间，不会超限）
@@ -278,9 +290,11 @@ def send_to_wework(
     batch_interval: float = 1.0,
     msg_type: str = "markdown",
     split_content_func: Callable = None,
+    rss_items: Optional[list] = None,
+    rss_new_items: Optional[list] = None,
 ) -> bool:
     """
-    发送到企业微信（支持分批发送，支持 markdown 和 text 两种格式）
+    发送到企业微信（支持分批发送，支持 markdown 和 text 两种格式，支持热榜+RSS合并）
 
     Args:
         webhook_url: 企业微信 Webhook URL
@@ -294,6 +308,8 @@ def send_to_wework(
         batch_interval: 批次发送间隔（秒）
         msg_type: 消息类型 (markdown/text)
         split_content_func: 内容分批函数
+        rss_items: RSS 统计条目列表（可选，用于合并推送）
+        rss_new_items: RSS 新增条目列表（可选，用于新增区块）
 
     Returns:
         bool: 发送是否成功
@@ -320,7 +336,9 @@ def send_to_wework(
     # 获取分批内容，预留批次头部空间
     header_reserve = get_max_batch_header_size(header_format_type)
     batches = split_content_func(
-        report_data, "wework", update_info, max_bytes=batch_size - header_reserve, mode=mode
+        report_data, "wework", update_info, max_bytes=batch_size - header_reserve, mode=mode,
+        rss_items=rss_items,
+        rss_new_items=rss_new_items,
     )
 
     # 统一添加批次头部（已预留空间，不会超限）
@@ -387,9 +405,11 @@ def send_to_telegram(
     batch_size: int = 4000,
     batch_interval: float = 1.0,
     split_content_func: Callable = None,
+    rss_items: Optional[list] = None,
+    rss_new_items: Optional[list] = None,
 ) -> bool:
     """
-    发送到 Telegram（支持分批发送）
+    发送到 Telegram（支持分批发送，支持热榜+RSS合并）
 
     Args:
         bot_token: Telegram Bot Token
@@ -403,6 +423,8 @@ def send_to_telegram(
         batch_size: 批次大小（字节）
         batch_interval: 批次发送间隔（秒）
         split_content_func: 内容分批函数
+        rss_items: RSS 统计条目列表（可选，用于合并推送）
+        rss_new_items: RSS 新增条目列表（可选，用于新增区块）
 
     Returns:
         bool: 发送是否成功
@@ -420,7 +442,9 @@ def send_to_telegram(
     # 获取分批内容，预留批次头部空间
     header_reserve = get_max_batch_header_size("telegram")
     batches = split_content_func(
-        report_data, "telegram", update_info, max_bytes=batch_size - header_reserve, mode=mode
+        report_data, "telegram", update_info, max_bytes=batch_size - header_reserve, mode=mode,
+        rss_items=rss_items,
+        rss_new_items=rss_new_items,
     )
 
     # 统一添加批次头部（已预留空间，不会超限）
@@ -640,9 +664,11 @@ def send_to_ntfy(
     *,
     batch_size: int = 3800,
     split_content_func: Callable = None,
+    rss_items: Optional[list] = None,
+    rss_new_items: Optional[list] = None,
 ) -> bool:
     """
-    发送到 ntfy（支持分批发送，严格遵守4KB限制）
+    发送到 ntfy（支持分批发送，严格遵守4KB限制，支持热榜+RSS合并）
 
     Args:
         server_url: ntfy 服务器 URL
@@ -656,6 +682,8 @@ def send_to_ntfy(
         account_label: 账号标签（多账号时显示）
         batch_size: 批次大小（字节）
         split_content_func: 内容分批函数
+        rss_items: RSS 统计条目列表（可选，用于合并推送）
+        rss_new_items: RSS 新增条目列表（可选，用于新增区块）
 
     Returns:
         bool: 发送是否成功
@@ -697,7 +725,9 @@ def send_to_ntfy(
     # 获取分批内容，预留批次头部空间
     header_reserve = get_max_batch_header_size("ntfy")
     batches = split_content_func(
-        report_data, "ntfy", update_info, max_bytes=batch_size - header_reserve, mode=mode
+        report_data, "ntfy", update_info, max_bytes=batch_size - header_reserve, mode=mode,
+        rss_items=rss_items,
+        rss_new_items=rss_new_items,
     )
 
     # 统一添加批次头部（已预留空间，不会超限）
@@ -814,9 +844,11 @@ def send_to_bark(
     batch_size: int = 3600,
     batch_interval: float = 1.0,
     split_content_func: Callable = None,
+    rss_items: Optional[list] = None,
+    rss_new_items: Optional[list] = None,
 ) -> bool:
     """
-    发送到 Bark（支持分批发送，使用 markdown 格式）
+    发送到 Bark（支持分批发送，使用 markdown 格式，支持热榜+RSS合并）
 
     Args:
         bark_url: Bark URL（包含 device_key）
@@ -829,6 +861,8 @@ def send_to_bark(
         batch_size: 批次大小（字节）
         batch_interval: 批次发送间隔（秒）
         split_content_func: 内容分批函数
+        rss_items: RSS 统计条目列表（可选，用于合并推送）
+        rss_new_items: RSS 新增条目列表（可选，用于新增区块）
 
     Returns:
         bool: 发送是否成功
@@ -855,7 +889,9 @@ def send_to_bark(
     # 获取分批内容，预留批次头部空间
     header_reserve = get_max_batch_header_size("bark")
     batches = split_content_func(
-        report_data, "bark", update_info, max_bytes=batch_size - header_reserve, mode=mode
+        report_data, "bark", update_info, max_bytes=batch_size - header_reserve, mode=mode,
+        rss_items=rss_items,
+        rss_new_items=rss_new_items,
     )
 
     # 统一添加批次头部（已预留空间，不会超限）
@@ -959,9 +995,11 @@ def send_to_slack(
     batch_size: int = 4000,
     batch_interval: float = 1.0,
     split_content_func: Callable = None,
+    rss_items: Optional[list] = None,
+    rss_new_items: Optional[list] = None,
 ) -> bool:
     """
-    发送到 Slack（支持分批发送，使用 mrkdwn 格式）
+    发送到 Slack（支持分批发送，使用 mrkdwn 格式，支持热榜+RSS合并）
 
     Args:
         webhook_url: Slack Webhook URL
@@ -974,6 +1012,8 @@ def send_to_slack(
         batch_size: 批次大小（字节）
         batch_interval: 批次发送间隔（秒）
         split_content_func: 内容分批函数
+        rss_items: RSS 统计条目列表（可选，用于合并推送）
+        rss_new_items: RSS 新增条目列表（可选，用于新增区块）
 
     Returns:
         bool: 发送是否成功
@@ -989,7 +1029,9 @@ def send_to_slack(
     # 获取分批内容，预留批次头部空间
     header_reserve = get_max_batch_header_size("slack")
     batches = split_content_func(
-        report_data, "slack", update_info, max_bytes=batch_size - header_reserve, mode=mode
+        report_data, "slack", update_info, max_bytes=batch_size - header_reserve, mode=mode,
+        rss_items=rss_items,
+        rss_new_items=rss_new_items,
     )
 
     # 统一添加批次头部（已预留空间，不会超限）

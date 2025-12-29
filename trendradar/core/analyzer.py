@@ -186,9 +186,10 @@ def count_word_frequency(
                         if filtered_titles:
                             results_to_process[source_id] = filtered_titles
 
-                print(
-                    f"当前榜单模式：最新时间 {latest_time}，筛选出 {sum(len(titles) for titles in results_to_process.values())} 条当前榜单新闻"
-                )
+                if not quiet:
+                    print(
+                        f"当前榜单模式：最新时间 {latest_time}，筛选出 {sum(len(titles) for titles in results_to_process.values())} 条当前榜单新闻"
+                    )
             else:
                 results_to_process = results
         else:
@@ -367,9 +368,10 @@ def count_word_frequency(
                 if len(word_groups) == 1 and word_groups[0]["group_key"] == "全部新闻"
                 else "频率词匹配"
             )
-            print(
-                f"增量模式：当天第一次爬取，{total_input_news} 条新闻中有 {matched_new_count} 条{filter_status}"
-            )
+            if not quiet:
+                print(
+                    f"增量模式：当天第一次爬取，{total_input_news} 条新闻中有 {matched_new_count} 条{filter_status}"
+                )
         else:
             if new_titles:
                 total_new_count = sum(len(titles) for titles in new_titles.values())
@@ -379,13 +381,15 @@ def count_word_frequency(
                     and word_groups[0]["group_key"] == "全部新闻"
                     else "匹配频率词"
                 )
-                print(
-                    f"增量模式：{total_new_count} 条新增新闻中，有 {matched_new_count} 条{filter_status}"
-                )
-                if matched_new_count == 0 and len(word_groups) > 1:
-                    print("增量模式：没有新增新闻匹配频率词，将不会发送通知")
+                if not quiet:
+                    print(
+                        f"增量模式：{total_new_count} 条新增新闻中，有 {matched_new_count} 条{filter_status}"
+                    )
+                    if matched_new_count == 0 and len(word_groups) > 1:
+                        print("增量模式：没有新增新闻匹配频率词，将不会发送通知")
             else:
-                print("增量模式：未检测到新增新闻")
+                if not quiet:
+                    print("增量模式：未检测到新增新闻")
     elif mode == "current":
         total_input_news = sum(len(titles) for titles in results_to_process.values())
         if is_first_today:
@@ -394,9 +398,10 @@ def count_word_frequency(
                 if len(word_groups) == 1 and word_groups[0]["group_key"] == "全部新闻"
                 else "频率词匹配"
             )
-            print(
-                f"当前榜单模式：当天第一次爬取，{total_input_news} 条当前榜单新闻中有 {matched_new_count} 条{filter_status}"
-            )
+            if not quiet:
+                print(
+                    f"当前榜单模式：当天第一次爬取，{total_input_news} 条当前榜单新闻中有 {matched_new_count} 条{filter_status}"
+                )
         else:
             matched_count = sum(stat["count"] for stat in word_stats.values())
             filter_status = (
@@ -404,9 +409,10 @@ def count_word_frequency(
                 if len(word_groups) == 1 and word_groups[0]["group_key"] == "全部新闻"
                 else "频率词匹配"
             )
-            print(
-                f"当前榜单模式：{total_input_news} 条当前榜单新闻中有 {matched_count} 条{filter_status}"
-            )
+            if not quiet:
+                print(
+                    f"当前榜单模式：{total_input_news} 条当前榜单新闻中有 {matched_count} 条{filter_status}"
+                )
 
     stats = []
     # 创建 group_key 到位置和最大数量的映射
@@ -470,3 +476,215 @@ def count_word_frequency(
         print(f"频率词过滤后：{matched_news_count} 条新闻匹配")
 
     return stats, total_titles
+
+
+def count_rss_frequency(
+    rss_items: List[Dict],
+    word_groups: List[Dict],
+    filter_words: List[str],
+    global_filters: Optional[List[str]] = None,
+    new_items: Optional[List[Dict]] = None,
+    max_news_per_keyword: int = 0,
+    sort_by_position_first: bool = False,
+    timezone: str = "Asia/Shanghai",
+    rank_threshold: int = 5,
+    quiet: bool = False,
+) -> Tuple[List[Dict], int]:
+    """
+    按关键词分组统计 RSS 条目（与热榜统计格式一致）
+
+    Args:
+        rss_items: RSS 条目列表，每个条目包含：
+            - title: 标题
+            - feed_id: RSS 源 ID
+            - feed_name: RSS 源名称
+            - url: 文章链接
+            - published_at: 发布时间（ISO 格式）
+        word_groups: 词组配置列表
+        filter_words: 过滤词列表
+        global_filters: 全局过滤词（可选）
+        new_items: 新增条目列表（可选，用于标记 is_new）
+        max_news_per_keyword: 每个关键词最大显示数量
+        sort_by_position_first: 是否优先按配置位置排序
+        timezone: 时区名称（用于时间格式化）
+        quiet: 是否静默模式
+
+    Returns:
+        Tuple[List[Dict], int]: (统计结果列表, 总条目数)
+        统计结果格式与热榜一致：
+        [
+            {
+                "word": "关键词",
+                "count": 5,
+                "position": 0,
+                "titles": [
+                    {
+                        "title": "标题",
+                        "source_name": "Hacker News",
+                        "time_display": "12-29 08:20",
+                        "count": 1,
+                        "ranks": [1],  # RSS 用发布时间顺序作为排名
+                        "rank_threshold": 50,
+                        "url": "...",
+                        "mobile_url": "",
+                        "is_new": True/False
+                    }
+                ],
+                "percentage": 10.0
+            }
+        ]
+    """
+    from trendradar.utils.time import format_iso_time_friendly
+
+    if not rss_items:
+        return [], 0
+
+    # 如果没有配置词组，创建一个包含所有条目的虚拟词组
+    if not word_groups:
+        if not quiet:
+            print("[RSS] 频率词配置为空，将显示所有 RSS 条目")
+        word_groups = [{"required": [], "normal": [], "group_key": "全部 RSS"}]
+        filter_words = []
+
+    # 创建新增条目的 URL 集合，用于快速查找
+    new_urls = set()
+    if new_items:
+        for item in new_items:
+            if item.get("url"):
+                new_urls.add(item["url"])
+
+    # 初始化词组统计
+    word_stats = {}
+    for group in word_groups:
+        group_key = group["group_key"]
+        word_stats[group_key] = {"count": 0, "titles": []}
+
+    total_items = len(rss_items)
+    processed_urls = set()  # 用于去重
+
+    # 为每个条目分配一个基于发布时间的"排名"
+    # 按发布时间排序，最新的排在前面
+    sorted_items = sorted(
+        rss_items,
+        key=lambda x: x.get("published_at", ""),
+        reverse=True
+    )
+    url_to_rank = {item.get("url", ""): idx + 1 for idx, item in enumerate(sorted_items)}
+
+    for item in rss_items:
+        title = item.get("title", "")
+        url = item.get("url", "")
+
+        # 去重
+        if url and url in processed_urls:
+            continue
+        if url:
+            processed_urls.add(url)
+
+        # 使用统一的匹配逻辑
+        if not matches_word_groups(title, word_groups, filter_words, global_filters):
+            continue
+
+        # 找到匹配的词组
+        title_lower = title.lower()
+        for group in word_groups:
+            required_words = group["required"]
+            normal_words = group["normal"]
+            group_key = group["group_key"]
+
+            # "全部 RSS" 模式：所有条目都匹配
+            if len(word_groups) == 1 and word_groups[0]["group_key"] == "全部 RSS":
+                matched = True
+            else:
+                # 检查必须词
+                if required_words:
+                    all_required_present = all(
+                        req_word.lower() in title_lower
+                        for req_word in required_words
+                    )
+                    if not all_required_present:
+                        continue
+
+                # 检查普通词
+                if normal_words:
+                    any_normal_present = any(
+                        normal_word.lower() in title_lower
+                        for normal_word in normal_words
+                    )
+                    if not any_normal_present:
+                        continue
+
+                matched = True
+
+            if matched:
+                word_stats[group_key]["count"] += 1
+
+                # 格式化时间显示
+                published_at = item.get("published_at", "")
+                time_display = format_iso_time_friendly(published_at, timezone, include_date=True) if published_at else ""
+
+                # 判断是否为新增
+                is_new = url in new_urls if url else False
+
+                # 获取排名（基于发布时间顺序）
+                rank = url_to_rank.get(url, 99) if url else 99
+
+                title_data = {
+                    "title": title,
+                    "source_name": item.get("feed_name", item.get("feed_id", "RSS")),
+                    "time_display": time_display,
+                    "count": 1,  # RSS 条目通常只出现一次
+                    "ranks": [rank],
+                    "rank_threshold": rank_threshold,
+                    "url": url,
+                    "mobile_url": "",
+                    "is_new": is_new,
+                }
+                word_stats[group_key]["titles"].append(title_data)
+                break  # 一个条目只匹配第一个词组
+
+    # 构建统计结果
+    stats = []
+    group_key_to_position = {
+        group["group_key"]: idx for idx, group in enumerate(word_groups)
+    }
+    group_key_to_max_count = {
+        group["group_key"]: group.get("max_count", 0) for group in word_groups
+    }
+
+    for group_key, data in word_stats.items():
+        if data["count"] == 0:
+            continue
+
+        # 按发布时间排序（最新在前）
+        sorted_titles = sorted(
+            data["titles"],
+            key=lambda x: x["ranks"][0] if x["ranks"] else 999
+        )
+
+        # 应用最大显示数量限制
+        group_max_count = group_key_to_max_count.get(group_key, 0)
+        if group_max_count == 0:
+            group_max_count = max_news_per_keyword
+        if group_max_count > 0:
+            sorted_titles = sorted_titles[:group_max_count]
+
+        stats.append({
+            "word": group_key,
+            "count": data["count"],
+            "position": group_key_to_position.get(group_key, 999),
+            "titles": sorted_titles,
+            "percentage": round(data["count"] / total_items * 100, 2) if total_items > 0 else 0,
+        })
+
+    # 排序
+    if sort_by_position_first:
+        stats.sort(key=lambda x: (x["position"], -x["count"]))
+    else:
+        stats.sort(key=lambda x: (-x["count"], x["position"]))
+
+    matched_count = sum(stat["count"] for stat in stats)
+    if not quiet:
+        print(f"[RSS] 关键词分组统计：{matched_count}/{total_items} 条匹配")
+
+    return stats, total_items

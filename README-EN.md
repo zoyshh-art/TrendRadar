@@ -13,8 +13,9 @@
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.0.3-blue.svg)](https://github.com/sansan0/TrendRadar)
-[![MCP](https://img.shields.io/badge/MCP-v1.2.0-green.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v4.5.0-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![MCP](https://img.shields.io/badge/MCP-v2.0.0-green.svg)](https://github.com/sansan0/TrendRadar)
+[![RSS](https://img.shields.io/badge/RSS-Feed_Support-orange.svg?style=flat-square&logo=rss&logoColor=white)](https://github.com/sansan0/TrendRadar)
 
 [![WeWork](https://img.shields.io/badge/WeWork-Notification-00D4AA?style=flat-square)](https://work.weixin.qq.com/)
 [![WeChat](https://img.shields.io/badge/WeChat-Notification-00D4AA?style=flat-square)](https://weixin.qq.com/)
@@ -134,10 +135,23 @@ After communication, the author indicated no concerns about server pressure, but
 >**📌 Check Latest Updates**: **[Original Repository Changelog](https://github.com/sansan0/TrendRadar?tab=readme-ov-file#-changelog)**:
 - **Tip**: Check [Changelog] to understand specific [Features]
 
-### 2025/12/20 - v4.0.3
+### 2025/12/30 - v4.5.0
 
-- Added URL normalization to fix duplicate push issues caused by dynamic parameters (e.g., Weibo's `band_rank`)
-- Fixed incremental mode detection logic to correctly identify historical titles
+- **RSS Feed Support**: Added RSS/Atom feed crawling, keyword-based grouping and statistics (consistent with trending format)
+- **Storage Structure Refactoring**: Flattened directory structure `output/{type}/{date}.db`
+- **Unified Sorting Config**: `sort_by_position_first` affects both trending and RSS
+- **Config Structure Refactoring**: `config.yaml` reorganized into 7 logical groups (app, report, notification, storage, platforms, rss, advanced) with clearer config paths
+
+
+### 2025/12/30 - mcp-v2.0.0
+
+- **Architecture Refactoring**: Removed TXT support, unified to SQLite database
+- **RSS Query**: Added `get_latest_rss`, `search_rss`, `get_rss_feeds_status`
+- **Unified Search**: `search_news` supports `include_rss` parameter to search both trending and RSS
+
+
+<details>
+<summary>👉 Click to expand: <strong>Historical Updates</strong></summary>
 
 
 ### 2025/12/26 - mcp-v1.2.0
@@ -151,8 +165,10 @@ After communication, the author indicated no concerns about server pressure, but
   - Updated README-MCP-FAQ.md documentation in both Chinese and English (Q1-Q18)
 
 
-<details>
-<summary>👉 Click to expand: <strong>Historical Updates</strong></summary>
+### 2025/12/20 - v4.0.3
+
+- Added URL normalization to fix duplicate push issues caused by dynamic parameters (e.g., Weibo's `band_rank`)
+- Fixed incremental mode detection logic to correctly identify historical titles
 
 
 ### 2025/12/13 - mcp-v1.1.0
@@ -216,7 +232,7 @@ After communication, the author indicated no concerns about server pressure, but
 **🌐 Web Server Support**
 
 - Added built-in web server for browser access to generated reports
-- Control via `manage.py` commands: `docker exec -it trend-radar python manage.py start_webserver`
+- Control via `manage.py` commands: `docker exec -it trendradar python manage.py start_webserver`
 - Access URL: `http://localhost:8080` (port configurable)
 - Security features: Static file service, directory restriction, localhost binding
 - Supports both auto-start and manual control modes
@@ -667,6 +683,26 @@ Default monitoring of 11 mainstream platforms, with support for adding custom pl
 
 > 💡 For detailed configuration, see [Configuration Guide - Platform Configuration](#1-platform-configuration)
 
+### **RSS Feed Support** (v4.5.0 New)
+
+Supports RSS/Atom feed crawling, keyword-based grouping and statistics (consistent with trending format):
+
+- 📰 **Unified Format**: RSS and trending use the same keyword matching and display format
+- ⚙️ **Simple Config**: Add RSS sources directly in `config.yaml`
+- 🔄 **Merged Push**: Trending and RSS are merged into a single notification
+
+```yaml
+# config/config.yaml example
+rss:
+  enabled: true
+  feeds:
+    - id: "hacker-news"
+      name: "Hacker News"
+      url: "https://hnrss.org/frontpage"
+```
+
+> 💡 RSS uses the same `frequency_words.txt` for keyword filtering as trending
+
 ### **Smart Push Strategies**
 
 **Three Push Modes**:
@@ -785,7 +821,7 @@ Supports **WeWork** (+ WeChat push solution), **Feishu**, **DingTalk**, **Telegr
 AI conversational analysis system based on MCP (Model Context Protocol), enabling deep data mining with natural language.
 
 - **Conversational Query**: Ask in natural language, like "Query yesterday's Zhihu trending" or "Analyze recent Bitcoin popularity trends"
-- **14 Analysis Tools**: Date parsing, basic query, smart search, trend analysis, data insights, sentiment analysis, etc.
+- **17 Analysis Tools**: Basic query, smart search, trend analysis, data insights, sentiment analysis, RSS query, etc.
 - **Multi-Client Support**: Cherry Studio (GUI config), Claude Desktop, Cursor, Cline, etc.
 - **Deep Analysis Capabilities**:
   - Topic trend tracking (popularity changes, lifecycle, viral detection, trend prediction)
@@ -793,7 +829,7 @@ AI conversational analysis system based on MCP (Model Context Protocol), enablin
   - Smart summary generation, similar news finding, historical correlation search
 
 > **💡 Usage Tip**: AI features require local news data support
-> - Project includes **November 1-15** test data for immediate experience
+> - Project includes **December 21-27** test data for immediate experience
 > - Recommend deploying the project yourself to get more real-time data
 >
 > See [AI Analysis](#-ai-analysis) for details
@@ -1099,12 +1135,13 @@ Method 1 discovered and suggested by **ziventian**, thanks to them. Default is p
 - Note: To prevent email bulk sending abuse, current bulk sending allows all recipients to see each other's email addresses.
 - If you haven't configured email sending before, not recommended to try
 
-> ⚠️ **Important Configuration Dependency**: Email push requires HTML report file. Make sure `formats.html` is set to `true` in `config/config.yaml`:
+> ⚠️ **Important Configuration Dependency**: Email push requires HTML report file. Make sure `storage.formats.html` is set to `true` in `config/config.yaml`:
 > ```yaml
-> formats:
->   sqlite: true
->   txt: false
->   html: true   # Must be enabled, otherwise email push will fail
+> storage:
+>   formats:
+>     sqlite: true
+>     txt: false
+>     html: true   # Must be enabled, otherwise email push will fail
 > ```
 > If set to `false`, email push will report error: `Error: HTML file does not exist or not provided: None`
 
@@ -2005,13 +2042,14 @@ Assume you monitor "Apple" keyword, execute once per hour:
 <summary>👉 Click to expand: <strong>Hotspot Weight Adjustment</strong></summary>
 <br>
 
-**Configuration Location:** `weight` section in `config/config.yaml`
+**Configuration Location:** `advanced.weight` section in `config/config.yaml`
 
 ```yaml
-weight:
-  rank_weight: 0.6       # Ranking weight
-  frequency_weight: 0.3  # Frequency weight
-  hotness_weight: 0.1    # Hotness weight
+advanced:
+  weight:
+    rank: 0.6           # Ranking weight
+    frequency: 0.3      # Frequency weight
+    hotness: 0.1        # Hotness weight
 ```
 
 Current default configuration is balanced.
@@ -2020,25 +2058,27 @@ Current default configuration is balanced.
 
 **Real-Time Trending Type**:
 ```yaml
-weight:
-  rank_weight: 0.8    # Mainly focus on ranking
-  frequency_weight: 0.1  # Less concern about continuity
-  hotness_weight: 0.1
+advanced:
+  weight:
+    rank: 0.8           # Mainly focus on ranking
+    frequency: 0.1      # Less concern about continuity
+    hotness: 0.1
 ```
 **Target Users**: Content creators, marketers, users wanting to quickly understand current hot topics
 
 **In-Depth Topic Type**:
 ```yaml
-weight:
-  rank_weight: 0.4    # Moderate ranking focus
-  frequency_weight: 0.5  # Emphasize sustained heat within the day
-  hotness_weight: 0.1
+advanced:
+  weight:
+    rank: 0.4           # Moderate ranking focus
+    frequency: 0.5      # Emphasize sustained heat within the day
+    hotness: 0.1
 ```
 **Target Users**: Investors, researchers, journalists, users needing deep trend analysis
 
 #### Adjustment Method
 1. **Three numbers must sum to 1.0**
-2. **Increase what's important**: Increase rank_weight for rankings, frequency_weight for continuity
+2. **Increase what's important**: Increase `rank` for rankings, `frequency` for continuity
 3. **Suggest adjusting 0.1-0.2 at a time**, observe effects
 
 Core idea: Users pursuing speed and timeliness increase ranking weight, users pursuing depth and stability increase frequency weight.
@@ -2174,16 +2214,16 @@ current directory/
 
    | Environment Variable | Corresponding Config | Example Value | Description |
    |---------------------|---------------------|---------------|-------------|
-   | `ENABLE_CRAWLER` | `crawler.enable_crawler` | `true` / `false` | Enable crawler |
-   | `ENABLE_NOTIFICATION` | `notification.enable_notification` | `true` / `false` | Enable notification |
+   | `ENABLE_CRAWLER` | `advanced.crawler.enabled` | `true` / `false` | Enable crawler |
+   | `ENABLE_NOTIFICATION` | `notification.enabled` | `true` / `false` | Enable notification |
    | `REPORT_MODE` | `report.mode` | `daily` / `incremental` / `current`| Report mode |
-   | `MAX_ACCOUNTS_PER_CHANNEL` | `notification.max_accounts_per_channel` | `3` | Maximum accounts per channel |
+   | `MAX_ACCOUNTS_PER_CHANNEL` | `advanced.max_accounts_per_channel` | `3` | Maximum accounts per channel |
    | `PUSH_WINDOW_ENABLED` | `notification.push_window.enabled` | `true` / `false` | Push time window switch |
-   | `PUSH_WINDOW_START` | `notification.push_window.time_range.start` | `08:00` | Push start time |
-   | `PUSH_WINDOW_END` | `notification.push_window.time_range.end` | `22:00` | Push end time |
+   | `PUSH_WINDOW_START` | `notification.push_window.start` | `08:00` | Push start time |
+   | `PUSH_WINDOW_END` | `notification.push_window.end` | `22:00` | Push end time |
    | `ENABLE_WEBSERVER` | - | `true` / `false` | Auto-start web server |
    | `WEBSERVER_PORT` | - | `8080` | Web server port (default 8080) |
-   | `FEISHU_WEBHOOK_URL` | `notification.webhooks.feishu_url` | `https://...` | Feishu Webhook (supports multi-account, use `;` separator) |
+   | `FEISHU_WEBHOOK_URL` | `notification.channels.feishu.webhook_url` | `https://...` | Feishu Webhook (supports multi-account, use `;` separator) |
 
    **Config Priority**: Environment Variables > config.yaml
 
@@ -2200,43 +2240,43 @@ current directory/
    # Pull latest images
    docker compose pull
 
-   # Start all services (trend-radar + trend-radar-mcp)
+   # Start all services (trendradar + trendradar-mcp)
    docker compose up -d
    ```
 
    **Option B: Start News Push Service Only**
    ```bash
-   # Start trend-radar only (scheduled crawling and push)
-   docker compose pull trend-radar
-   docker compose up -d trend-radar
+   # Start trendradar only (scheduled crawling and push)
+   docker compose pull trendradar
+   docker compose up -d trendradar
    ```
 
    **Option C: Start MCP AI Analysis Service Only**
    ```bash
-   # Start trend-radar-mcp only (AI analysis interface)
-   docker compose pull trend-radar-mcp
-   docker compose up -d trend-radar-mcp
+   # Start trendradar-mcp only (AI analysis interface)
+   docker compose pull trendradar-mcp
+   docker compose up -d trendradar-mcp
    ```
 
    > 💡 **Tips**:
-   > - Most users only need to start `trend-radar` for news push functionality
-   > - Only start `trend-radar-mcp` when using Claude/ChatGPT for AI dialogue analysis
+   > - Most users only need to start `trendradar` for news push functionality
+   > - Only start `trendradar-mcp` when using Claude/ChatGPT for AI dialogue analysis
    > - Both services are independent and can be flexibly combined
 
 4. **Check Running Status**:
    ```bash
    # View news push service logs
-   docker logs -f trend-radar
+   docker logs -f trendradar
 
    # View MCP AI analysis service logs
-   docker logs -f trend-radar-mcp
+   docker logs -f trendradar-mcp
 
    # View all container status
-   docker ps | grep trend-radar
+   docker ps | grep trendradar
 
    # Stop specific service
-   docker compose stop trend-radar      # Stop push service
-   docker compose stop trend-radar-mcp  # Stop MCP service
+   docker compose stop trendradar      # Stop push service
+   docker compose stop trendradar-mcp  # Stop MCP service
    ```
 
 #### Method 2: Local Build (Developer Option)
@@ -2265,12 +2305,12 @@ docker compose build
 docker compose up -d
 
 # Option B: Build and start news push service only
-docker compose build trend-radar
-docker compose up -d trend-radar
+docker compose build trendradar
+docker compose up -d trendradar
 
 # Option C: Build and start MCP AI analysis service only
-docker compose build trend-radar-mcp
-docker compose up -d trend-radar-mcp
+docker compose build trendradar-mcp
+docker compose up -d trendradar-mcp
 ```
 
 > 💡 **Architecture Parameter Notes**:
@@ -2306,36 +2346,36 @@ docker compose up -d
 
 ```bash
 # View running status
-docker exec -it trend-radar python manage.py status
+docker exec -it trendradar python manage.py status
 
 # Manually execute crawler once
-docker exec -it trend-radar python manage.py run
+docker exec -it trendradar python manage.py run
 
 # View real-time logs
-docker exec -it trend-radar python manage.py logs
+docker exec -it trendradar python manage.py logs
 
 # Display current config
-docker exec -it trend-radar python manage.py config
+docker exec -it trendradar python manage.py config
 
 # Display output files
-docker exec -it trend-radar python manage.py files
+docker exec -it trendradar python manage.py files
 
 # Web server management (for browser access to generated reports)
-docker exec -it trend-radar python manage.py start_webserver   # Start web server
-docker exec -it trend-radar python manage.py stop_webserver    # Stop web server
-docker exec -it trend-radar python manage.py webserver_status  # Check web server status
+docker exec -it trendradar python manage.py start_webserver   # Start web server
+docker exec -it trendradar python manage.py stop_webserver    # Stop web server
+docker exec -it trendradar python manage.py webserver_status  # Check web server status
 
 # View help info
-docker exec -it trend-radar python manage.py help
+docker exec -it trendradar python manage.py help
 
 # Restart container
-docker restart trend-radar
+docker restart trendradar
 
 # Stop container
-docker stop trend-radar
+docker stop trendradar
 
 # Remove container (keep data)
-docker rm trend-radar
+docker rm trendradar
 ```
 
 > 💡 **Web Server Notes**:
@@ -2357,17 +2397,16 @@ TrendRadar generates daily summary HTML reports to two locations simultaneously:
 |--------------|---------------|----------|
 | `output/index.html` | Direct host access | **Docker Deployment** (via Volume mount, visible on host) |
 | `index.html` | Root directory access | **GitHub Pages** (repository root, auto-detected by Pages) |
-| `output/YYYY-MM-DD/html/当日汇总.html` | Historical reports | All environments (archived by date) |
+| `output/html/YYYY-MM-DD/当日汇总.html` | Historical reports | All environments (archived by date) |
 
 **Local Access Examples**:
 ```bash
 # Method 1: Via Web Server (recommended, Docker environment)
 # 1. Start web server
-docker exec -it trend-radar python manage.py start_webserver
+docker exec -it trendradar python manage.py start_webserver
 # 2. Access in browser
 http://localhost:8080                           # Access latest report (default index.html)
-http://localhost:8080/2025-xx-xx/               # Access reports for specific date
-http://localhost:8080/2025-xx-xx/html/          # Browse all HTML files for that date
+http://localhost:8080/html/2025-xx-xx/          # Access reports for specific date
 
 # Method 2: Direct file access (local environment)
 open ./output/index.html             # macOS
@@ -2375,7 +2414,7 @@ start ./output/index.html            # Windows
 xdg-open ./output/index.html         # Linux
 
 # Method 3: Access historical archives
-open ./output/2025-xx-xx/html/当日汇总.html
+open ./output/html/2025-xx-xx/当日汇总.html
 ```
 
 **Why two index.html files?**
@@ -2388,16 +2427,16 @@ open ./output/2025-xx-xx/html/当日汇总.html
 
 ```bash
 # Check container status
-docker inspect trend-radar
+docker inspect trendradar
 
 # View container logs
-docker logs --tail 100 trend-radar
+docker logs --tail 100 trendradar
 
 # Enter container for debugging
-docker exec -it trend-radar /bin/bash
+docker exec -it trendradar /bin/bash
 
 # Verify config files
-docker exec -it trend-radar ls -la /app/config/
+docker exec -it trendradar ls -la /app/config/
 ```
 
 #### MCP Service Deployment (AI Analysis Feature)
@@ -2408,12 +2447,12 @@ If you need to use AI analysis features, you can deploy the standalone MCP servi
 
 ```mermaid
 flowchart TB
-    subgraph trend-radar["trend-radar"]
+    subgraph trendradar["trendradar"]
         A1[Scheduled News Fetching]
         A2[Push Notifications]
     end
     
-    subgraph trend-radar-mcp["trend-radar-mcp"]
+    subgraph trendradar-mcp["trendradar-mcp"]
         B1[127.0.0.1:3333]
         B2[AI Analysis API]
     end
@@ -2423,8 +2462,8 @@ flowchart TB
         C2["output/ (ro)"]
     end
     
-    trend-radar --> shared
-    trend-radar-mcp --> shared
+    trendradar --> shared
+    trendradar-mcp --> shared
 ```
 
 **Quick Start**:
@@ -2449,14 +2488,14 @@ wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/frequenc
 docker compose up -d
 
 # Check running status
-docker ps | grep trend-radar
+docker ps | grep trendradar
 ```
 
 **Start MCP Service Separately**:
 
 ```bash
 # Linux/Mac
-docker run -d --name trend-radar-mcp \
+docker run -d --name trendradar-mcp \
   -p 127.0.0.1:3333:3333 \
   -v $(pwd)/config:/app/config:ro \
   -v $(pwd)/output:/app/output:ro \
@@ -2464,7 +2503,7 @@ docker run -d --name trend-radar-mcp \
   wantcat/trendradar-mcp:latest
 
 # Windows PowerShell
-docker run -d --name trend-radar-mcp `
+docker run -d --name trendradar-mcp `
   -p 127.0.0.1:3333:3333 `
   -v ${PWD}/config:/app/config:ro `
   -v ${PWD}/output:/app/output:ro `
@@ -2481,7 +2520,7 @@ docker run -d --name trend-radar-mcp `
 curl http://127.0.0.1:3333/mcp
 
 # View MCP service logs
-docker logs -f trend-radar-mcp
+docker logs -f trendradar-mcp
 ```
 
 **Configure in AI Clients**:
@@ -2583,9 +2622,8 @@ MAX_NEWS_PER_KEYWORD=10
 notification:
   push_window:
     enabled: false                    # Whether to enable
-    time_range:
-      start: "20:00"                  # Start time (Beijing time)
-      end: "22:00"                    # End time (Beijing time)
+    start: "20:00"                    # Start time (Beijing time)
+    end: "22:00"                      # End time (Beijing time)
     once_per_day: true                # Push only once per day
 ```
 
@@ -2594,8 +2632,8 @@ notification:
 | Config Item | Type | Default | Description |
 |------------|------|---------|-------------|
 | `enabled` | bool | `false` | Whether to enable push time window control |
-| `time_range.start` | string | `"20:00"` | Push window start time (Beijing time, HH:MM format) |
-| `time_range.end` | string | `"22:00"` | Push window end time (Beijing time, HH:MM format) |
+| `start` | string | `"20:00"` | Push window start time (Beijing time, HH:MM format) |
+| `end` | string | `"22:00"` | Push window end time (Beijing time, HH:MM format) |
 | `once_per_day` | bool | `true` | `true`=push only once per day within window, `false`=push every execution within window |
 
 #### Use Cases
@@ -2630,9 +2668,8 @@ PUSH_WINDOW_ONCE_PER_DAY=false
 notification:
   push_window:
     enabled: true
-    time_range:
-      start: "20:00"
-      end: "22:00"
+    start: "20:00"
+    end: "22:00"
     once_per_day: true
 ```
 
@@ -2642,9 +2679,8 @@ notification:
 notification:
   push_window:
     enabled: true
-    time_range:
-      start: "09:00"
-      end: "18:00"
+    start: "09:00"
+    end: "18:00"
     once_per_day: false
 ```
 
@@ -2922,13 +2958,17 @@ If you are doing local development and **will not push code to public repositori
 
 ```yaml
 notification:
-  enable_notification: true
-  max_accounts_per_channel: 3
+  enabled: true
 
-  webhooks:
-    feishu_url: "https://hook1.feishu.cn/xxx;https://hook2.feishu.cn/yyy"
-    telegram_bot_token: "token1;token2"
-    telegram_chat_id: "id1;id2"
+  channels:
+    feishu:
+      webhook_url: "https://hook1.feishu.cn/xxx;https://hook2.feishu.cn/yyy"
+    telegram:
+      bot_token: "token1;token2"
+      chat_id: "id1;id2"
+
+advanced:
+  max_accounts_per_channel: 3
 ```
 
 **⚠️ Important Reminder**:
@@ -3078,8 +3118,8 @@ export LOCAL_RETENTION_DAYS=30
 
 **Cleanup Rules**:
 - Cleanup executes during each crawl task
-- Local: Deletes `output/YYYY-MM-DD/` directories older than N days
-- Remote: Deletes cloud objects older than N days (e.g., `news/2025-11-10.db`)
+- Local: Deletes database files older than N days (e.g., `output/news/2025-11-10.db`, `output/rss/2025-11-10.db`)
+- Remote: Deletes cloud objects older than N days (e.g., `news/2025-11-10.db`, `rss/2025-11-10.db`)
 
 ---
 
@@ -3157,10 +3197,10 @@ AI analysis **does not** query real-time online data directly, but analyzes **lo
 
 #### Usage Instructions:
 
-1. **Built-in Test Data**: The `output` directory includes news data from **November 1-15, 2025** by default for quick feature testing
+1. **Built-in Test Data**: The `output` directory includes one week of trending news data from **December 21-27, 2025** for quick feature testing
 
 2. **Query Limitations**:
-   - ✅ Only query data within available date range (Nov 1-15)
+   - ✅ Only query data within available date range (Dec 21-27, 7 days total)
    - ❌ Cannot query real-time news or future dates
 
 3. **Getting Latest Data**:

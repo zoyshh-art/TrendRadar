@@ -158,6 +158,106 @@ get_trending_topics(extract_mode="auto_extract", top_n=20)
 
 ---
 
+## RSS 订阅查询
+
+### Q4.1: 如何查看最新的 RSS 订阅内容？
+
+**你可以这样问：**
+
+- "查看最新的 RSS 订阅内容"
+- "获取 Hacker News 的最新文章"
+- "查看所有 RSS 源的最新 20 条"
+- "获取 RSS 订阅，需要包含摘要"
+
+**调用的工具：** `get_latest_rss`
+
+**工具返回行为：**
+
+- MCP 工具会返回最新 50 条 RSS 条目给 AI
+- 默认不包含摘要（节省 token）
+- 按发布时间倒序排列
+
+**AI 展示行为（重要）：**
+
+- ⚠️ **AI 通常会自动总结**，只展示部分条目
+- ✅ 如果你想看全部，需要明确要求："展示所有 RSS 内容"
+
+**可以调整：**
+
+- 指定 RSS 源：如"只看 Hacker News"
+- 调整数量：如"返回前 20 条"
+- 包含摘要：如"需要摘要"
+
+**使用示例：**
+
+```
+# 获取所有 RSS 源的最新内容
+get_latest_rss()
+
+# 获取指定源
+get_latest_rss(feeds=['hacker-news'])
+
+# 包含摘要
+get_latest_rss(include_summary=True, limit=20)
+```
+
+---
+
+### Q4.2: 如何搜索 RSS 订阅中的内容？
+
+**你可以这样问：**
+
+- "在 RSS 中搜索'AI'相关的文章"
+- "搜索最近 7 天 RSS 中关于'机器学习'的内容"
+- "在 Hacker News 中搜索'Python'"
+
+**调用的工具：** `search_rss`
+
+**工具返回行为：**
+
+- 使用关键词搜索 RSS 条目的标题
+- 默认搜索最近 7 天的数据
+- MCP 工具会返回最多 50 条结果给 AI
+
+**可以调整：**
+
+- 指定 RSS 源：如"只搜索 Hacker News"
+- 调整天数：如"搜索最近 14 天"
+- 包含摘要：如"需要摘要"
+
+**使用示例：**
+
+```
+# 搜索所有 RSS 源
+search_rss(keyword="AI")
+
+# 搜索指定源和天数
+search_rss(keyword="machine learning", feeds=['hacker-news'], days=14)
+```
+
+---
+
+### Q4.3: 如何查看 RSS 源的状态？
+
+**你可以这样问：**
+
+- "查看 RSS 源状态"
+- "RSS 抓取了多少数据"
+- "哪些 RSS 源有数据"
+
+**调用的工具：** `get_rss_feeds_status`
+
+**返回信息：**
+
+| 字段 | 说明 |
+|------|------|
+| **available_dates** | 有 RSS 数据的日期列表 |
+| **total_dates** | 总日期数 |
+| **today_feeds** | 今日各 RSS 源的数据统计 |
+| **generated_at** | 生成时间 |
+
+---
+
 ## 搜索检索
 
 ### Q4: 如何搜索包含特定关键词的新闻？
@@ -205,6 +305,64 @@ get_trending_topics(extract_mode="auto_extract", top_n=20)
 
 用户：查找2025年1月的"特斯拉"报道
 AI：（date_range={"start": "2025-01-01", "end": "2025-01-31"}）
+```
+
+---
+
+### Q4.4: 如何同时搜索热榜和 RSS 内容？
+
+**你可以这样问：**
+
+- "搜索'AI'相关内容，包括 RSS"
+- "查找'人工智能'的新闻，同时搜索 RSS 订阅"
+- "搜索'特斯拉'，热榜和 RSS 都要"
+
+**调用的工具：** `search_news`（设置 `include_rss=True`）
+
+**工具返回行为：**
+
+- 热榜结果和 RSS 结果**分开展示**
+- 热榜按排名/相关度排序，RSS 按发布时间排序
+- RSS 结果不影响热榜的排名展示
+- 默认返回热榜 50 条 + RSS 20 条
+
+**返回结构：**
+
+```json
+{
+  "results": [
+    // 热榜新闻（按排名排序）
+    {"title": "...", "platform": "zhihu", "rank": 1, ...}
+  ],
+  "rss": [
+    // RSS 内容（独立区块）
+    {"title": "...", "feed_name": "Hacker News", ...}
+  ],
+  "summary": {
+    "total_found": 15,
+    "rss_found": 8,
+    "include_rss": true
+  }
+}
+```
+
+**可以调整：**
+
+- RSS 数量：如"RSS 返回 10 条"（`rss_limit=10`）
+- 只搜索热榜：不说"包括 RSS"（默认行为）
+- 只搜索 RSS：使用 `search_rss` 工具
+
+**代码示例：**
+
+```python
+# 同时搜索热榜和 RSS
+search_news(query="AI", include_rss=True)
+
+# 调整 RSS 返回数量
+search_news(query="AI", include_rss=True, rss_limit=10)
+
+# 只搜索热榜（默认）
+search_news(query="AI")
 ```
 
 ---

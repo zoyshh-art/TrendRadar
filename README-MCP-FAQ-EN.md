@@ -158,6 +158,106 @@ get_trending_topics(extract_mode="auto_extract", top_n=20)
 
 ---
 
+## RSS Feed Queries
+
+### Q4.1: How to view latest RSS feed content?
+
+**You can ask like this:**
+
+- "Show me the latest RSS feed content"
+- "Get the latest articles from Hacker News"
+- "View latest 20 items from all RSS feeds"
+- "Get RSS feeds, need to include summaries"
+
+**Tool called:** `get_latest_rss`
+
+**Tool return behavior:**
+
+- MCP tool returns the latest 50 RSS items to AI
+- Does not include summaries by default (saves tokens)
+- Sorted by publication time in descending order
+
+**AI display behavior (Important):**
+
+- ⚠️ **AI usually auto-summarizes**, only showing partial items
+- ✅ If you want to see all, need to explicitly request: "show all RSS content"
+
+**Can be adjusted:**
+
+- Specify RSS feed: like "only Hacker News"
+- Adjust quantity: like "return top 20"
+- Include summary: like "need summaries"
+
+**Usage examples:**
+
+```
+# Get latest content from all RSS feeds
+get_latest_rss()
+
+# Get from specified feed
+get_latest_rss(feeds=['hacker-news'])
+
+# Include summaries
+get_latest_rss(include_summary=True, limit=20)
+```
+
+---
+
+### Q4.2: How to search content in RSS feeds?
+
+**You can ask like this:**
+
+- "Search for 'AI' related articles in RSS"
+- "Search RSS content about 'machine learning' from last 7 days"
+- "Search 'Python' in Hacker News"
+
+**Tool called:** `search_rss`
+
+**Tool return behavior:**
+
+- Searches RSS item titles using keywords
+- Default searches last 7 days of data
+- MCP tool returns up to 50 results to AI
+
+**Can be adjusted:**
+
+- Specify RSS feed: like "only search Hacker News"
+- Adjust days: like "search last 14 days"
+- Include summary: like "need summaries"
+
+**Usage examples:**
+
+```
+# Search all RSS feeds
+search_rss(keyword="AI")
+
+# Search specified feed and days
+search_rss(keyword="machine learning", feeds=['hacker-news'], days=14)
+```
+
+---
+
+### Q4.3: How to view RSS feed status?
+
+**You can ask like this:**
+
+- "View RSS feed status"
+- "How much data has RSS crawled"
+- "Which RSS feeds have data"
+
+**Tool called:** `get_rss_feeds_status`
+
+**Return information:**
+
+| Field | Description |
+|-------|-------------|
+| **available_dates** | List of dates with RSS data |
+| **total_dates** | Total date count |
+| **today_feeds** | Today's data statistics by RSS feed |
+| **generated_at** | Generation time |
+
+---
+
 ## Search and Retrieval
 
 ### Q4: How to search for news containing specific keywords?
@@ -205,6 +305,64 @@ Recommended steps:
 
 User: Find "Tesla" reports from January 2025
 AI: (date_range={"start": "2025-01-01", "end": "2025-01-31"})
+```
+
+---
+
+### Q4.4: How to search both hot news and RSS content simultaneously?
+
+**You can ask like this:**
+
+- "Search for 'AI' content, including RSS"
+- "Find news about 'artificial intelligence', also search RSS subscriptions"
+- "Search for 'Tesla', both hot news and RSS"
+
+**Tool called:** `search_news` (with `include_rss=True`)
+
+**Tool return behavior:**
+
+- Hot news results and RSS results are **displayed separately**
+- Hot news sorted by rank/relevance, RSS sorted by publish time
+- RSS results do not affect hot news ranking display
+- Default returns 50 hot news + 20 RSS items
+
+**Return structure:**
+
+```json
+{
+  "results": [
+    // Hot news (sorted by rank)
+    {"title": "...", "platform": "zhihu", "rank": 1, ...}
+  ],
+  "rss": [
+    // RSS content (separate section)
+    {"title": "...", "feed_name": "Hacker News", ...}
+  ],
+  "summary": {
+    "total_found": 15,
+    "rss_found": 8,
+    "include_rss": true
+  }
+}
+```
+
+**Can be adjusted:**
+
+- RSS count: like "return 10 RSS items" (`rss_limit=10`)
+- Only search hot news: don't say "including RSS" (default behavior)
+- Only search RSS: use `search_rss` tool
+
+**Code examples:**
+
+```python
+# Search both hot news and RSS
+search_news(query="AI", include_rss=True)
+
+# Adjust RSS return count
+search_news(query="AI", include_rss=True, rss_limit=10)
+
+# Only search hot news (default)
+search_news(query="AI")
 ```
 
 ---

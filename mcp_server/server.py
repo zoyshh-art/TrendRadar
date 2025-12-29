@@ -180,6 +180,111 @@ async def get_trending_topics(
     return json.dumps(result, ensure_ascii=False, indent=2)
 
 
+# ==================== RSS 数据查询工具 ====================
+
+@mcp.tool
+async def get_latest_rss(
+    feeds: Optional[List[str]] = None,
+    limit: int = 50,
+    include_summary: bool = False
+) -> str:
+    """
+    获取最新的 RSS 订阅数据
+
+    RSS 数据与热榜新闻分开存储，按时间流展示，适合获取特定来源的最新内容。
+
+    Args:
+        feeds: RSS 源 ID 列表，如 ['hacker-news', '36kr']
+               - 不指定时：返回所有已配置 RSS 源的数据
+               - 支持的 RSS 源来自 config/config.yaml 的 rss.feeds 配置
+        limit: 返回条数限制，默认50，最大500
+        include_summary: 是否包含文章摘要，默认False（节省token）
+
+    Returns:
+        JSON格式的 RSS 条目列表，包含：
+        - rss: RSS 条目数组
+            - title: 文章标题
+            - feed_id: RSS 源 ID
+            - feed_name: RSS 源名称
+            - url: 文章链接
+            - published_at: 发布时间
+            - author: 作者（如有）
+            - summary: 摘要（仅当 include_summary=True）
+        - total: 返回条数
+        - feeds: 请求的 RSS 源列表
+
+    Examples:
+        - 获取所有 RSS 最新内容: get_latest_rss()
+        - 获取指定源: get_latest_rss(feeds=['hacker-news'])
+        - 包含摘要: get_latest_rss(include_summary=True, limit=20)
+    """
+    tools = _get_tools()
+    result = tools['data'].get_latest_rss(feeds=feeds, limit=limit, include_summary=include_summary)
+    return json.dumps(result, ensure_ascii=False, indent=2)
+
+
+@mcp.tool
+async def search_rss(
+    keyword: str,
+    feeds: Optional[List[str]] = None,
+    days: int = 7,
+    limit: int = 50,
+    include_summary: bool = False
+) -> str:
+    """
+    搜索 RSS 数据
+
+    在 RSS 订阅数据中搜索包含指定关键词的文章。
+
+    Args:
+        keyword: 搜索关键词（必需）
+        feeds: RSS 源 ID 列表，如 ['hacker-news', '36kr']
+               - 不指定时：搜索所有 RSS 源
+        days: 搜索最近 N 天的数据，默认 7 天，最大 30 天
+        limit: 返回条数限制，默认50
+        include_summary: 是否包含文章摘要，默认False
+
+    Returns:
+        JSON格式的匹配 RSS 条目列表
+
+    Examples:
+        - search_rss(keyword="AI")
+        - search_rss(keyword="machine learning", feeds=['hacker-news'], days=14)
+    """
+    tools = _get_tools()
+    result = tools['data'].search_rss(
+        keyword=keyword,
+        feeds=feeds,
+        days=days,
+        limit=limit,
+        include_summary=include_summary
+    )
+    return json.dumps(result, ensure_ascii=False, indent=2)
+
+
+@mcp.tool
+async def get_rss_feeds_status() -> str:
+    """
+    获取 RSS 源状态信息
+
+    查看当前配置的 RSS 源及其数据统计信息。
+
+    Returns:
+        JSON格式的 RSS 源状态，包含：
+        - available_dates: 有 RSS 数据的日期列表
+        - total_dates: 总日期数
+        - today_feeds: 今日各 RSS 源的数据统计
+            - {feed_id}: { name, item_count }
+        - generated_at: 生成时间
+
+    Examples:
+        - get_rss_feeds_status()  # 查看所有 RSS 源状态
+    """
+    tools = _get_tools()
+    result = tools['data'].get_rss_feeds_status()
+    return json.dumps(result, ensure_ascii=False, indent=2)
+
+
 @mcp.tool
 async def get_news_by_date(
     date_range: Optional[Union[Dict[str, str], str]] = None,
@@ -610,10 +715,12 @@ async def search_news(
     limit: int = 50,
     sort_by: str = "relevance",
     threshold: float = 0.6,
-    include_url: bool = False
+    include_url: bool = False,
+    include_rss: bool = False,
+    rss_limit: int = 20
 ) -> str:
     """
-    统一搜索接口，支持多种搜索模式
+    统一搜索接口，支持多种搜索模式，可同时搜索热榜和RSS
 
     **重要：日期范围处理**
     当用户使用"本周"、"最近7天"等自然语言时，请先调用 resolve_date_range 工具获取精确日期：
@@ -634,7 +741,7 @@ async def search_news(
                    - 不指定时：使用 config.yaml 中配置的所有平台
                    - 支持的平台来自 config/config.yaml 的 platforms 配置
                    - 每个平台都有对应的name字段（如"知乎"、"微博"），方便AI识别
-        limit: 返回条数限制，默认50，最大1000
+        limit: 热榜返回条数限制，默认50，最大1000
                注意：实际返回数量取决于搜索匹配结果（特别是 fuzzy 模式下会过滤低相似度结果）
         sort_by: 排序方式，可选值：
             - "relevance": 按相关度排序（默认）
@@ -643,15 +750,25 @@ async def search_news(
         threshold: 相似度阈值（仅fuzzy模式有效），0-1之间，默认0.6
                    注意：阈值越高匹配越严格，返回结果越少
         include_url: 是否包含URL链接，默认False（节省token）
+        include_rss: 是否同时搜索RSS订阅数据，默认False
+                     - 设为True时，会在热榜结果后附加RSS搜索结果
+                     - RSS结果独立展示，不影响热榜排名
+        rss_limit: RSS返回条数限制，默认20（仅当include_rss=True时有效）
 
     Returns:
-        JSON格式的搜索结果，包含标题、平台、排名等信息
+        JSON格式的搜索结果，包含：
+        - results: 热榜新闻列表（按排名/相关度排序）
+        - rss: RSS订阅结果列表（仅当include_rss=True时返回）
+        - summary: 搜索统计信息
 
     Examples:
         用户："搜索本周的AI新闻"
         推荐调用流程：
         1. resolve_date_range("本周") → {"date_range": {"start": "2025-11-18", "end": "2025-11-26"}}
         2. search_news(query="AI", date_range={"start": "2025-11-18", "end": "2025-11-26"})
+
+        用户："搜索AI相关内容，包括RSS"
+        → search_news(query="AI", include_rss=True)
 
         用户："最近7天的特斯拉新闻"
         推荐调用流程：
@@ -665,6 +782,7 @@ async def search_news(
     - 本工具返回完整的搜索结果列表
     - **默认展示方式**：展示全部返回的新闻，无需总结或筛选
     - 仅在用户明确要求"总结"或"挑重点"时才进行筛选
+    - 当include_rss=True时，热榜和RSS结果分开展示，RSS在热榜之后
     """
     tools = _get_tools()
     result = tools['search'].search_news_unified(
@@ -675,7 +793,9 @@ async def search_news(
         limit=limit,
         sort_by=sort_by,
         threshold=threshold,
-        include_url=include_url
+        include_url=include_url,
+        include_rss=include_rss,
+        rss_limit=rss_limit
     )
     return json.dumps(result, ensure_ascii=False, indent=2)
 
@@ -925,27 +1045,32 @@ def run_server(
     print("    2. get_news_by_date       - 按日期查询新闻（支持自然语言）")
     print("    3. get_trending_topics    - 获取趋势话题（支持自动提取）")
     print()
+    print("    === RSS 数据查询 ===")
+    print("    4. get_latest_rss         - 获取最新 RSS 订阅数据")
+    print("    5. search_rss             - 搜索 RSS 数据")
+    print("    6. get_rss_feeds_status   - 获取 RSS 源状态")
+    print()
     print("    === 智能检索工具 ===")
-    print("    4. search_news            - 统一新闻搜索（关键词/模糊/实体）")
-    print("    5. find_related_news      - 相关新闻查找（支持历史数据）")
+    print("    7. search_news            - 统一新闻搜索（关键词/模糊/实体）")
+    print("    8. find_related_news      - 相关新闻查找（支持历史数据）")
     print()
     print("    === 高级数据分析 ===")
-    print("    6. analyze_topic_trend      - 统一话题趋势分析（热度/生命周期/爆火/预测）")
-    print("    7. analyze_data_insights    - 统一数据洞察分析（平台对比/活跃度/关键词共现）")
-    print("    8. analyze_sentiment        - 情感倾向分析")
-    print("    9. aggregate_news           - 跨平台新闻聚合去重")
-    print("    10. compare_periods         - 时期对比分析（周环比/月环比）")
-    print("    11. generate_summary_report - 每日/每周摘要生成")
+    print("    9. analyze_topic_trend      - 统一话题趋势分析（热度/生命周期/爆火/预测）")
+    print("    10. analyze_data_insights   - 统一数据洞察分析（平台对比/活跃度/关键词共现）")
+    print("    11. analyze_sentiment       - 情感倾向分析")
+    print("    12. aggregate_news          - 跨平台新闻聚合去重")
+    print("    13. compare_periods         - 时期对比分析（周环比/月环比）")
+    print("    14. generate_summary_report - 每日/每周摘要生成")
     print()
     print("    === 配置与系统管理 ===")
-    print("    12. get_current_config      - 获取当前系统配置")
-    print("    13. get_system_status       - 获取系统运行状态")
-    print("    14. trigger_crawl           - 手动触发爬取任务")
+    print("    15. get_current_config      - 获取当前系统配置")
+    print("    16. get_system_status       - 获取系统运行状态")
+    print("    17. trigger_crawl           - 手动触发爬取任务")
     print()
     print("    === 存储同步工具 ===")
-    print("    15. sync_from_remote        - 从远程存储拉取数据到本地")
-    print("    16. get_storage_status      - 获取存储配置和状态")
-    print("    17. list_available_dates    - 列出本地/远程可用日期")
+    print("    18. sync_from_remote        - 从远程存储拉取数据到本地")
+    print("    19. get_storage_status      - 获取存储配置和状态")
+    print("    20. list_available_dates    - 列出本地/远程可用日期")
     print("=" * 60)
     print()
 

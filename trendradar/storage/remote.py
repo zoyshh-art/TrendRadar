@@ -28,7 +28,7 @@ except ImportError:
     BotoConfig = None
     ClientError = Exception
 
-from trendradar.storage.base import StorageBackend, NewsItem, NewsData
+from trendradar.storage.base import StorageBackend, NewsItem, NewsData, RSSItem, RSSData
 from trendradar.utils.time import (
     get_configured_time,
     format_date_folder,
@@ -140,15 +140,35 @@ class RemoteStorageBackend(StorageBackend):
         """格式化时间文件名 (格式: HH-MM)"""
         return format_time_filename(self.timezone)
 
-    def _get_remote_db_key(self, date: Optional[str] = None) -> str:
-        """获取远程存储中 SQLite 文件的对象键"""
-        date_folder = self._format_date_folder(date)
-        return f"news/{date_folder}.db"
+    def _get_remote_db_key(self, date: Optional[str] = None, db_type: str = "news") -> str:
+        """
+        获取远程存储中 SQLite 文件的对象键
 
-    def _get_local_db_path(self, date: Optional[str] = None) -> Path:
-        """获取本地临时 SQLite 文件路径"""
+        Args:
+            date: 日期字符串
+            db_type: 数据库类型 ("news" 或 "rss")
+
+        Returns:
+            远程对象键，如 "news/2025-12-28.db" 或 "rss/2025-12-28.db"
+        """
         date_folder = self._format_date_folder(date)
-        return self.temp_dir / date_folder / "news.db"
+        return f"{db_type}/{date_folder}.db"
+
+    def _get_local_db_path(self, date: Optional[str] = None, db_type: str = "news") -> Path:
+        """
+        获取本地临时 SQLite 文件路径
+
+        Args:
+            date: 日期字符串
+            db_type: 数据库类型 ("news" 或 "rss")
+
+        Returns:
+            本地临时文件路径
+        """
+        date_folder = self._format_date_folder(date)
+        db_dir = self.temp_dir / db_type
+        db_dir.mkdir(parents=True, exist_ok=True)
+        return db_dir / f"{date_folder}.db"
 
     def _check_object_exists(self, r2_key: str) -> bool:
         """
@@ -175,7 +195,7 @@ class RemoteStorageBackend(StorageBackend):
             print(f"[远程存储] 检查对象存在性异常 ({r2_key}): {e}")
             return False
 
-    def _download_sqlite(self, date: Optional[str] = None) -> Optional[Path]:
+    def _download_sqlite(self, date: Optional[str] = None, db_type: str = "news") -> Optional[Path]:
         """
         从远程存储下载当天的 SQLite 文件到本地临时目录
 
@@ -184,12 +204,13 @@ class RemoteStorageBackend(StorageBackend):
 
         Args:
             date: 日期字符串
+            db_type: 数据库类型 ("news" 或 "rss")
 
         Returns:
             本地文件路径，如果不存在返回 None
         """
-        r2_key = self._get_remote_db_key(date)
-        local_path = self._get_local_db_path(date)
+        r2_key = self._get_remote_db_key(date, db_type)
+        local_path = self._get_local_db_path(date, db_type)
 
         # 确保目录存在
         local_path.parent.mkdir(parents=True, exist_ok=True)
@@ -222,18 +243,19 @@ class RemoteStorageBackend(StorageBackend):
             print(f"[远程存储] 下载异常: {e}")
             raise
 
-    def _upload_sqlite(self, date: Optional[str] = None) -> bool:
+    def _upload_sqlite(self, date: Optional[str] = None, db_type: str = "news") -> bool:
         """
         上传本地 SQLite 文件到远程存储
 
         Args:
             date: 日期字符串
+            db_type: 数据库类型 ("news" 或 "rss")
 
         Returns:
             是否上传成功
         """
-        local_path = self._get_local_db_path(date)
-        r2_key = self._get_remote_db_key(date)
+        local_path = self._get_local_db_path(date, db_type)
+        r2_key = self._get_remote_db_key(date, db_type)
 
         if not local_path.exists():
             print(f"[远程存储] 本地文件不存在，无法上传: {local_path}")
@@ -272,9 +294,18 @@ class RemoteStorageBackend(StorageBackend):
             print(f"[远程存储] 上传失败: {e}")
             return False
 
-    def _get_connection(self, date: Optional[str] = None) -> sqlite3.Connection:
-        """获取数据库连接"""
-        local_path = self._get_local_db_path(date)
+    def _get_connection(self, date: Optional[str] = None, db_type: str = "news") -> sqlite3.Connection:
+        """
+        获取数据库连接
+
+        Args:
+            date: 日期字符串
+            db_type: 数据库类型 ("news" 或 "rss")
+
+        Returns:
+            数据库连接
+        """
+        local_path = self._get_local_db_path(date, db_type)
         db_path = str(local_path)
 
         if db_path not in self._db_connections:
@@ -283,23 +314,39 @@ class RemoteStorageBackend(StorageBackend):
 
             # 如果本地不存在，尝试从远程存储下载
             if not local_path.exists():
-                self._download_sqlite(date)
+                self._download_sqlite(date, db_type)
 
             conn = sqlite3.connect(db_path)
             conn.row_factory = sqlite3.Row
-            self._init_tables(conn)
+            self._init_tables(conn, db_type)
             self._db_connections[db_path] = conn
 
         return self._db_connections[db_path]
 
-    def _get_schema_path(self) -> Path:
-        """获取 schema.sql 文件路径"""
+    def _get_schema_path(self, db_type: str = "news") -> Path:
+        """
+        获取 schema.sql 文件路径
+
+        Args:
+            db_type: 数据库类型 ("news" 或 "rss")
+
+        Returns:
+            schema 文件路径
+        """
+        if db_type == "rss":
+            return Path(__file__).parent / "rss_schema.sql"
         return Path(__file__).parent / "schema.sql"
 
-    def _init_tables(self, conn: sqlite3.Connection) -> None:
-        """从 schema.sql 初始化数据库表结构"""
-        schema_path = self._get_schema_path()
-        
+    def _init_tables(self, conn: sqlite3.Connection, db_type: str = "news") -> None:
+        """
+        从 schema.sql 初始化数据库表结构
+
+        Args:
+            conn: 数据库连接
+            db_type: 数据库类型 ("news" 或 "rss")
+        """
+        schema_path = self._get_schema_path(db_type)
+
         if schema_path.exists():
             with open(schema_path, "r", encoding="utf-8") as f:
                 schema_sql = f.read()
@@ -1027,6 +1074,388 @@ class RemoteStorageBackend(StorageBackend):
         except Exception as e:
             print(f"[远程存储] 记录推送失败: {e}")
             return False
+
+    # ========================================
+    # RSS 数据存储方法
+    # ========================================
+
+    def save_rss_data(self, data: RSSData) -> bool:
+        """
+        保存 RSS 数据到远程存储（以 URL 为唯一标识）
+
+        流程：下载现有数据库 → 插入/更新数据 → 上传回远程存储
+
+        Args:
+            data: RSS 数据
+
+        Returns:
+            是否保存成功
+        """
+        try:
+            conn = self._get_connection(data.date, db_type="rss")
+            cursor = conn.cursor()
+
+            now_str = self._get_configured_time().strftime("%Y-%m-%d %H:%M:%S")
+
+            # 同步 RSS 源信息到 rss_feeds 表
+            for feed_id, feed_name in data.id_to_name.items():
+                cursor.execute("""
+                    INSERT INTO rss_feeds (id, name, updated_at)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        name = excluded.name,
+                        updated_at = excluded.updated_at
+                """, (feed_id, feed_name, now_str))
+
+            # 统计计数器
+            new_count = 0
+            updated_count = 0
+
+            for feed_id, rss_list in data.items.items():
+                for item in rss_list:
+                    try:
+                        # 检查是否已存在（通过 URL + feed_id）
+                        if item.url:
+                            cursor.execute("""
+                                SELECT id, title FROM rss_items
+                                WHERE url = ? AND feed_id = ?
+                            """, (item.url, feed_id))
+                            existing = cursor.fetchone()
+
+                            if existing:
+                                # 已存在，更新记录
+                                existing_id = existing[0]
+                                cursor.execute("""
+                                    UPDATE rss_items SET
+                                        title = ?,
+                                        published_at = ?,
+                                        summary = ?,
+                                        author = ?,
+                                        last_crawl_time = ?,
+                                        crawl_count = crawl_count + 1,
+                                        updated_at = ?
+                                    WHERE id = ?
+                                """, (item.title, item.published_at, item.summary,
+                                      item.author, data.crawl_time, now_str, existing_id))
+                                updated_count += 1
+                            else:
+                                # 不存在，插入新记录
+                                cursor.execute("""
+                                    INSERT INTO rss_items
+                                    (title, feed_id, url, published_at, summary, author,
+                                     first_crawl_time, last_crawl_time, crawl_count,
+                                     created_at, updated_at)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                                """, (item.title, feed_id, item.url, item.published_at,
+                                      item.summary, item.author, data.crawl_time,
+                                      data.crawl_time, now_str, now_str))
+                                new_count += 1
+                        else:
+                            # URL 为空，直接插入
+                            cursor.execute("""
+                                INSERT INTO rss_items
+                                (title, feed_id, url, published_at, summary, author,
+                                 first_crawl_time, last_crawl_time, crawl_count,
+                                 created_at, updated_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                            """, (item.title, feed_id, "", item.published_at,
+                                  item.summary, item.author, data.crawl_time,
+                                  data.crawl_time, now_str, now_str))
+                            new_count += 1
+
+                    except sqlite3.Error as e:
+                        print(f"[远程存储] 保存 RSS 条目失败 [{item.title[:30]}...]: {e}")
+
+            total_items = new_count + updated_count
+
+            # 记录抓取信息
+            cursor.execute("""
+                INSERT OR REPLACE INTO rss_crawl_records
+                (crawl_time, total_items, created_at)
+                VALUES (?, ?, ?)
+            """, (data.crawl_time, total_items, now_str))
+
+            # 记录抓取状态
+            cursor.execute("""
+                SELECT id FROM rss_crawl_records WHERE crawl_time = ?
+            """, (data.crawl_time,))
+            record_row = cursor.fetchone()
+            if record_row:
+                crawl_record_id = record_row[0]
+
+                # 记录成功的源
+                for feed_id in data.items.keys():
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO rss_crawl_status
+                        (crawl_record_id, feed_id, status)
+                        VALUES (?, ?, 'success')
+                    """, (crawl_record_id, feed_id))
+
+                # 记录失败的源
+                for failed_id in data.failed_ids:
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO rss_feeds (id, name, updated_at)
+                        VALUES (?, ?, ?)
+                    """, (failed_id, failed_id, now_str))
+
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO rss_crawl_status
+                        (crawl_record_id, feed_id, status)
+                        VALUES (?, ?, 'failed')
+                    """, (crawl_record_id, failed_id))
+
+            conn.commit()
+
+            # 输出统计日志
+            log_parts = [f"[远程存储] RSS 处理完成：新增 {new_count} 条"]
+            if updated_count > 0:
+                log_parts.append(f"更新 {updated_count} 条")
+            print("，".join(log_parts))
+
+            # 上传到远程存储
+            if self._upload_sqlite(data.date, db_type="rss"):
+                print(f"[远程存储] RSS 数据已同步到远程存储")
+                return True
+            else:
+                print(f"[远程存储] RSS 上传远程存储失败")
+                return False
+
+        except Exception as e:
+            print(f"[远程存储] 保存 RSS 数据失败: {e}")
+            return False
+
+    def get_rss_data(self, date: Optional[str] = None) -> Optional[RSSData]:
+        """
+        获取指定日期的所有 RSS 数据
+
+        Args:
+            date: 日期字符串（YYYY-MM-DD），默认为今天
+
+        Returns:
+            RSSData 对象，如果没有数据返回 None
+        """
+        try:
+            conn = self._get_connection(date, db_type="rss")
+            cursor = conn.cursor()
+
+            # 获取所有 RSS 数据
+            cursor.execute("""
+                SELECT i.id, i.title, i.feed_id, f.name as feed_name,
+                       i.url, i.published_at, i.summary, i.author,
+                       i.first_crawl_time, i.last_crawl_time, i.crawl_count
+                FROM rss_items i
+                LEFT JOIN rss_feeds f ON i.feed_id = f.id
+                ORDER BY i.published_at DESC
+            """)
+
+            rows = cursor.fetchall()
+            if not rows:
+                return None
+
+            items: Dict[str, List[RSSItem]] = {}
+            id_to_name: Dict[str, str] = {}
+            crawl_date = self._format_date_folder(date)
+
+            for row in rows:
+                feed_id = row[2]
+                feed_name = row[3] or feed_id
+
+                id_to_name[feed_id] = feed_name
+
+                if feed_id not in items:
+                    items[feed_id] = []
+
+                items[feed_id].append(RSSItem(
+                    title=row[1],
+                    feed_id=feed_id,
+                    feed_name=feed_name,
+                    url=row[4] or "",
+                    published_at=row[5] or "",
+                    summary=row[6] or "",
+                    author=row[7] or "",
+                    crawl_time=row[9],
+                    first_time=row[8],
+                    last_time=row[9],
+                    count=row[10],
+                ))
+
+            # 获取最新的抓取时间
+            cursor.execute("""
+                SELECT crawl_time FROM rss_crawl_records
+                ORDER BY crawl_time DESC
+                LIMIT 1
+            """)
+            time_row = cursor.fetchone()
+            crawl_time = time_row[0] if time_row else self._format_time_filename()
+
+            # 获取失败的源
+            cursor.execute("""
+                SELECT DISTINCT cs.feed_id
+                FROM rss_crawl_status cs
+                JOIN rss_crawl_records cr ON cs.crawl_record_id = cr.id
+                WHERE cs.status = 'failed'
+            """)
+            failed_ids = [row[0] for row in cursor.fetchall()]
+
+            return RSSData(
+                date=crawl_date,
+                crawl_time=crawl_time,
+                items=items,
+                id_to_name=id_to_name,
+                failed_ids=failed_ids,
+            )
+
+        except Exception as e:
+            print(f"[远程存储] 读取 RSS 数据失败: {e}")
+            return None
+
+    def detect_new_rss_items(self, current_data: RSSData) -> Dict[str, List[RSSItem]]:
+        """
+        检测新增的 RSS 条目（增量模式）
+
+        该方法比较当前抓取数据与历史数据，找出新增的 RSS 条目。
+        关键逻辑：只有在历史批次中从未出现过的 URL 才算新增。
+
+        Args:
+            current_data: 当前抓取的 RSS 数据
+
+        Returns:
+            新增的 RSS 条目 {feed_id: [RSSItem, ...]}
+        """
+        try:
+            # 获取历史数据
+            historical_data = self.get_rss_data(current_data.date)
+
+            if not historical_data:
+                # 没有历史数据，所有都是新的
+                return current_data.items.copy()
+
+            # 获取当前批次时间
+            current_time = current_data.crawl_time
+
+            # 收集历史 URL（first_time < current_time 的条目）
+            historical_urls: Dict[str, set] = {}
+            for feed_id, rss_list in historical_data.items.items():
+                historical_urls[feed_id] = set()
+                for item in rss_list:
+                    first_time = getattr(item, 'first_time', item.crawl_time)
+                    if first_time < current_time:
+                        if item.url:
+                            historical_urls[feed_id].add(item.url)
+
+            # 检查是否有历史数据
+            has_historical_data = any(len(urls) > 0 for urls in historical_urls.values())
+            if not has_historical_data:
+                # 第一次抓取，没有"新增"概念
+                return {}
+
+            # 检测新增
+            new_items: Dict[str, List[RSSItem]] = {}
+            for feed_id, rss_list in current_data.items.items():
+                hist_set = historical_urls.get(feed_id, set())
+                for item in rss_list:
+                    # 通过 URL 判断是否新增
+                    if item.url and item.url not in hist_set:
+                        if feed_id not in new_items:
+                            new_items[feed_id] = []
+                        new_items[feed_id].append(item)
+
+            return new_items
+
+        except Exception as e:
+            print(f"[远程存储] 检测新 RSS 条目失败: {e}")
+            return {}
+
+    def get_latest_rss_data(self, date: Optional[str] = None) -> Optional[RSSData]:
+        """
+        获取最新一次抓取的 RSS 数据（当前榜单模式）
+
+        Args:
+            date: 日期字符串（YYYY-MM-DD），默认为今天
+
+        Returns:
+            最新抓取的 RSS 数据，如果没有数据返回 None
+        """
+        try:
+            conn = self._get_connection(date, db_type="rss")
+            cursor = conn.cursor()
+
+            # 获取最新的抓取时间
+            cursor.execute("""
+                SELECT crawl_time FROM rss_crawl_records
+                ORDER BY crawl_time DESC
+                LIMIT 1
+            """)
+
+            time_row = cursor.fetchone()
+            if not time_row:
+                return None
+
+            latest_time = time_row[0]
+
+            # 获取该时间的 RSS 数据
+            cursor.execute("""
+                SELECT i.id, i.title, i.feed_id, f.name as feed_name,
+                       i.url, i.published_at, i.summary, i.author,
+                       i.first_crawl_time, i.last_crawl_time, i.crawl_count
+                FROM rss_items i
+                LEFT JOIN rss_feeds f ON i.feed_id = f.id
+                WHERE i.last_crawl_time = ?
+                ORDER BY i.published_at DESC
+            """, (latest_time,))
+
+            rows = cursor.fetchall()
+            if not rows:
+                return None
+
+            items: Dict[str, List[RSSItem]] = {}
+            id_to_name: Dict[str, str] = {}
+            crawl_date = self._format_date_folder(date)
+
+            for row in rows:
+                feed_id = row[2]
+                feed_name = row[3] or feed_id
+
+                id_to_name[feed_id] = feed_name
+
+                if feed_id not in items:
+                    items[feed_id] = []
+
+                items[feed_id].append(RSSItem(
+                    title=row[1],
+                    feed_id=feed_id,
+                    feed_name=feed_name,
+                    url=row[4] or "",
+                    published_at=row[5] or "",
+                    summary=row[6] or "",
+                    author=row[7] or "",
+                    crawl_time=row[9],
+                    first_time=row[8],
+                    last_time=row[9],
+                    count=row[10],
+                ))
+
+            # 获取失败的源（针对最新一次抓取）
+            cursor.execute("""
+                SELECT cs.feed_id
+                FROM rss_crawl_status cs
+                JOIN rss_crawl_records cr ON cs.crawl_record_id = cr.id
+                WHERE cr.crawl_time = ? AND cs.status = 'failed'
+            """, (latest_time,))
+
+            failed_ids = [row[0] for row in cursor.fetchall()]
+
+            return RSSData(
+                date=crawl_date,
+                crawl_time=latest_time,
+                items=items,
+                id_to_name=id_to_name,
+                failed_ids=failed_ids,
+            )
+
+        except Exception as e:
+            print(f"[远程存储] 获取最新 RSS 数据失败: {e}")
+            return None
 
     def __del__(self):
         """析构函数"""

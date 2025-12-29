@@ -471,30 +471,35 @@ class DataService:
         word_groups = self.parser.parse_frequency_words()
 
         # 根据section返回对应配置
+        advanced = config_data.get("advanced", {})
+        advanced_crawler = advanced.get("crawler", {})
+
         if section == "all" or section == "crawler":
             crawler_config = {
-                "enable_crawler": config_data.get("crawler", {}).get("enable_crawler", True),
-                "use_proxy": config_data.get("crawler", {}).get("use_proxy", False),
-                "request_interval": config_data.get("crawler", {}).get("request_interval", 1),
+                "enable_crawler": advanced_crawler.get("enabled", True),
+                "use_proxy": advanced_crawler.get("use_proxy", False),
+                "request_interval": advanced_crawler.get("request_interval", 1),
                 "retry_times": 3,
                 "platforms": [p["id"] for p in config_data.get("platforms", [])]
             }
 
         if section == "all" or section == "push":
+            notification = config_data.get("notification", {})
+            batch_size = advanced.get("batch_size", {})
             push_config = {
-                "enable_notification": config_data.get("notification", {}).get("enable_notification", True),
+                "enable_notification": notification.get("enabled", True),
                 "enabled_channels": [],
-                "message_batch_size": config_data.get("notification", {}).get("message_batch_size", 20),
-                "push_window": config_data.get("notification", {}).get("push_window", {})
+                "message_batch_size": batch_size.get("default", 4000),
+                "push_window": notification.get("push_window", {})
             }
 
             # 检测已配置的通知渠道
-            webhooks = config_data.get("notification", {}).get("webhooks", {})
-            if webhooks.get("feishu_url"):
+            channels = notification.get("channels", {})
+            if channels.get("feishu", {}).get("webhook_url"):
                 push_config["enabled_channels"].append("feishu")
-            if webhooks.get("dingtalk_url"):
+            if channels.get("dingtalk", {}).get("webhook_url"):
                 push_config["enabled_channels"].append("dingtalk")
-            if webhooks.get("wework_url"):
+            if channels.get("wework", {}).get("webhook_url"):
                 push_config["enabled_channels"].append("wework")
 
         if section == "all" or section == "keywords":
@@ -504,10 +509,11 @@ class DataService:
             }
 
         if section == "all" or section == "weights":
+            weight = advanced.get("weight", {})
             weights_config = {
-                "rank_weight": config_data.get("weight", {}).get("rank_weight", 0.6),
-                "frequency_weight": config_data.get("weight", {}).get("frequency_weight", 0.3),
-                "hotness_weight": config_data.get("weight", {}).get("hotness_weight", 0.1)
+                "rank_weight": weight.get("rank", 0.6),
+                "frequency_weight": weight.get("frequency", 0.3),
+                "hotness_weight": weight.get("hotness", 0.1)
             }
 
         # 组装结果
@@ -660,3 +666,197 @@ class DataService:
             "cache": self.cache.get_stats(),
             "health": "healthy"
         }
+
+    # ========================================
+    # RSS 数据查询方法
+    # ========================================
+
+    def get_latest_rss(
+        self,
+        feeds: Optional[List[str]] = None,
+        limit: int = 50,
+        include_summary: bool = False
+    ) -> List[Dict]:
+        """
+        获取最新的 RSS 数据
+
+        Args:
+            feeds: RSS 源 ID 列表，None 表示所有源
+            limit: 返回条数限制
+            include_summary: 是否包含摘要，默认 False（节省 token）
+
+        Returns:
+            RSS 条目列表
+
+        Raises:
+            DataNotFoundError: 数据不存在
+        """
+        cache_key = f"latest_rss:{','.join(feeds or [])}:{limit}:{include_summary}"
+        cached = self.cache.get(cache_key, ttl=900)
+        if cached:
+            return cached
+
+        # 读取今天的 RSS 数据
+        all_items, id_to_name, timestamps = self.parser.read_all_titles_for_date(
+            date=None,
+            platform_ids=feeds,
+            db_type="rss"
+        )
+
+        # 获取最新的抓取时间
+        if timestamps:
+            latest_timestamp = max(timestamps.values())
+            fetch_time = datetime.fromtimestamp(latest_timestamp)
+        else:
+            fetch_time = datetime.now()
+
+        # 转换为列表
+        rss_list = []
+        for feed_id, items in all_items.items():
+            feed_name = id_to_name.get(feed_id, feed_id)
+
+            for title, info in items.items():
+                rss_item = {
+                    "title": title,
+                    "feed_id": feed_id,
+                    "feed_name": feed_name,
+                    "url": info.get("url", ""),
+                    "published_at": info.get("published_at", ""),
+                    "author": info.get("author", ""),
+                    "fetch_time": fetch_time.strftime("%Y-%m-%d %H:%M:%S")
+                }
+
+                if include_summary:
+                    rss_item["summary"] = info.get("summary", "")
+
+                rss_list.append(rss_item)
+
+        # 按发布时间排序（最新的在前）
+        rss_list.sort(key=lambda x: x.get("published_at", ""), reverse=True)
+
+        # 限制返回数量
+        result = rss_list[:limit]
+
+        # 缓存结果
+        self.cache.set(cache_key, result)
+
+        return result
+
+    def search_rss(
+        self,
+        keyword: str,
+        feeds: Optional[List[str]] = None,
+        days: int = 7,
+        limit: int = 50,
+        include_summary: bool = False
+    ) -> List[Dict]:
+        """
+        搜索 RSS 数据
+
+        Args:
+            keyword: 搜索关键词
+            feeds: RSS 源 ID 列表，None 表示所有源
+            days: 搜索最近 N 天的数据
+            limit: 返回条数限制
+            include_summary: 是否包含摘要
+
+        Returns:
+            匹配的 RSS 条目列表
+        """
+        cache_key = f"search_rss:{keyword}:{','.join(feeds or [])}:{days}:{limit}:{include_summary}"
+        cached = self.cache.get(cache_key, ttl=900)
+        if cached:
+            return cached
+
+        results = []
+        today = datetime.now()
+
+        for i in range(days):
+            target_date = today - timedelta(days=i)
+
+            try:
+                all_items, id_to_name, _ = self.parser.read_all_titles_for_date(
+                    date=target_date,
+                    platform_ids=feeds,
+                    db_type="rss"
+                )
+
+                for feed_id, items in all_items.items():
+                    feed_name = id_to_name.get(feed_id, feed_id)
+
+                    for title, info in items.items():
+                        # 关键词匹配（标题或摘要）
+                        summary = info.get("summary", "")
+                        if keyword.lower() in title.lower() or keyword.lower() in summary.lower():
+                            rss_item = {
+                                "title": title,
+                                "feed_id": feed_id,
+                                "feed_name": feed_name,
+                                "url": info.get("url", ""),
+                                "published_at": info.get("published_at", ""),
+                                "author": info.get("author", ""),
+                                "date": target_date.strftime("%Y-%m-%d")
+                            }
+
+                            if include_summary:
+                                rss_item["summary"] = summary
+
+                            results.append(rss_item)
+
+            except DataNotFoundError:
+                continue
+
+        # 按发布时间排序
+        results.sort(key=lambda x: x.get("published_at", ""), reverse=True)
+
+        # 限制返回数量
+        result = results[:limit]
+
+        # 缓存结果
+        self.cache.set(cache_key, result)
+
+        return result
+
+    def get_rss_feeds_status(self) -> Dict:
+        """
+        获取 RSS 源状态
+
+        Returns:
+            RSS 源状态信息
+        """
+        cache_key = "rss_feeds_status"
+        cached = self.cache.get(cache_key, ttl=300)
+        if cached:
+            return cached
+
+        # 获取可用的 RSS 日期
+        available_dates = self.parser.get_available_dates(db_type="rss")
+
+        # 获取今天的 RSS 数据统计
+        today_stats = {}
+        try:
+            all_items, id_to_name, _ = self.parser.read_all_titles_for_date(
+                date=None,
+                platform_ids=None,
+                db_type="rss"
+            )
+
+            for feed_id, items in all_items.items():
+                today_stats[feed_id] = {
+                    "name": id_to_name.get(feed_id, feed_id),
+                    "item_count": len(items)
+                }
+
+        except DataNotFoundError:
+            pass
+
+        result = {
+            "available_dates": available_dates[:10],  # 最近 10 天
+            "total_dates": len(available_dates),
+            "today_feeds": today_stats,
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+        self.cache.set(cache_key, result)
+
+        return result

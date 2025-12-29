@@ -1,7 +1,7 @@
 services:
-  trend-radar:
+  trendradar:
     image: wantcat/trendradar:latest
-    container_name: trend-radar
+    container_name: trendradar
     restart: unless-stopped
 
     ports:
@@ -71,9 +71,9 @@ services:
       - RUN_MODE=${RUN_MODE:-cron}
       - IMMEDIATE_RUN=${IMMEDIATE_RUN:-true}
 
-  trend-radar-mcp:
+  trendradar-mcp:
     image: wantcat/trendradar-mcp:latest
-    container_name: trend-radar-mcp
+    container_name: trendradar-mcp
     restart: unless-stopped
 
     ports:
