@@ -6,7 +6,7 @@ HTML 报告渲染模块
 """
 
 from datetime import datetime
-from typing import Dict, Optional, Callable
+from typing import Dict, List, Optional, Callable
 
 from trendradar.report.helpers import html_escape
 
@@ -20,6 +20,9 @@ def render_html_content(
     *,
     reverse_content_order: bool = False,
     get_time_func: Optional[Callable[[], datetime]] = None,
+    rss_items: Optional[List[Dict]] = None,
+    rss_new_items: Optional[List[Dict]] = None,
+    display_mode: str = "keyword",
 ) -> str:
     """渲染HTML内容
 
@@ -31,6 +34,9 @@ def render_html_content(
         update_info: 更新信息（可选）
         reverse_content_order: 是否反转内容顺序（新增热点在前）
         get_time_func: 获取当前时间的函数（可选，默认使用 datetime.now）
+        rss_items: RSS 统计条目列表（可选）
+        rss_new_items: RSS 新增条目列表（可选）
+        display_mode: 显示模式 ("keyword"=按关键词分组, "platform"=按平台分组)
 
     Returns:
         渲染后的 HTML 字符串
@@ -255,6 +261,15 @@ def render_html_content(
                 font-weight: 500;
             }
 
+            .keyword-tag {
+                color: #2563eb;
+                font-size: 12px;
+                font-weight: 500;
+                background: #eff6ff;
+                padding: 2px 6px;
+                border-radius: 4px;
+            }
+
             .rank-num {
                 color: #fff;
                 background: #6b7280;
@@ -464,6 +479,119 @@ def render_html_content(
                     width: 100%;
                 }
             }
+
+            /* RSS 订阅内容样式 */
+            .rss-section {
+                margin-top: 32px;
+                padding-top: 24px;
+                border-top: 2px solid #e5e7eb;
+            }
+
+            .rss-section-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 20px;
+            }
+
+            .rss-section-title {
+                font-size: 18px;
+                font-weight: 600;
+                color: #059669;
+            }
+
+            .rss-section-count {
+                color: #6b7280;
+                font-size: 14px;
+            }
+
+            .feed-group {
+                margin-bottom: 24px;
+            }
+
+            .feed-group:last-child {
+                margin-bottom: 0;
+            }
+
+            .feed-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 12px;
+                padding-bottom: 8px;
+                border-bottom: 2px solid #10b981;
+            }
+
+            .feed-name {
+                font-size: 15px;
+                font-weight: 600;
+                color: #059669;
+            }
+
+            .feed-count {
+                color: #666;
+                font-size: 13px;
+                font-weight: 500;
+            }
+
+            .rss-item {
+                margin-bottom: 12px;
+                padding: 14px;
+                background: #f0fdf4;
+                border-radius: 8px;
+                border-left: 3px solid #10b981;
+            }
+
+            .rss-item:last-child {
+                margin-bottom: 0;
+            }
+
+            .rss-meta {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 6px;
+                flex-wrap: wrap;
+            }
+
+            .rss-time {
+                color: #6b7280;
+                font-size: 12px;
+            }
+
+            .rss-author {
+                color: #059669;
+                font-size: 12px;
+                font-weight: 500;
+            }
+
+            .rss-title {
+                font-size: 14px;
+                line-height: 1.5;
+                margin-bottom: 6px;
+            }
+
+            .rss-link {
+                color: #1f2937;
+                text-decoration: none;
+                font-weight: 500;
+            }
+
+            .rss-link:hover {
+                color: #059669;
+                text-decoration: underline;
+            }
+
+            .rss-summary {
+                font-size: 13px;
+                color: #6b7280;
+                line-height: 1.5;
+                margin: 0;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
         </style>
     </head>
     <body>
@@ -578,8 +706,17 @@ def render_html_content(
                     <div class="news-item {new_class}">
                         <div class="news-number">{j}</div>
                         <div class="news-content">
-                            <div class="news-header">
-                                <span class="source-name">{html_escape(title_data["source_name"])}</span>"""
+                            <div class="news-header">"""
+
+                # 根据 display_mode 决定显示来源还是关键词
+                if display_mode == "keyword":
+                    # keyword 模式：显示来源
+                    stats_html += f'<span class="source-name">{html_escape(title_data["source_name"])}</span>'
+                else:
+                    # platform 模式：显示关键词
+                    matched_keyword = title_data.get("matched_keyword", "")
+                    if matched_keyword:
+                        stats_html += f'<span class="keyword-tag">[{html_escape(matched_keyword)}]</span>'
 
                 # 处理排名显示
                 ranks = title_data.get("ranks", [])
@@ -706,13 +843,103 @@ def render_html_content(
         new_titles_html += """
                 </div>"""
 
-    # 根据配置决定内容顺序
+    # 生成 RSS 统计内容
+    def render_rss_stats_html(items: List[Dict], title: str = "RSS 订阅更新") -> str:
+        if not items:
+            return ""
+
+        rss_html = ""
+        rss_count = len(items)
+        rss_html += f"""
+                <div class="rss-section">
+                    <div class="rss-section-header">
+                        <div class="rss-section-title">{title}</div>
+                        <div class="rss-section-count">{rss_count} 条</div>
+                    </div>"""
+
+        # 按 feed_id 分组
+        feeds_grouped = {}
+        for item in items:
+            feed_id = item.get("feed_id", "unknown")
+            if feed_id not in feeds_grouped:
+                feeds_grouped[feed_id] = {
+                    "name": item.get("feed_name", feed_id),
+                    "items": []
+                }
+            feeds_grouped[feed_id]["items"].append(item)
+
+        # 渲染每个 feed 分组
+        for feed_id, feed_data in feeds_grouped.items():
+            feed_name = feed_data["name"]
+            feed_items = feed_data["items"]
+            feed_item_count = len(feed_items)
+
+            rss_html += f"""
+                    <div class="feed-group">
+                        <div class="feed-header">
+                            <div class="feed-name">{html_escape(feed_name)}</div>
+                            <div class="feed-count">{feed_item_count} 条</div>
+                        </div>"""
+
+            for item in feed_items:
+                item_title = item.get("title", "")
+                url = item.get("url", "")
+                published_at = item.get("published_at", "")
+                author = item.get("author", "")
+
+                # 格式化发布时间
+                time_str = ""
+                if published_at:
+                    if isinstance(published_at, datetime):
+                        time_str = published_at.strftime("%m-%d %H:%M")
+                    else:
+                        time_str = str(published_at)[:16] if len(str(published_at)) > 16 else str(published_at)
+
+                rss_html += """
+                        <div class="rss-item">
+                            <div class="rss-meta">"""
+
+                if time_str:
+                    rss_html += f'<span class="rss-time">{html_escape(time_str)}</span>'
+
+                if author:
+                    rss_html += f'<span class="rss-author">by {html_escape(author)}</span>'
+
+                rss_html += """
+                            </div>
+                            <div class="rss-title">"""
+
+                escaped_title = html_escape(item_title)
+                if url:
+                    escaped_url = html_escape(url)
+                    rss_html += f'<a href="{escaped_url}" target="_blank" class="rss-link">{escaped_title}</a>'
+                else:
+                    rss_html += escaped_title
+
+                rss_html += """
+                            </div>
+                        </div>"""
+
+            rss_html += """
+                    </div>"""
+
+        rss_html += """
+                </div>"""
+        return rss_html
+
+    # 生成 RSS 统计和新增 HTML
+    rss_stats_html = render_rss_stats_html(rss_items, "RSS 订阅更新") if rss_items else ""
+    rss_new_html = render_rss_stats_html(rss_new_items, "RSS 新增更新") if rss_new_items else ""
+
+    # 根据配置决定内容顺序（与推送逻辑一致）
     if reverse_content_order:
-        # 新增热点在前，热点词汇统计在后
-        html += new_titles_html + stats_html
+        # 新增在前，统计在后
+        # 顺序：热榜新增 → RSS新增 → 热榜统计 → RSS统计
+        html += new_titles_html + rss_new_html + stats_html + rss_stats_html
     else:
-        # 默认：热点词汇统计在前，新增热点在后
-        html += stats_html + new_titles_html
+        # 默认：统计在前，新增在后
+        # 顺序：热榜统计 → RSS统计 → 热榜新增 → RSS新增
+        html += stats_html + rss_stats_html + new_titles_html + rss_new_html
 
     html += """
             </div>

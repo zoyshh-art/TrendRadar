@@ -115,6 +115,11 @@ class AppContext:
         """获取 RSS 源列表"""
         return self.rss_config.get("FEEDS", [])
 
+    @property
+    def display_mode(self) -> str:
+        """获取显示模式 (keyword | platform)"""
+        return self.config.get("DISPLAY_MODE", "keyword")
+
     # === 时间操作 ===
 
     def get_time(self) -> datetime:
@@ -280,6 +285,8 @@ class AppContext:
         mode: str = "daily",
         is_daily_summary: bool = False,
         update_info: Optional[Dict] = None,
+        rss_items: Optional[List[Dict]] = None,
+        rss_new_items: Optional[List[Dict]] = None,
     ) -> str:
         """生成HTML报告"""
         return generate_html_report(
@@ -295,7 +302,7 @@ class AppContext:
             output_dir="output",
             date_folder=self.format_date(),
             time_filename=self.format_time(),
-            render_html_func=lambda *args, **kwargs: self.render_html(*args, **kwargs),
+            render_html_func=lambda *args, **kwargs: self.render_html(*args, rss_items=rss_items, rss_new_items=rss_new_items, **kwargs),
             matches_word_groups_func=self.matches_word_groups,
             load_frequency_words_func=self.load_frequency_words,
             enable_index_copy=True,
@@ -308,6 +315,8 @@ class AppContext:
         is_daily_summary: bool = False,
         mode: str = "daily",
         update_info: Optional[Dict] = None,
+        rss_items: Optional[List[Dict]] = None,
+        rss_new_items: Optional[List[Dict]] = None,
     ) -> str:
         """渲染HTML内容"""
         return render_html_content(
@@ -318,6 +327,9 @@ class AppContext:
             update_info=update_info,
             reverse_content_order=self.config.get("REVERSE_CONTENT_ORDER", False),
             get_time_func=self.get_time,
+            rss_items=rss_items,
+            rss_new_items=rss_new_items,
+            display_mode=self.display_mode,
         )
 
     # === 通知内容渲染 ===
@@ -394,6 +406,7 @@ class AppContext:
             rss_items=rss_items,
             rss_new_items=rss_new_items,
             timezone=self.config.get("TIMEZONE", "Asia/Shanghai"),
+            display_mode=self.display_mode,
         )
 
     # === 通知发送 ===

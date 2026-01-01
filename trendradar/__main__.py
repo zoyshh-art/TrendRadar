@@ -16,6 +16,7 @@ import requests
 from trendradar.context import AppContext
 from trendradar import __version__
 from trendradar.core import load_config
+from trendradar.core.analyzer import convert_keyword_stats_to_platform_stats
 from trendradar.crawler import DataFetcher
 from trendradar.storage import convert_crawl_results_to_news_data
 from trendradar.utils.time import is_within_days
@@ -305,6 +306,8 @@ class NewsAnalyzer:
         is_daily_summary: bool = False,
         global_filters: Optional[List[str]] = None,
         quiet: bool = False,
+        rss_items: Optional[List[Dict]] = None,
+        rss_new_items: Optional[List[Dict]] = None,
     ) -> Tuple[List[Dict], Optional[str]]:
         """统一的分析流水线：数据处理 → 统计计算 → HTML生成"""
 
@@ -321,6 +324,14 @@ class NewsAnalyzer:
             quiet=quiet,
         )
 
+        # 如果是 platform 模式，转换数据结构
+        if self.ctx.display_mode == "platform" and stats:
+            stats = convert_keyword_stats_to_platform_stats(
+                stats,
+                self.ctx.weight_config,
+                self.ctx.rank_threshold,
+            )
+
         # HTML生成（如果启用）
         html_file = None
         if self.ctx.config["STORAGE"]["FORMATS"]["HTML"]:
@@ -333,6 +344,8 @@ class NewsAnalyzer:
                 mode=mode,
                 is_daily_summary=is_daily_summary,
                 update_info=self.update_info if self.ctx.config["SHOW_VERSION_UPDATE"] else None,
+                rss_items=rss_items,
+                rss_new_items=rss_new_items,
             )
 
         return stats, html_file
@@ -492,6 +505,8 @@ class NewsAnalyzer:
             id_to_name,
             is_daily_summary=True,
             global_filters=global_filters,
+            rss_items=rss_items,
+            rss_new_items=rss_new_items,
         )
 
         if html_file:
@@ -512,7 +527,12 @@ class NewsAnalyzer:
 
         return html_file
 
-    def _generate_summary_html(self, mode: str = "daily") -> Optional[str]:
+    def _generate_summary_html(
+        self,
+        mode: str = "daily",
+        rss_items: Optional[List[Dict]] = None,
+        rss_new_items: Optional[List[Dict]] = None,
+    ) -> Optional[str]:
         """生成汇总HTML"""
         summary_type = "当前榜单汇总" if mode == "current" else "当日汇总"
         print(f"生成{summary_type}HTML...")
@@ -538,6 +558,8 @@ class NewsAnalyzer:
             is_daily_summary=True,
             global_filters=global_filters,
             quiet=True,
+            rss_items=rss_items,
+            rss_new_items=rss_new_items,
         )
 
         if html_file:
@@ -1009,6 +1031,8 @@ class NewsAnalyzer:
                     historical_id_to_name,
                     failed_ids=failed_ids,
                     global_filters=global_filters,
+                    rss_items=rss_items,
+                    rss_new_items=rss_new_items,
                 )
 
                 combined_id_to_name = {**historical_id_to_name, **id_to_name}
@@ -1045,6 +1069,8 @@ class NewsAnalyzer:
                 id_to_name,
                 failed_ids=failed_ids,
                 global_filters=global_filters,
+                rss_items=rss_items,
+                rss_new_items=rss_new_items,
             )
             if html_file:
                 print(f"HTML报告已生成: {html_file}")
@@ -1070,7 +1096,9 @@ class NewsAnalyzer:
             if mode_strategy["should_send_realtime"]:
                 # 如果已经发送了实时通知，汇总只生成HTML不发送通知
                 summary_html = self._generate_summary_html(
-                    mode_strategy["summary_mode"]
+                    mode_strategy["summary_mode"],
+                    rss_items=rss_items,
+                    rss_new_items=rss_new_items,
                 )
             else:
                 # daily模式：直接生成汇总报告并发送通知（合并RSS）

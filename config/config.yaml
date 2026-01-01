@@ -118,6 +118,9 @@ rss:
 # ===============================================================
 report:
   mode: "current"                     # 可选: daily | current | incremental
+  display_mode: "keyword"             # 可选: keyword | platform
+                                      # keyword: 按关键词分组显示（默认）
+                                      # platform: 按平台/来源分组显示
   rank_threshold: 5                   # 排名高亮阈值
   sort_by_position_first: false       # true=按配置位置排序，false=按热点条数排序
   max_news_per_keyword: 0             # 每个关键词最大显示数量（0=不限制）

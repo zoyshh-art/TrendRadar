@@ -688,3 +688,73 @@ def count_rss_frequency(
         print(f"[RSS] 关键词分组统计：{matched_count}/{total_items} 条匹配")
 
     return stats, total_items
+
+
+def convert_keyword_stats_to_platform_stats(
+    keyword_stats: List[Dict],
+    weight_config: Dict,
+    rank_threshold: int = 5,
+) -> List[Dict]:
+    """
+    将按关键词分组的统计数据转换为按平台分组的统计数据
+
+    Args:
+        keyword_stats: 原始按关键词分组的统计数据
+        weight_config: 权重配置
+        rank_threshold: 排名阈值
+
+    Returns:
+        按平台分组的统计数据，格式与原 stats 一致
+    """
+    # 1. 收集所有新闻，按平台分组
+    platform_map: Dict[str, List[Dict]] = {}
+
+    for stat in keyword_stats:
+        keyword = stat["word"]
+        for title_data in stat["titles"]:
+            source_name = title_data["source_name"]
+
+            if source_name not in platform_map:
+                platform_map[source_name] = []
+
+            # 复制 title_data 并添加匹配的关键词
+            title_with_keyword = title_data.copy()
+            title_with_keyword["matched_keyword"] = keyword
+            platform_map[source_name].append(title_with_keyword)
+
+    # 2. 去重（同一平台下相同标题只保留一条，保留第一个匹配的关键词）
+    for source_name, titles in platform_map.items():
+        seen_titles: Dict[str, bool] = {}
+        unique_titles = []
+        for title_data in titles:
+            title_text = title_data["title"]
+            if title_text not in seen_titles:
+                seen_titles[title_text] = True
+                unique_titles.append(title_data)
+        platform_map[source_name] = unique_titles
+
+    # 3. 按权重排序每个平台内的新闻
+    for source_name, titles in platform_map.items():
+        platform_map[source_name] = sorted(
+            titles,
+            key=lambda x: (
+                -calculate_news_weight(x, rank_threshold, weight_config),
+                min(x["ranks"]) if x["ranks"] else 999,
+                -x["count"],
+            ),
+        )
+
+    # 4. 构建平台统计结果
+    platform_stats = []
+    for source_name, titles in platform_map.items():
+        platform_stats.append({
+            "word": source_name,  # 平台名作为分组标识
+            "count": len(titles),
+            "titles": titles,
+            "percentage": 0,  # 可后续计算
+        })
+
+    # 5. 按新闻条数排序平台
+    platform_stats.sort(key=lambda x: -x["count"])
+
+    return platform_stats

@@ -34,6 +34,7 @@ def split_content_into_batches(
     rss_items: Optional[list] = None,
     rss_new_items: Optional[list] = None,
     timezone: str = "Asia/Shanghai",
+    display_mode: str = "keyword",
 ) -> List[str]:
     """分批处理消息内容，确保词组标题+至少第一条新闻的完整性（支持热榜+RSS合并）
 
@@ -53,6 +54,7 @@ def split_content_into_batches(
         rss_items: RSS 统计条目列表（按源分组，用于合并推送）
         rss_new_items: RSS 新增条目列表（可选，用于新增区块）
         timezone: 时区名称（用于 RSS 时间格式化）
+        display_mode: 显示模式 (keyword=按关键词分组, platform=按平台分组)
 
     Returns:
         分批后的消息内容列表
@@ -120,20 +122,22 @@ def split_content_into_batches(
         if update_info:
             base_footer += f"\n_TrendRadar 发现新版本 *{update_info['remote_version']}*，当前 *{update_info['current_version']}_"
 
+    # 根据 display_mode 选择统计标题
+    stats_title = "热点词汇统计" if display_mode == "keyword" else "热点新闻统计"
     stats_header = ""
     if report_data["stats"]:
         if format_type in ("wework", "bark"):
-            stats_header = f"📊 **热点词汇统计**\n\n"
+            stats_header = f"📊 **{stats_title}**\n\n"
         elif format_type == "telegram":
-            stats_header = f"📊 热点词汇统计\n\n"
+            stats_header = f"📊 {stats_title}\n\n"
         elif format_type == "ntfy":
-            stats_header = f"📊 **热点词汇统计**\n\n"
+            stats_header = f"📊 **{stats_title}**\n\n"
         elif format_type == "feishu":
-            stats_header = f"📊 **热点词汇统计**\n\n"
+            stats_header = f"📊 **{stats_title}**\n\n"
         elif format_type == "dingtalk":
-            stats_header = f"📊 **热点词汇统计**\n\n"
+            stats_header = f"📊 **{stats_title}**\n\n"
         elif format_type == "slack":
-            stats_header = f"📊 *热点词汇统计*\n\n"
+            stats_header = f"📊 *{stats_title}*\n\n"
 
     current_batch = base_header
     current_batch_has_content = False
@@ -244,32 +248,35 @@ def split_content_into_batches(
                     word_header = f"📌 {sequence_display} *{word}* : {count} 条\n\n"
 
             # 构建第一条新闻
+            # display_mode: keyword=显示来源, platform=显示关键词
+            show_source = display_mode == "keyword"
+            show_keyword = display_mode == "platform"
             first_news_line = ""
             if stat["titles"]:
                 first_title_data = stat["titles"][0]
                 if format_type in ("wework", "bark"):
                     formatted_title = format_title_for_platform(
-                        "wework", first_title_data, show_source=True
+                        "wework", first_title_data, show_source=show_source, show_keyword=show_keyword
                     )
                 elif format_type == "telegram":
                     formatted_title = format_title_for_platform(
-                        "telegram", first_title_data, show_source=True
+                        "telegram", first_title_data, show_source=show_source, show_keyword=show_keyword
                     )
                 elif format_type == "ntfy":
                     formatted_title = format_title_for_platform(
-                        "ntfy", first_title_data, show_source=True
+                        "ntfy", first_title_data, show_source=show_source, show_keyword=show_keyword
                     )
                 elif format_type == "feishu":
                     formatted_title = format_title_for_platform(
-                        "feishu", first_title_data, show_source=True
+                        "feishu", first_title_data, show_source=show_source, show_keyword=show_keyword
                     )
                 elif format_type == "dingtalk":
                     formatted_title = format_title_for_platform(
-                        "dingtalk", first_title_data, show_source=True
+                        "dingtalk", first_title_data, show_source=show_source, show_keyword=show_keyword
                     )
                 elif format_type == "slack":
                     formatted_title = format_title_for_platform(
-                        "slack", first_title_data, show_source=True
+                        "slack", first_title_data, show_source=show_source, show_keyword=show_keyword
                     )
                 else:
                     formatted_title = f"{first_title_data['title']}"
@@ -302,27 +309,27 @@ def split_content_into_batches(
                 title_data = stat["titles"][j]
                 if format_type in ("wework", "bark"):
                     formatted_title = format_title_for_platform(
-                        "wework", title_data, show_source=True
+                        "wework", title_data, show_source=show_source, show_keyword=show_keyword
                     )
                 elif format_type == "telegram":
                     formatted_title = format_title_for_platform(
-                        "telegram", title_data, show_source=True
+                        "telegram", title_data, show_source=show_source, show_keyword=show_keyword
                     )
                 elif format_type == "ntfy":
                     formatted_title = format_title_for_platform(
-                        "ntfy", title_data, show_source=True
+                        "ntfy", title_data, show_source=show_source, show_keyword=show_keyword
                     )
                 elif format_type == "feishu":
                     formatted_title = format_title_for_platform(
-                        "feishu", title_data, show_source=True
+                        "feishu", title_data, show_source=show_source, show_keyword=show_keyword
                     )
                 elif format_type == "dingtalk":
                     formatted_title = format_title_for_platform(
-                        "dingtalk", title_data, show_source=True
+                        "dingtalk", title_data, show_source=show_source, show_keyword=show_keyword
                     )
                 elif format_type == "slack":
                     formatted_title = format_title_for_platform(
-                        "slack", title_data, show_source=True
+                        "slack", title_data, show_source=show_source, show_keyword=show_keyword
                     )
                 else:
                     formatted_title = f"{title_data['title']}"

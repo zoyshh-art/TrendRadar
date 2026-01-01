@@ -13,7 +13,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v4.5.0-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v4.6.0-blue.svg)](https://github.com/sansan0/TrendRadar)
 [![MCP](https://img.shields.io/badge/MCP-v2.0.0-green.svg)](https://github.com/sansan0/TrendRadar)
 [![RSS](https://img.shields.io/badge/RSS-订阅源支持-orange.svg?style=flat-square&logo=rss&logoColor=white)](https://github.com/sansan0/TrendRadar)
 
@@ -183,6 +183,11 @@
 
 > **📌 查看最新更新**：**[原仓库更新日志](https://github.com/sansan0/TrendRadar?tab=readme-ov-file#-更新日志)** ：
 - **提示**：建议查看【历史更新】，明确具体的【功能内容】
+
+### 2026/01/01 - v4.6.0
+
+- **修复 RSS HTML 显示**：将 RSS 内容合并到热榜 HTML 页面，按源分组显示
+- **新增 display_mode 配置**：支持 `keyword`（按关键词分组）和 `platform`（按平台分组）两种显示模式
 
 
 ### 2025/12/30 - v4.5.0
@@ -764,6 +769,7 @@ rss:
 |------|------|------|
 | **推送时间窗口控制** | 设定推送时间范围（如 09:00-18:00），避免非工作时间打扰 | 关闭 |
 | **内容顺序配置** | 调整"热点词汇统计"和"新增热点新闻"的显示顺序（v3.5.0 新增） | 统计在前 |
+| **显示模式切换** | `keyword`=按关键词分组，`platform`=按平台分组（v4.6.0 新增） | keyword |
 
 > 💡 详细配置教程见 [配置详解 - 报告配置](#7-报告配置) 和 [配置详解 - 推送时间窗口](#8-推送时间窗口配置)
 
@@ -2597,6 +2603,7 @@ MCP 服务启动后，根据不同客户端进行配置：
 ```yaml
 report:
   mode: "daily"                    # 推送模式
+  display_mode: "keyword"          # 显示模式（v4.6.0 新增）
   rank_threshold: 5                # 排名高亮阈值
   sort_by_position_first: false    # 排序优先级
   max_news_per_keyword: 0          # 每个关键词最大显示数量
@@ -2608,10 +2615,41 @@ report:
 | 配置项 | 类型 | 默认值 | 说明 |
 |-------|------|-------|------|
 | `mode` | string | `daily` | 推送模式，可选 `daily`/`incremental`/`current`，详见 [推送模式详解](#3-推送模式详解) |
+| `display_mode` | string | `keyword` | 显示模式，可选 `keyword`/`platform`，详见下方说明 |
 | `rank_threshold` | int | `5` | 排名高亮阈值，排名 ≤ 该值的新闻会加粗显示 |
 | `sort_by_position_first` | bool | `false` | 排序优先级：`false`=按热点条数排序，`true`=按配置位置排序 |
 | `max_news_per_keyword` | int | `0` | 每个关键词最大显示数量，`0`=不限制 |
 | `reverse_content_order` | bool | `false` | 内容顺序：`false`=热点词汇统计在前，`true`=新增热点新闻在前 |
+
+#### 显示模式配置（v4.6.0 新增）
+
+控制推送消息和 HTML 报告中新闻的分组方式：
+
+| 模式 | 分组方式 | 标题前缀 | 适用场景 |
+|------|---------|---------|---------|
+| `keyword`（默认） | 按关键词分组 | `[平台名]` | 关注特定话题的用户 |
+| `platform` | 按平台分组 | `[关键词]` | 关注特定平台的用户 |
+
+**示例对比：**
+
+```
+# keyword 模式（按关键词分组）
+📊 热点词汇统计
+🔥 [1/3] AI : 12 条
+  1. [微博] OpenAI发布GPT-5 #1-#3 - 08:30 (5次)
+  2. [知乎] 如何看待AI取代程序员 #2 - 09:15 (3次)
+
+# platform 模式（按平台分组）
+📊 热点新闻统计
+🔥 [1/4] 微博 : 12 条
+  1. [AI] OpenAI发布GPT-5 #1-#3 - 08:30 (5次)
+  2. [特朗普] 特朗普宣布重大政策 #2 - 09:15 (3次)
+```
+
+**Docker 环境变量：**
+```bash
+DISPLAY_MODE=platform
+```
 
 #### 内容顺序配置（v3.5.0 新增）
 

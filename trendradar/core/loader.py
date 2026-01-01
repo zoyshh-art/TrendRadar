@@ -70,9 +70,11 @@ def _load_report_config(config_data: Dict) -> Dict:
     sort_by_position_env = _get_env_bool("SORT_BY_POSITION_FIRST")
     reverse_content_env = _get_env_bool("REVERSE_CONTENT_ORDER")
     max_news_env = _get_env_int("MAX_NEWS_PER_KEYWORD")
+    display_mode_env = _get_env_str("DISPLAY_MODE")
 
     return {
         "REPORT_MODE": _get_env_str("REPORT_MODE") or report_config.get("mode", "daily"),
+        "DISPLAY_MODE": display_mode_env or report_config.get("display_mode", "keyword"),
         "RANK_THRESHOLD": report_config.get("rank_threshold", 10),
         "SORT_BY_POSITION_FIRST": sort_by_position_env if sort_by_position_env is not None else report_config.get("sort_by_position_first", False),
         "MAX_NEWS_PER_KEYWORD": max_news_env or report_config.get("max_news_per_keyword", 0),
