@@ -844,66 +844,81 @@ def render_html_content(
                 </div>"""
 
     # 生成 RSS 统计内容
-    def render_rss_stats_html(items: List[Dict], title: str = "RSS 订阅更新") -> str:
-        if not items:
+    def render_rss_stats_html(stats: List[Dict], title: str = "RSS 订阅更新") -> str:
+        """渲染 RSS 统计区块 HTML
+
+        Args:
+            stats: RSS 分组统计列表，格式与热榜一致：
+                [
+                    {
+                        "word": "关键词",
+                        "count": 5,
+                        "titles": [
+                            {
+                                "title": "标题",
+                                "source_name": "Feed 名称",
+                                "time_display": "12-29 08:20",
+                                "url": "...",
+                                "is_new": True/False
+                            }
+                        ]
+                    }
+                ]
+            title: 区块标题
+
+        Returns:
+            渲染后的 HTML 字符串
+        """
+        if not stats:
             return ""
 
-        rss_html = ""
-        rss_count = len(items)
-        rss_html += f"""
+        # 计算总条目数
+        total_count = sum(stat.get("count", 0) for stat in stats)
+        if total_count == 0:
+            return ""
+
+        rss_html = f"""
                 <div class="rss-section">
                     <div class="rss-section-header">
                         <div class="rss-section-title">{title}</div>
-                        <div class="rss-section-count">{rss_count} 条</div>
+                        <div class="rss-section-count">{total_count} 条</div>
                     </div>"""
 
-        # 按 feed_id 分组
-        feeds_grouped = {}
-        for item in items:
-            feed_id = item.get("feed_id", "unknown")
-            if feed_id not in feeds_grouped:
-                feeds_grouped[feed_id] = {
-                    "name": item.get("feed_name", feed_id),
-                    "items": []
-                }
-            feeds_grouped[feed_id]["items"].append(item)
+        # 按关键词分组渲染（与热榜格式一致）
+        for stat in stats:
+            keyword = stat.get("word", "")
+            titles = stat.get("titles", [])
+            if not titles:
+                continue
 
-        # 渲染每个 feed 分组
-        for feed_id, feed_data in feeds_grouped.items():
-            feed_name = feed_data["name"]
-            feed_items = feed_data["items"]
-            feed_item_count = len(feed_items)
+            keyword_count = len(titles)
 
             rss_html += f"""
                     <div class="feed-group">
                         <div class="feed-header">
-                            <div class="feed-name">{html_escape(feed_name)}</div>
-                            <div class="feed-count">{feed_item_count} 条</div>
+                            <div class="feed-name">{html_escape(keyword)}</div>
+                            <div class="feed-count">{keyword_count} 条</div>
                         </div>"""
 
-            for item in feed_items:
-                item_title = item.get("title", "")
-                url = item.get("url", "")
-                published_at = item.get("published_at", "")
-                author = item.get("author", "")
-
-                # 格式化发布时间
-                time_str = ""
-                if published_at:
-                    if isinstance(published_at, datetime):
-                        time_str = published_at.strftime("%m-%d %H:%M")
-                    else:
-                        time_str = str(published_at)[:16] if len(str(published_at)) > 16 else str(published_at)
+            for title_data in titles:
+                item_title = title_data.get("title", "")
+                url = title_data.get("url", "")
+                time_display = title_data.get("time_display", "")
+                source_name = title_data.get("source_name", "")
+                is_new = title_data.get("is_new", False)
 
                 rss_html += """
                         <div class="rss-item">
                             <div class="rss-meta">"""
 
-                if time_str:
-                    rss_html += f'<span class="rss-time">{html_escape(time_str)}</span>'
+                if time_display:
+                    rss_html += f'<span class="rss-time">{html_escape(time_display)}</span>'
 
-                if author:
-                    rss_html += f'<span class="rss-author">by {html_escape(author)}</span>'
+                if source_name:
+                    rss_html += f'<span class="rss-author">{html_escape(source_name)}</span>'
+
+                if is_new:
+                    rss_html += '<span class="rss-author" style="color: #dc2626;">NEW</span>'
 
                 rss_html += """
                             </div>

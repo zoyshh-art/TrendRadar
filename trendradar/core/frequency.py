@@ -8,11 +8,84 @@
 - 过滤词（!前缀）
 - 全局过滤词（[GLOBAL_FILTER] 区域）
 - 最大显示数量（@前缀）
+- 正则表达式（/pattern/ 语法）
+- 显示名称（=> 备注 语法）
 """
 
 import os
+import re
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Union
+
+
+def _parse_word(word: str) -> Dict:
+    """
+    解析单个词，识别是否为正则表达式，支持显示名称
+
+    语法：
+    - 普通词：word
+    - 正则表达式：/pattern/ 或 /pattern/i（flags 会被忽略，默认已启用忽略大小写）
+    - 带显示名称：word => 显示名称 或 word=>显示名称（=>两边空格可选）
+    - 正则带显示名称：/pattern/ => 显示名称
+
+    Args:
+        word: 原始词
+
+    Returns:
+        {"word": str, "is_regex": bool, "pattern": Optional[re.Pattern], "display_name": Optional[str]}
+    """
+    display_name = None
+
+    # 解析 => 显示名称 语法（支持 => 两边有或没有空格）
+    # 使用正则匹配：空格可选的 =>
+    display_match = re.search(r'\s*=>\s*', word)
+    if display_match:
+        parts = re.split(r'\s*=>\s*', word, 1)
+        word = parts[0].strip()
+        display_name = parts[1].strip() if len(parts) > 1 and parts[1].strip() else None
+
+    # 解析正则表达式：支持 /pattern/ 或 /pattern/flags（如 /pattern/i）
+    # flags 会被忽略，因为默认已启用 IGNORECASE
+    regex_match = re.match(r'^/(.+)/([gimsux]*)$', word)
+    if regex_match:
+        pattern_str = regex_match.group(1)
+        # flags 参数被忽略，统一使用 IGNORECASE
+        try:
+            pattern = re.compile(pattern_str, re.IGNORECASE)
+            return {
+                "word": pattern_str,
+                "is_regex": True,
+                "pattern": pattern,
+                "display_name": display_name,
+            }
+        except re.error:
+            # 正则表达式无效，当作普通词处理
+            pass
+
+    return {"word": word, "is_regex": False, "pattern": None, "display_name": display_name}
+
+
+def _word_matches(word_config: Union[str, Dict], title_lower: str) -> bool:
+    """
+    检查词是否在标题中匹配
+
+    Args:
+        word_config: 词配置（字符串或字典）
+        title_lower: 小写的标题
+
+    Returns:
+        是否匹配
+    """
+    if isinstance(word_config, str):
+        # 向后兼容：纯字符串
+        return word_config.lower() in title_lower
+
+    if word_config.get("is_regex") and word_config.get("pattern"):
+        # 正则匹配
+        return bool(word_config["pattern"].search(title_lower))
+    else:
+        # 子字符串匹配
+        return word_config["word"].lower() in title_lower
 
 
 def load_frequency_words(
@@ -104,24 +177,38 @@ def load_frequency_words(
                 except (ValueError, IndexError):
                     pass  # 忽略无效的@数字格式
             elif word.startswith("!"):
-                filter_words.append(word[1:])
-                group_filter_words.append(word[1:])
+                # 过滤词（支持正则语法）
+                filter_word = word[1:]
+                parsed = _parse_word(filter_word)
+                filter_words.append(parsed)
+                group_filter_words.append(parsed)
             elif word.startswith("+"):
-                group_required_words.append(word[1:])
+                # 必须词（支持正则语法）
+                req_word = word[1:]
+                group_required_words.append(_parse_word(req_word))
             else:
-                group_normal_words.append(word)
+                # 普通词（支持正则语法）
+                group_normal_words.append(_parse_word(word))
 
         if group_required_words or group_normal_words:
             if group_normal_words:
-                group_key = " ".join(group_normal_words)
+                group_key = " ".join(w["word"] for w in group_normal_words)
             else:
-                group_key = " ".join(group_required_words)
+                group_key = " ".join(w["word"] for w in group_required_words)
+
+            # 提取显示名称：优先使用第一个有 display_name 的词
+            display_name = None
+            for w in group_normal_words + group_required_words:
+                if w.get("display_name"):
+                    display_name = w["display_name"]
+                    break
 
             processed_groups.append(
                 {
                     "required": group_required_words,
                     "normal": group_normal_words,
                     "group_key": group_key,
+                    "display_name": display_name,  # 可能为 None
                     "max_count": group_max_count,
                 }
             )
@@ -132,7 +219,7 @@ def load_frequency_words(
 def matches_word_groups(
     title: str,
     word_groups: List[Dict],
-    filter_words: List[str],
+    filter_words: List,
     global_filters: Optional[List[str]] = None
 ) -> bool:
     """
@@ -141,7 +228,7 @@ def matches_word_groups(
     Args:
         title: 标题文本
         word_groups: 词组列表
-        filter_words: 过滤词列表
+        filter_words: 过滤词列表（可以是字符串列表或字典列表）
         global_filters: 全局过滤词列表
 
     Returns:
@@ -164,9 +251,10 @@ def matches_word_groups(
     if not word_groups:
         return True
 
-    # 过滤词检查
-    if any(filter_word.lower() in title_lower for filter_word in filter_words):
-        return False
+    # 过滤词检查（兼容新旧格式）
+    for filter_item in filter_words:
+        if _word_matches(filter_item, title_lower):
+            return False
 
     # 词组匹配检查
     for group in word_groups:
@@ -176,7 +264,7 @@ def matches_word_groups(
         # 必须词检查
         if required_words:
             all_required_present = all(
-                req_word.lower() in title_lower for req_word in required_words
+                _word_matches(req_item, title_lower) for req_item in required_words
             )
             if not all_required_present:
                 continue
@@ -184,7 +272,7 @@ def matches_word_groups(
         # 普通词检查
         if normal_words:
             any_normal_present = any(
-                normal_word.lower() in title_lower for normal_word in normal_words
+                _word_matches(normal_item, title_lower) for normal_item in normal_words
             )
             if not any_normal_present:
                 continue

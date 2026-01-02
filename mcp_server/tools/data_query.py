@@ -14,7 +14,8 @@ from ..utils.validators import (
     validate_date_range,
     validate_top_n,
     validate_mode,
-    validate_date_query
+    validate_date_query,
+    normalize_date_range
 )
 from ..utils.errors import MCPError
 
@@ -263,6 +264,10 @@ class DataQueryTools:
             # 参数验证 - 默认今天
             if date_range is None:
                 date_range = "今天"
+
+            # 规范化 date_range（处理 JSON 字符串序列化问题）
+            date_range = normalize_date_range(date_range)
+
             # 处理 date_range：支持字符串或对象
             if isinstance(date_range, dict):
                 # 范围对象，取 start 日期

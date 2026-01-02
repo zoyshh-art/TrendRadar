@@ -373,6 +373,13 @@ class ParserService:
         """
         解析关键词配置文件
 
+        复用 trendradar.core.frequency 的解析逻辑，支持：
+        - 空行分隔词组
+        - +前缀必须词、!前缀过滤词、@数量限制
+        - /pattern/ 正则表达式语法
+        - => 备注 显示名称语法
+        - [GLOBAL_FILTER] 全局过滤区域
+
         Args:
             words_file: 关键词文件路径，默认为 config/frequency_words.txt
 
@@ -382,55 +389,20 @@ class ParserService:
         Raises:
             FileParseError: 文件解析错误
         """
+        from trendradar.core.frequency import load_frequency_words
+
         if words_file is None:
-            words_file = self.project_root / "config" / "frequency_words.txt"
+            words_file = str(self.project_root / "config" / "frequency_words.txt")
         else:
-            words_file = Path(words_file)
-
-        if not words_file.exists():
-            return []
-
-        word_groups = []
+            words_file = str(words_file)
 
         try:
-            with open(words_file, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or line.startswith("#"):
-                        continue
-
-                    parts = [p.strip() for p in line.split("|")]
-                    if not parts:
-                        continue
-
-                    group = {
-                        "required": [],
-                        "normal": [],
-                        "filter_words": []
-                    }
-
-                    for part in parts:
-                        if not part:
-                            continue
-
-                        words = [w.strip() for w in part.split(",")]
-                        for word in words:
-                            if not word:
-                                continue
-                            if word.endswith("+"):
-                                group["required"].append(word[:-1])
-                            elif word.endswith("!"):
-                                group["filter_words"].append(word[:-1])
-                            else:
-                                group["normal"].append(word)
-
-                    if group["required"] or group["normal"]:
-                        word_groups.append(group)
-
+            word_groups, filter_words, global_filters = load_frequency_words(words_file)
+            return word_groups
+        except FileNotFoundError:
+            return []
         except Exception as e:
-            raise FileParseError(str(words_file), str(e))
-
-        return word_groups
+            raise FileParseError(words_file, str(e))
 
     def get_available_dates(self, db_type: str = "news") -> List[str]:
         """

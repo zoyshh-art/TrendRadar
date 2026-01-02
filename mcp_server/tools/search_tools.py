@@ -11,7 +11,7 @@ from difflib import SequenceMatcher
 from typing import Dict, List, Optional, Tuple, Union
 
 from ..services.data_service import DataService
-from ..utils.validators import validate_keyword, validate_limit, validate_threshold
+from ..utils.validators import validate_keyword, validate_limit, validate_threshold, normalize_date_range
 from ..utils.errors import MCPError, InvalidParameterError, DataNotFoundError
 
 
@@ -780,7 +780,10 @@ class SearchTools:
 
             # 确定日期范围
             today = datetime.now()
-            
+
+            # 规范化 date_range（处理 JSON 字符串序列化问题）
+            date_range = normalize_date_range(date_range)
+
             if date_range is None or date_range == "today":
                 # 只查询今天
                 search_dates = [today]

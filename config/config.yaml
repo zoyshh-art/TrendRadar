@@ -89,6 +89,11 @@ rss:
       name: "阮一峰的网络日志"
       url: "http://www.ruanyifeng.com/blog/atom.xml"
       # max_age_days: 7               # 示例：推送7天内的文章（更新较慢的博客）
+    
+    - id: "yahoo-finance"
+      name: "雅虎财经"
+      url: "https://finance.yahoo.com/news/rssindex"
+      enabled: false                  # 禁用
 
     # 自定义源示例
     # - id: "custom-feed"
@@ -212,7 +217,7 @@ storage:
   formats:
     sqlite: true                      # 主存储（必须启用）
     txt: false                        # 是否生成 TXT 快照
-    html: false                       # 是否生成 HTML 报告（⚠️ 邮件推送必须设为 true）
+    html: true                       # 是否生成 HTML 报告（⚠️ 邮件推送必须设为 true）
 
   # 本地存储配置
   local:
