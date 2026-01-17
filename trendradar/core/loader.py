@@ -65,12 +65,12 @@ def _load_crawler_config(config_data: Dict) -> Dict:
     """加载爬虫配置"""
     advanced = config_data.get("advanced", {})
     crawler_config = advanced.get("crawler", {})
-    enable_crawler_env = _get_env_bool("ENABLE_CRAWLER")
+    platforms_config = config_data.get("platforms", {})
     return {
         "REQUEST_INTERVAL": crawler_config.get("request_interval", 100),
         "USE_PROXY": crawler_config.get("use_proxy", False),
         "DEFAULT_PROXY": crawler_config.get("default_proxy", ""),
-        "ENABLE_CRAWLER": enable_crawler_env if enable_crawler_env is not None else crawler_config.get("enabled", True),
+        "ENABLE_CRAWLER": platforms_config.get("enabled", True),
     }
 
 
@@ -80,17 +80,14 @@ def _load_report_config(config_data: Dict) -> Dict:
 
     # 环境变量覆盖
     sort_by_position_env = _get_env_bool("SORT_BY_POSITION_FIRST")
-    reverse_content_env = _get_env_bool("REVERSE_CONTENT_ORDER")
     max_news_env = _get_env_int("MAX_NEWS_PER_KEYWORD")
-    display_mode_env = _get_env_str("DISPLAY_MODE")
 
     return {
-        "REPORT_MODE": _get_env_str("REPORT_MODE") or report_config.get("mode", "daily"),
-        "DISPLAY_MODE": display_mode_env or report_config.get("display_mode", "keyword"),
+        "REPORT_MODE": report_config.get("mode", "daily"),
+        "DISPLAY_MODE": report_config.get("display_mode", "keyword"),
         "RANK_THRESHOLD": report_config.get("rank_threshold", 10),
         "SORT_BY_POSITION_FIRST": sort_by_position_env if sort_by_position_env is not None else report_config.get("sort_by_position_first", False),
         "MAX_NEWS_PER_KEYWORD": max_news_env or report_config.get("max_news_per_keyword", 0),
-        "REVERSE_CONTENT_ORDER": reverse_content_env if reverse_content_env is not None else report_config.get("reverse_content_order", False),
     }
 
 
@@ -100,10 +97,8 @@ def _load_notification_config(config_data: Dict) -> Dict:
     advanced = config_data.get("advanced", {})
     batch_size = advanced.get("batch_size", {})
 
-    enable_notification_env = _get_env_bool("ENABLE_NOTIFICATION")
-
     return {
-        "ENABLE_NOTIFICATION": enable_notification_env if enable_notification_env is not None else notification.get("enabled", True),
+        "ENABLE_NOTIFICATION": notification.get("enabled", True),
         "MESSAGE_BATCH_SIZE": batch_size.get("default", 4000),
         "DINGTALK_BATCH_SIZE": batch_size.get("dingtalk", 20000),
         "FEISHU_BATCH_SIZE": batch_size.get("feishu", 29000),
@@ -180,43 +175,91 @@ def _load_rss_config(config_data: Dict) -> Dict:
             "ENABLED": freshness_filter.get("enabled", True),  # 默认启用
             "MAX_AGE_DAYS": max_age_days,
         },
-        "NOTIFICATION": {
-            "ENABLED": advanced_rss.get("notification_enabled", False),
+    }
+
+
+def _load_display_config(config_data: Dict) -> Dict:
+    """加载推送内容显示配置"""
+    display = config_data.get("display", {})
+    regions = display.get("regions", {})
+    standalone = display.get("standalone", {})
+
+    # 默认区域顺序
+    default_region_order = ["hotlist", "rss", "new_items", "standalone", "ai_analysis"]
+    region_order = display.get("region_order", default_region_order)
+
+    # 验证 region_order 中的值是否合法
+    valid_regions = {"hotlist", "rss", "new_items", "standalone", "ai_analysis"}
+    region_order = [r for r in region_order if r in valid_regions]
+
+    # 如果过滤后为空，使用默认顺序
+    if not region_order:
+        region_order = default_region_order
+
+    return {
+        # 区域显示顺序
+        "REGION_ORDER": region_order,
+        # 区域开关
+        "REGIONS": {
+            "HOTLIST": regions.get("hotlist", True),
+            "NEW_ITEMS": regions.get("new_items", True),
+            "RSS": regions.get("rss", True),
+            "STANDALONE": regions.get("standalone", False),
+            "AI_ANALYSIS": regions.get("ai_analysis", True),
+        },
+        # 独立展示区配置
+        "STANDALONE": {
+            "PLATFORMS": standalone.get("platforms", []),
+            "RSS_FEEDS": standalone.get("rss_feeds", []),
+            "MAX_ITEMS": standalone.get("max_items", 20),
         },
     }
 
 
-def _load_standalone_display_config(config_data: Dict) -> Dict:
-    """加载独立展示区配置"""
-    notification = config_data.get("notification", {})
-    standalone = notification.get("standalone_display", {})
+def _load_ai_config(config_data: Dict) -> Dict:
+    """加载 AI 模型共享配置"""
+    ai_config = config_data.get("ai", {})
 
-    return {
-        "ENABLED": standalone.get("enabled", False),
-        "PLATFORMS": standalone.get("platforms", []),
-        "RSS_FEEDS": standalone.get("rss_feeds", []),
-        "MAX_ITEMS": standalone.get("max_items", 20),
-    }
-
-
-def _load_ai_analysis_config(config_data: Dict) -> Dict:
-    """加载 AI 分析配置"""
-    ai_config = config_data.get("ai_analysis", {})
-
-    enabled_env = _get_env_bool("AI_ANALYSIS_ENABLED")
     timeout_env = _get_env_int_or_none("AI_TIMEOUT")
 
     return {
-        "ENABLED": enabled_env if enabled_env is not None else ai_config.get("enabled", False),
         "PROVIDER": _get_env_str("AI_PROVIDER") or ai_config.get("provider", "deepseek"),
         "API_KEY": _get_env_str("AI_API_KEY") or ai_config.get("api_key", ""),
         "MODEL": _get_env_str("AI_MODEL") or ai_config.get("model", "deepseek-chat"),
         "BASE_URL": _get_env_str("AI_BASE_URL") or ai_config.get("base_url", ""),
         "TIMEOUT": timeout_env if timeout_env is not None else ai_config.get("timeout", 90),
-        "PUSH_MODE": _get_env_str("AI_PUSH_MODE") or ai_config.get("push_mode", "both"),
+        "TEMPERATURE": ai_config.get("temperature", 1.0),
+        "MAX_TOKENS": ai_config.get("max_tokens", 5000),
+        "EXTRA_PARAMS": ai_config.get("extra_params", {}),
+    }
+
+
+def _load_ai_analysis_config(config_data: Dict) -> Dict:
+    """加载 AI 分析配置（功能配置，模型配置见 _load_ai_config）"""
+    ai_config = config_data.get("ai_analysis", {})
+
+    enabled_env = _get_env_bool("AI_ANALYSIS_ENABLED")
+
+    return {
+        "ENABLED": enabled_env if enabled_env is not None else ai_config.get("enabled", False),
+        "LANGUAGE": ai_config.get("language", "Chinese"),
+        "PROMPT_FILE": ai_config.get("prompt_file", "ai_analysis_prompt.txt"),
         "MAX_NEWS_FOR_ANALYSIS": ai_config.get("max_news_for_analysis", 50),
         "INCLUDE_RSS": ai_config.get("include_rss", True),
-        "PROMPT_FILE": ai_config.get("prompt_file", "ai_analysis_prompt.txt"),
+        "INCLUDE_RANK_TIMELINE": ai_config.get("include_rank_timeline", False),
+    }
+
+
+def _load_ai_translation_config(config_data: Dict) -> Dict:
+    """加载 AI 翻译配置（功能配置，模型配置见 _load_ai_config）"""
+    trans_config = config_data.get("ai_translation", {})
+
+    enabled_env = _get_env_bool("AI_TRANSLATION_ENABLED")
+
+    return {
+        "ENABLED": enabled_env if enabled_env is not None else trans_config.get("enabled", False),
+        "LANGUAGE": _get_env_str("AI_TRANSLATION_LANGUAGE") or trans_config.get("language", "English"),
+        "PROMPT_FILE": trans_config.get("prompt_file", "ai_translation_prompt.txt"),
     }
 
 
@@ -300,8 +343,8 @@ def _load_webhook_config(config_data: Dict) -> Dict:
         # Slack
         "SLACK_WEBHOOK_URL": _get_env_str("SLACK_WEBHOOK_URL") or slack.get("webhook_url", ""),
         # 通用 Webhook
-        "GENERIC_WEBHOOK_URL": _get_env_str("GENERIC_WEBHOOK_URL") or generic.get("url", ""),
-        "GENERIC_WEBHOOK_TEMPLATE": _get_env_str("GENERIC_WEBHOOK_TEMPLATE") or generic.get("template", ""),
+        "GENERIC_WEBHOOK_URL": _get_env_str("GENERIC_WEBHOOK_URL") or generic.get("webhook_url", ""),
+        "GENERIC_WEBHOOK_TEMPLATE": _get_env_str("GENERIC_WEBHOOK_TEMPLATE") or generic.get("payload_template", ""),
     }
 
 
@@ -433,16 +476,23 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
     config["WEIGHT_CONFIG"] = _load_weight_config(config_data)
 
     # 平台配置
-    config["PLATFORMS"] = config_data.get("platforms", [])
+    platforms_config = config_data.get("platforms", {})
+    config["PLATFORMS"] = platforms_config.get("sources", [])
 
     # RSS 配置
     config["RSS"] = _load_rss_config(config_data)
 
+    # AI 模型共享配置
+    config["AI"] = _load_ai_config(config_data)
+
     # AI 分析配置
     config["AI_ANALYSIS"] = _load_ai_analysis_config(config_data)
 
-    # 独立展示区配置
-    config["STANDALONE_DISPLAY"] = _load_standalone_display_config(config_data)
+    # AI 翻译配置
+    config["AI_TRANSLATION"] = _load_ai_translation_config(config_data)
+
+    # 推送内容显示配置
+    config["DISPLAY"] = _load_display_config(config_data)
 
     # 存储配置
     config["STORAGE"] = _load_storage_config(config_data)

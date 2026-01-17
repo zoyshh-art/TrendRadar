@@ -8,7 +8,29 @@ body:
   - type: markdown
     attributes:
       value: |
+        ### ⚠️ 提交前必读
+        **请确保你正在使用 TrendRadar 的最新版本。**
+        很多问题在最新代码中可能已经修复。如果你使用的是旧版本，我将无法处理，请先更新后再试。
+
         **简单的描述 + 关键截图** 是最有效的沟通方式。
+
+  - type: input
+    id: version
+    attributes:
+      label: 📦 TrendRadar 版本
+      description: 请务必提供。（如：v5.2.0 或 git commit id）
+      placeholder: v5.2.0 或 commit hash
+    validations:
+      required: true
+
+  - type: input
+    id: mcp-version
+    attributes:
+      label: 🔌 MCP Server 版本 (可选)
+      description: 如果你是通过 MCP 使用，请填写 MCP Server 的版本。
+      placeholder: v3.1.6 (非 MCP 用户留空)
+    validations:
+      required: false
 
   - type: dropdown
     id: bug-category

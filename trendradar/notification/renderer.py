@@ -6,9 +6,13 @@
 """
 
 from datetime import datetime
-from typing import Dict, Optional, Callable
+from typing import Dict, List, Optional, Callable
 
 from trendradar.report.formatter import format_title_for_platform
+
+
+# 默认区域顺序
+DEFAULT_REGION_ORDER = ["hotlist", "rss", "new_items", "standalone", "ai_analysis"]
 
 
 def render_feishu_content(
@@ -16,9 +20,10 @@ def render_feishu_content(
     update_info: Optional[Dict] = None,
     mode: str = "daily",
     separator: str = "---",
-    reverse_content_order: bool = False,
+    region_order: Optional[List[str]] = None,
     get_time_func: Optional[Callable[[], datetime]] = None,
     rss_items: Optional[list] = None,
+    show_new_section: bool = True,
 ) -> str:
     """渲染飞书通知内容（支持热榜+RSS合并）
 
@@ -27,13 +32,17 @@ def render_feishu_content(
         update_info: 版本更新信息（可选）
         mode: 报告模式 ("daily", "incremental", "current")
         separator: 内容分隔符
-        reverse_content_order: 是否反转内容顺序（新增在前）
+        region_order: 区域显示顺序列表
         get_time_func: 获取当前时间的函数（可选，默认使用 datetime.now()）
         rss_items: RSS 条目列表（可选，用于合并推送）
+        show_new_section: 是否显示新增热点区域
 
     Returns:
         格式化的飞书消息内容
     """
+    if region_order is None:
+        region_order = DEFAULT_REGION_ORDER
+
     # 生成热点词汇统计部分
     stats_content = ""
     if report_data["stats"]:
@@ -68,7 +77,7 @@ def render_feishu_content(
 
     # 生成新增新闻部分
     new_titles_content = ""
-    if report_data["new_titles"]:
+    if show_new_section and report_data["new_titles"]:
         new_titles_content += (
             f"🆕 **本次新增热点新闻** (共 {report_data['total_new_count']} 条)\n\n"
         )
@@ -88,31 +97,26 @@ def render_feishu_content(
 
             new_titles_content += "\n"
 
-    # 根据配置决定内容顺序
-    text_content = ""
-    if reverse_content_order:
-        # 新增热点在前，热点词汇统计在后
-        if new_titles_content:
-            text_content += new_titles_content
-            if stats_content:
-                text_content += f"\n{separator}\n\n"
-        if stats_content:
-            text_content += stats_content
-    else:
-        # 默认：热点词汇统计在前，新增热点在后
-        if stats_content:
-            text_content += stats_content
-            if new_titles_content:
-                text_content += f"\n{separator}\n\n"
-        if new_titles_content:
-            text_content += new_titles_content
-
-    # 添加 RSS 内容（如果有）
+    # RSS 内容
+    rss_content = ""
     if rss_items:
         rss_content = _render_rss_section_feishu(rss_items, separator)
-        if text_content:
-            text_content += f"\n{separator}\n\n"
-        text_content += rss_content
+
+    # 准备各区域内容映射
+    region_contents = {
+        "hotlist": stats_content,
+        "new_items": new_titles_content,
+        "rss": rss_content,
+    }
+
+    # 按 region_order 顺序组装内容
+    text_content = ""
+    for region in region_order:
+        content = region_contents.get(region, "")
+        if content:
+            if text_content:
+                text_content += f"\n{separator}\n\n"
+            text_content += content
 
     if not text_content:
         if mode == "incremental":
@@ -147,9 +151,10 @@ def render_dingtalk_content(
     report_data: Dict,
     update_info: Optional[Dict] = None,
     mode: str = "daily",
-    reverse_content_order: bool = False,
+    region_order: Optional[List[str]] = None,
     get_time_func: Optional[Callable[[], datetime]] = None,
     rss_items: Optional[list] = None,
+    show_new_section: bool = True,
 ) -> str:
     """渲染钉钉通知内容（支持热榜+RSS合并）
 
@@ -157,13 +162,17 @@ def render_dingtalk_content(
         report_data: 报告数据字典，包含 stats, new_titles, failed_ids, total_new_count
         update_info: 版本更新信息（可选）
         mode: 报告模式 ("daily", "incremental", "current")
-        reverse_content_order: 是否反转内容顺序（新增在前）
+        region_order: 区域显示顺序列表
         get_time_func: 获取当前时间的函数（可选，默认使用 datetime.now()）
         rss_items: RSS 条目列表（可选，用于合并推送）
+        show_new_section: 是否显示新增热点区域
 
     Returns:
         格式化的钉钉消息内容
     """
+    if region_order is None:
+        region_order = DEFAULT_REGION_ORDER
+
     total_titles = sum(
         len(stat["titles"]) for stat in report_data["stats"] if stat["count"] > 0
     )
@@ -209,7 +218,7 @@ def render_dingtalk_content(
 
     # 生成新增新闻部分
     new_titles_content = ""
-    if report_data["new_titles"]:
+    if show_new_section and report_data["new_titles"]:
         new_titles_content += (
             f"🆕 **本次新增热点新闻** (共 {report_data['total_new_count']} 条)\n\n"
         )
@@ -227,33 +236,30 @@ def render_dingtalk_content(
 
             new_titles_content += "\n"
 
-    # 根据配置决定内容顺序
-    text_content = header_content
-    if reverse_content_order:
-        # 新增热点在前，热点词汇统计在后
-        if new_titles_content:
-            text_content += new_titles_content
-            if stats_content:
-                text_content += "\n---\n\n"
-        if stats_content:
-            text_content += stats_content
-    else:
-        # 默认：热点词汇统计在前，新增热点在后
-        if stats_content:
-            text_content += stats_content
-            if new_titles_content:
-                text_content += "\n---\n\n"
-        if new_titles_content:
-            text_content += new_titles_content
-
-    # 添加 RSS 内容（如果有）
+    # RSS 内容
+    rss_content = ""
     if rss_items:
         rss_content = _render_rss_section_markdown(rss_items)
-        if stats_content or new_titles_content:
-            text_content += "\n---\n\n"
-        text_content += rss_content
 
-    if not stats_content and not new_titles_content and not rss_items:
+    # 准备各区域内容映射
+    region_contents = {
+        "hotlist": stats_content,
+        "new_items": new_titles_content,
+        "rss": rss_content,
+    }
+
+    # 按 region_order 顺序组装内容
+    text_content = header_content
+    has_content = False
+    for region in region_order:
+        content = region_contents.get(region, "")
+        if content:
+            if has_content:
+                text_content += "\n---\n\n"
+            text_content += content
+            has_content = True
+
+    if not has_content:
         if mode == "incremental":
             mode_text = "增量模式下暂无新增匹配的热点词汇"
         elif mode == "current":

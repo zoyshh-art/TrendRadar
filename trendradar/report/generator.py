@@ -20,6 +20,7 @@ def prepare_report_data(
     rank_threshold: int = 3,
     matches_word_groups_func: Optional[Callable] = None,
     load_frequency_words_func: Optional[Callable] = None,
+    show_new_section: bool = True,
 ) -> Dict:
     """
     准备报告数据
@@ -33,14 +34,15 @@ def prepare_report_data(
         rank_threshold: 排名阈值
         matches_word_groups_func: 词组匹配函数
         load_frequency_words_func: 加载频率词函数
+        show_new_section: 是否显示新增热点区域
 
     Returns:
         Dict: 准备好的报告数据
     """
     processed_new_titles = []
 
-    # 在增量模式下隐藏新增新闻区域
-    hide_new_section = mode == "incremental"
+    # 在增量模式下或配置关闭时隐藏新增新闻区域
+    hide_new_section = mode == "incremental" or not show_new_section
 
     # 只有在非隐藏模式下才处理新增新闻部分
     if not hide_new_section:
@@ -144,7 +146,6 @@ def generate_html_report(
     new_titles: Optional[Dict] = None,
     id_to_name: Optional[Dict] = None,
     mode: str = "daily",
-    is_daily_summary: bool = False,
     update_info: Optional[Dict] = None,
     rank_threshold: int = 3,
     output_dir: str = "output",
@@ -153,10 +154,14 @@ def generate_html_report(
     render_html_func: Optional[Callable] = None,
     matches_word_groups_func: Optional[Callable] = None,
     load_frequency_words_func: Optional[Callable] = None,
-    enable_index_copy: bool = True,
 ) -> str:
     """
     生成 HTML 报告
+
+    每次生成 HTML 后会：
+    1. 保存时间戳快照到 output/html/日期/时间.html（历史记录）
+    2. 复制到 output/html/latest/{mode}.html（最新报告）
+    3. 复制到 output/index.html 和根目录 index.html（入口）
 
     Args:
         stats: 统计结果列表
@@ -165,7 +170,6 @@ def generate_html_report(
         new_titles: 新增标题
         id_to_name: ID 到名称的映射
         mode: 报告模式 (daily/incremental/current)
-        is_daily_summary: 是否是每日汇总
         update_info: 更新信息
         rank_threshold: 排名阈值
         output_dir: 输出目录
@@ -174,25 +178,17 @@ def generate_html_report(
         render_html_func: HTML 渲染函数
         matches_word_groups_func: 词组匹配函数
         load_frequency_words_func: 加载频率词函数
-        enable_index_copy: 是否复制到 index.html
 
     Returns:
-        str: 生成的 HTML 文件路径
+        str: 生成的 HTML 文件路径（时间戳快照路径）
     """
-    if is_daily_summary:
-        if mode == "current":
-            filename = "当前榜单汇总.html"
-        elif mode == "incremental":
-            filename = "当日增量.html"
-        else:
-            filename = "当日汇总.html"
-    else:
-        filename = f"{time_filename}.html"
+    # 时间戳快照文件名
+    snapshot_filename = f"{time_filename}.html"
 
-    # 构建输出路径
-    output_path = Path(output_dir) / date_folder / "html"
-    output_path.mkdir(parents=True, exist_ok=True)
-    file_path = str(output_path / filename)
+    # 构建输出路径（扁平化结构：output/html/日期/）
+    snapshot_path = Path(output_dir) / "html" / date_folder
+    snapshot_path.mkdir(parents=True, exist_ok=True)
+    snapshot_file = str(snapshot_path / snapshot_filename)
 
     # 准备报告数据
     report_data = prepare_report_data(
@@ -209,27 +205,32 @@ def generate_html_report(
     # 渲染 HTML 内容
     if render_html_func:
         html_content = render_html_func(
-            report_data, total_titles, is_daily_summary, mode, update_info
+            report_data, total_titles, mode, update_info
         )
     else:
         # 默认简单 HTML
         html_content = f"<html><body><h1>Report</h1><pre>{report_data}</pre></body></html>"
 
-    # 写入文件
-    with open(file_path, "w", encoding="utf-8") as f:
+    # 1. 保存时间戳快照（历史记录）
+    with open(snapshot_file, "w", encoding="utf-8") as f:
         f.write(html_content)
 
-    # 如果是每日汇总且启用 index 复制
-    if is_daily_summary and enable_index_copy:
-        # 生成到根目录（供 GitHub Pages 访问）
-        root_index_path = Path("index.html")
-        with open(root_index_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
+    # 2. 复制到 html/latest/{mode}.html（最新报告）
+    latest_dir = Path(output_dir) / "html" / "latest"
+    latest_dir.mkdir(parents=True, exist_ok=True)
+    latest_file = latest_dir / f"{mode}.html"
+    with open(latest_file, "w", encoding="utf-8") as f:
+        f.write(html_content)
 
-        # 同时生成到 output 目录（供 Docker Volume 挂载访问）
-        output_index_path = Path(output_dir) / "index.html"
-        Path(output_dir).mkdir(parents=True, exist_ok=True)
-        with open(output_index_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
+    # 3. 复制到 index.html（入口）
+    # output/index.html（供 Docker Volume 挂载访问）
+    output_index = Path(output_dir) / "index.html"
+    with open(output_index, "w", encoding="utf-8") as f:
+        f.write(html_content)
 
-    return file_path
+    # 根目录 index.html（供 GitHub Pages 访问）
+    root_index = Path("index.html")
+    with open(root_index, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+    return snapshot_file

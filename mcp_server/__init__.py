@@ -5,4 +5,4 @@ TrendRadar MCP Server
 
 """
 
-__version__ = "3.1.5"
+__version__ = "3.1.6"

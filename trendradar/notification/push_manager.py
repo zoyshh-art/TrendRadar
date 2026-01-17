@@ -41,8 +41,9 @@ class PushRecordManager:
         print(f"[推送记录] 使用 {storage_backend.backend_name} 存储后端")
 
     def _default_get_time(self) -> datetime:
-        """默认时间获取函数（UTC+8）"""
-        return datetime.now(pytz.timezone("Asia/Shanghai"))
+        """默认时间获取函数（使用 storage_backend 的时区配置）"""
+        timezone = getattr(self.storage_backend, 'timezone', 'Asia/Shanghai')
+        return datetime.now(pytz.timezone(timezone))
 
     def has_pushed_today(self) -> bool:
         """

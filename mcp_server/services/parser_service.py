@@ -325,7 +325,7 @@ class ParserService:
         cache_key = f"read_all:{db_type}:{date_str}:{platform_key}"
 
         is_today = (date is None) or (date.date() == datetime.now().date())
-        ttl = 900 if is_today else 3600
+        ttl = 900 if is_today else 900
 
         cached = self.cache.get(cache_key, ttl=ttl)
         if cached:
