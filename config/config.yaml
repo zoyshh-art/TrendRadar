@@ -431,7 +431,7 @@ ai_translation:
 # ===============================================================
 advanced:
   # 调试模式
-  debug: true
+  debug: false
 
   # 版本检查
   version_check_url: "https://raw.githubusercontent.com/sansan0/TrendRadar/refs/heads/master/version"
