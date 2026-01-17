@@ -1856,13 +1856,15 @@ For specific additions, visit [project source code](https://github.com/ourongxin
 
 ```yaml
 platforms:
-  - id: "toutiao"
-    name: "Toutiao"
-  - id: "baidu"
-    name: "Baidu Hot Search"
-  - id: "wallstreetcn-hot"
-    name: "Wallstreetcn"
-  # Add more platforms...
+  enabled: true                       # Enable trending platform crawling
+  sources:
+    - id: "toutiao"
+      name: "Toutiao"
+    - id: "baidu"
+      name: "Baidu Hot Search"
+    - id: "wallstreetcn-hot"
+      name: "Wallstreetcn"
+    # Add more platforms...
 ```
 
 > 💡 **Shortcut**: If you don't know how to read source code, you can copy from others' organized [Platform Configuration Summary](https://github.com/sansan0/TrendRadar/issues/95)
@@ -2838,7 +2840,7 @@ After MCP service starts, configure based on your client:
 <summary>👉 Click to expand: <strong>Customize Push Style and Content</strong></summary>
 <br>
 
-**Configuration Location:** `report` section in `config/config.yaml`
+**Configuration Location:** `report` and `display` sections in `config/config.yaml`
 
 ```yaml
 report:
@@ -2847,7 +2849,14 @@ report:
   rank_threshold: 5                # Ranking highlight threshold
   sort_by_position_first: false    # Sorting priority
   max_news_per_keyword: 0          # Maximum display count per keyword
-  reverse_content_order: false     # Content order configuration
+
+display:
+  region_order:                    # Region display order (v5.2.0 new)
+    - new_items                    # New trending section
+    - hotlist                      # Hotlist section
+    - rss                          # RSS subscription section
+    - standalone                   # Independent display section
+    - ai_analysis                  # AI analysis section
 ```
 
 #### Configuration Details
@@ -2859,7 +2868,7 @@ report:
 | `rank_threshold` | int | `5` | Ranking highlight threshold, news with rank ≤ this value will be displayed in bold |
 | `sort_by_position_first` | bool | `false` | Sorting priority: `false`=sort by news count, `true`=sort by config position |
 | `max_news_per_keyword` | int | `0` | Maximum display count per keyword, `0`=unlimited |
-| `reverse_content_order` | bool | `false` | Content order: `false`=trending keywords stats first, `true`=new trending news first |
+| `display.region_order` | list | See config above | Adjust list order to control region display positions |
 
 #### Display Mode Configuration (v4.6.0 New)
 
@@ -2886,23 +2895,27 @@ Controls how news is grouped in push messages and HTML reports:
   2. [Trump] Trump announces major policy #2 - 09:15 (3 times)
 ```
 
-#### Content Order Configuration (v3.5.0 New)
+#### Region Display Order (region_order)
 
-Controls display order of two content sections in push messages and HTML reports:
+Control the display position of each section in push messages by adjusting the order of `display.region_order` list.
 
-| Config Value | Display Order |
-|-------------|--------------|
-| `false` (default) | ① Trending Keywords Stats → ② New Trending News |
-| `true` | ① New Trending News → ② Trending Keywords Stats |
+**Default Order**: New Items → Hotlist → RSS → Standalone → AI Analysis
 
-**Use Cases:**
-- `false` (default): Suitable for users focusing on keyword match results, view categorized stats first
-- `true`: Suitable for users focusing on latest updates, prioritize viewing new trending topics
+**Custom Example**: Want AI analysis at the top?
 
-**Docker Environment Variable:**
-```bash
-REVERSE_CONTENT_ORDER=true
+```yaml
+display:
+  region_order:
+    - ai_analysis                  # Move to first line
+    - new_items
+    - hotlist
+    - rss
+    - standalone
 ```
+
+**Note**: A region will only be displayed when both conditions are met:
+1. Listed in `region_order`
+2. Corresponding switch in `display.regions` is `true`
 
 #### Sorting Priority Configuration
 
