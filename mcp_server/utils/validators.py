@@ -167,8 +167,10 @@ def get_supported_platforms() -> List[str]:
 
         with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
-            platforms = config.get('platforms', [])
-            return [p['id'] for p in platforms if 'id' in p]
+            platforms_config = config.get('platforms', {})
+            # 处理嵌套结构：{enabled: bool, sources: [...]}
+            sources = platforms_config.get('sources', [])
+            return [p['id'] for p in sources if 'id' in p]
     except Exception as e:
         # 降级方案：返回空列表，允许所有平台
         print(f"警告：无法加载平台配置 ({config_path}): {e}")
