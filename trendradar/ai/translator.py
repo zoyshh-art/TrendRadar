@@ -3,14 +3,15 @@
 AI 翻译器模块
 
 对推送内容进行多语言翻译
-使用共享的 AI 模型配置
+基于 LiteLLM 统一接口，支持 100+ AI 提供商
 """
 
 import json
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+from trendradar.ai.client import AIClient
 
 
 @dataclass
@@ -40,7 +41,7 @@ class AITranslator:
 
         Args:
             translation_config: AI 翻译配置 (AI_TRANSLATION)
-            ai_config: AI 模型共享配置 (AI)
+            ai_config: AI 模型配置（LiteLLM 格式）
         """
         self.translation_config = translation_config
         self.ai_config = ai_config
@@ -49,28 +50,8 @@ class AITranslator:
         self.enabled = translation_config.get("ENABLED", False)
         self.target_language = translation_config.get("LANGUAGE", "English")
 
-        # 从共享配置获取模型参数
-        self.api_key = ai_config.get("API_KEY") or os.environ.get("AI_API_KEY", "")
-        self.provider = ai_config.get("PROVIDER", "deepseek")
-        self.model = ai_config.get("MODEL", "deepseek-chat")
-        self.base_url = ai_config.get("BASE_URL", "")
-        self.timeout = ai_config.get("TIMEOUT", 90)
-
-        # AI 参数配置
-        self.temperature = ai_config.get("TEMPERATURE", 1.0)
-        self.max_tokens = ai_config.get("MAX_TOKENS", 5000)
-
-        # 额外参数
-        self.extra_params = ai_config.get("EXTRA_PARAMS", {})
-        if isinstance(self.extra_params, str) and self.extra_params.strip():
-            try:
-                self.extra_params = json.loads(self.extra_params)
-            except json.JSONDecodeError:
-                print(f"[翻译] 解析 extra_params 失败，将忽略: {self.extra_params}")
-                self.extra_params = {}
-
-        if not isinstance(self.extra_params, dict):
-            self.extra_params = {}
+        # 创建 AI 客户端（基于 LiteLLM）
+        self.client = AIClient(ai_config)
 
         # 加载提示词模板
         self.system_prompt, self.user_prompt_template = self._load_prompt_template(
@@ -122,7 +103,7 @@ class AITranslator:
             result.error = "翻译功能未启用"
             return result
 
-        if not self.api_key:
+        if not self.client.api_key:
             result.error = "未配置 AI API Key"
             return result
 
@@ -138,31 +119,16 @@ class AITranslator:
             user_prompt = user_prompt.replace("{content}", text)
 
             # 调用 AI API
-            response = self._call_ai_api(user_prompt)
+            response = self._call_ai(user_prompt)
             result.translated_text = response.strip()
             result.success = True
 
         except Exception as e:
-            import requests
             error_type = type(e).__name__
             error_msg = str(e)
-
-            if isinstance(e, requests.exceptions.Timeout):
-                result.error = f"翻译请求超时（{self.timeout}秒）"
-            elif isinstance(e, requests.exceptions.ConnectionError):
-                result.error = f"无法连接到 AI API"
-            elif isinstance(e, requests.exceptions.HTTPError):
-                status_code = e.response.status_code if hasattr(e, 'response') and e.response else "未知"
-                if status_code == 401:
-                    result.error = "API 认证失败"
-                elif status_code == 429:
-                    result.error = "API 请求频率过高"
-                else:
-                    result.error = f"API 错误 (HTTP {status_code})"
-            else:
-                if len(error_msg) > 100:
-                    error_msg = error_msg[:100] + "..."
-                result.error = f"翻译失败 ({error_type}): {error_msg}"
+            if len(error_msg) > 100:
+                error_msg = error_msg[:100] + "..."
+            result.error = f"翻译失败 ({error_type}): {error_msg}"
 
         return result
 
@@ -187,7 +153,7 @@ class AITranslator:
             batch_result.fail_count = len(texts)
             return batch_result
 
-        if not self.api_key:
+        if not self.client.api_key:
             for text in texts:
                 batch_result.results.append(TranslationResult(
                     original_text=text,
@@ -231,7 +197,7 @@ class AITranslator:
             user_prompt = user_prompt.replace("{content}", batch_content)
 
             # 调用 AI API
-            response = self._call_ai_api(user_prompt)
+            response = self._call_ai(user_prompt)
 
             # 解析批量翻译结果
             translated_texts = self._parse_batch_response(response, len(non_empty_texts))
@@ -319,110 +285,11 @@ class AITranslator:
 
         return translated[:expected_count]
 
-    def _call_ai_api(self, user_prompt: str) -> str:
-        """调用 AI API"""
-        if self.provider == "gemini":
-            return self._call_gemini(user_prompt)
-        return self._call_openai_compatible(user_prompt)
-
-    def _get_api_url(self) -> str:
-        """获取完整 API URL"""
-        if self.base_url:
-            return self.base_url
-
-        urls = {
-            "deepseek": "https://api.deepseek.com/v1/chat/completions",
-            "openai": "https://api.openai.com/v1/chat/completions",
-        }
-        url = urls.get(self.provider)
-        if not url:
-            raise ValueError(f"{self.provider} 需要配置 base_url")
-        return url
-
-    def _call_openai_compatible(self, user_prompt: str) -> str:
-        """调用 OpenAI 兼容接口"""
-        import requests
-
-        url = self._get_api_url()
-
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-
+    def _call_ai(self, user_prompt: str) -> str:
+        """调用 AI API（使用 LiteLLM）"""
         messages = []
         if self.system_prompt:
             messages.append({"role": "system", "content": self.system_prompt})
         messages.append({"role": "user", "content": user_prompt})
 
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": self.temperature,
-        }
-
-        if self.max_tokens:
-            payload["max_tokens"] = self.max_tokens
-
-        if self.extra_params:
-            payload.update(self.extra_params)
-
-        response = requests.post(
-            url,
-            headers=headers,
-            json=payload,
-            timeout=self.timeout,
-        )
-        response.raise_for_status()
-
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
-
-    def _call_gemini(self, user_prompt: str) -> str:
-        """调用 Google Gemini API"""
-        import requests
-
-        model = self.model or "gemini-1.5-flash"
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={self.api_key}"
-
-        headers = {
-            "Content-Type": "application/json",
-        }
-
-        payload = {
-            "contents": [{
-                "role": "user",
-                "parts": [{"text": user_prompt}]
-            }],
-            "generationConfig": {
-                "temperature": self.temperature,
-            },
-            "safetySettings": [
-                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-            ]
-        }
-
-        if self.system_prompt:
-            payload["system_instruction"] = {
-                "parts": [{"text": self.system_prompt}]
-            }
-
-        if self.max_tokens:
-            payload["generationConfig"]["maxOutputTokens"] = self.max_tokens
-
-        if self.extra_params:
-            payload["generationConfig"].update(self.extra_params)
-
-        response = requests.post(
-            url,
-            headers=headers,
-            json=payload,
-            timeout=self.timeout,
-        )
-        response.raise_for_status()
-
-        data = response.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"]
+        return self.client.chat(messages)

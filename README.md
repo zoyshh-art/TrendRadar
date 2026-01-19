@@ -13,8 +13,8 @@
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v5.2.0-blue.svg)](https://github.com/sansan0/TrendRadar)
-[![MCP](https://img.shields.io/badge/MCP-v3.1.6-green.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v5.3.0-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![MCP](https://img.shields.io/badge/MCP-v3.1.7-green.svg)](https://github.com/sansan0/TrendRadar)
 [![RSS](https://img.shields.io/badge/RSS-订阅源支持-orange.svg?style=flat-square&logo=rss&logoColor=white)](https://github.com/sansan0/TrendRadar)
 [![AI翻译](https://img.shields.io/badge/AI-多语言推送-purple.svg?style=flat-square)](https://github.com/sansan0/TrendRadar)
 
@@ -219,6 +219,24 @@
 
 > **📌 查看最新更新**：**[原仓库更新日志](https://github.com/sansan0/TrendRadar?tab=readme-ov-file#-更新日志)** ：
 - **提示**：建议查看【历史更新】，明确具体的【功能内容】
+
+### 2026/01/19 - v5.3.0
+
+> **重大重构：AI 模块迁移至 LiteLLM**
+
+- **统一 AI 接口**：使用 LiteLLM 替代手动实现，支持 100+ AI 提供商
+- **简化配置**：移除 `provider` 字段，改用 `model: "provider/model_name"` 格式
+- **新增功能**：自动重试 (`num_retries`)、备用模型 (`fallback_models`)
+- **配置变更**：
+  - `ai.provider` → 移除（已合并到 model）
+  - `ai.base_url` → `ai.api_base`
+  - `AI_PROVIDER` 环境变量 → 移除
+  - `AI_BASE_URL` 环境变量 → `AI_API_BASE`
+- **模型格式示例**：
+  - DeepSeek: `deepseek/deepseek-chat`
+  - OpenAI: `openai/gpt-4o`
+  - Gemini: `gemini/gemini-2.5-flash`
+  - Anthropic: `anthropic/claude-3-5-sonnet`
 
 ### 2026/01/17 - v5.2.0
 
@@ -3227,19 +3245,32 @@ app:
 |-------|-------|------|
 | `AI_ANALYSIS_ENABLED` | `true` | 开启开关 |
 | `AI_API_KEY` | `sk-xxxxxx` | 你的 API Key |
-| `AI_PROVIDER` | `deepseek` | AI 提供商（见下表） |
-| `AI_MODEL` | `deepseek-chat` | 模型名称 |
+| `AI_MODEL` | `deepseek/deepseek-chat` | 模型标识（格式：`provider/model`） |
 
-**支持的 AI 提供商**：
+**支持的 AI 提供商**（基于 LiteLLM，支持 100+ 提供商）：
 
-| 提供商 | AI_PROVIDER 填什么 | 默认模型 (AI_MODEL) |
-|-------|-------------------|-------------------|
-| **DeepSeek** (推荐) | `deepseek` | `deepseek-chat` |
-| **OpenAI** | `openai` | `gpt-4o` |
-| **Google Gemini** | `gemini` | `gemini-1.5-flash` |
-| **自定义** (OneAPI) | `custom` | 需额外配置 `AI_BASE_URL` |
+| 提供商 | AI_MODEL 填什么 | 说明 |
+|-------|----------------|------|
+| **DeepSeek** (推荐) | `deepseek/deepseek-chat` | 性价比极高，适合高频分析 |
+| **OpenAI** | `openai/gpt-4o`<br>`openai/gpt-4o-mini` | GPT-4o 系列 |
+| **Google Gemini** | `gemini/gemini-1.5-flash`<br>`gemini/gemini-1.5-pro` | Gemini 系列 |
+| **Claude** | `anthropic/claude-3-5-sonnet-20241022` | Anthropic Claude 系列 |
+| **智谱 AI** | `zhipu/glm-4-plus`<br>`zhipu/glm-4-flash` | 国内模型，支持中文 |
+| **月之暗面** | `moonshot/moonshot-v1-8k`<br>`moonshot/moonshot-v1-32k` | Kimi 系列 |
+| **通义千问** | `qwen/qwen-plus`<br>`qwen/qwen-turbo` | 阿里云通义千问 |
+| **自定义 API** | 任意格式 | 配合 `AI_API_BASE` 使用 |
 
-> 💡 **小技巧**：DeepSeek 性价比极高，非常适合用来做这种高频的新闻分析。
+> 💡 **新特性**：现已基于 [LiteLLM](https://github.com/BerriAI/litellm) 统一接口，支持 100+ AI 提供商，配置更简单、错误处理更完善。
+
+**可选配置项**：
+
+| 变量名 | 默认值 | 说明 |
+|-------|-------|------|
+| `AI_API_BASE` | (自动) | 自定义 API 地址（如 OneAPI、本地模型） |
+| `AI_TEMPERATURE` | `1.0` | 采样温度（0-2，越高越随机） |
+| `AI_MAX_TOKENS` | `5000` | 最大生成 token 数 |
+| `AI_TIMEOUT` | `120` | 请求超时时间（秒） |
+| `AI_NUM_RETRIES` | `2` | 失败重试次数 |
 
 #### 进阶玩法：AI 翻译
 

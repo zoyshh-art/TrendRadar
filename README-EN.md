@@ -13,8 +13,8 @@ Deploy in <strong>30 seconds</strong> — Say goodbye to endless scrolling, only
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v5.2.0-blue.svg)](https://github.com/sansan0/TrendRadar)
-[![MCP](https://img.shields.io/badge/MCP-v3.1.6-green.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v5.3.0-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![MCP](https://img.shields.io/badge/MCP-v3.1.7-green.svg)](https://github.com/sansan0/TrendRadar)
 [![RSS](https://img.shields.io/badge/RSS-Feed_Support-orange.svg?style=flat-square&logo=rss&logoColor=white)](https://github.com/sansan0/TrendRadar)
 [![AI Translation](https://img.shields.io/badge/AI-Multi--Language-purple.svg?style=flat-square)](https://github.com/sansan0/TrendRadar)
 
@@ -172,6 +172,24 @@ After communication, the author indicated no concerns about server pressure, but
 
 >**📌 Check Latest Updates**: **[Original Repository Changelog](https://github.com/sansan0/TrendRadar?tab=readme-ov-file#-changelog)**:
 - **Tip**: Check [Changelog] to understand specific [Features]
+
+### 2026/01/19 - v5.3.0
+
+> **Major Refactor: AI Module Migration to LiteLLM**
+
+- **Unified AI Interface**: Replaced manual implementation with LiteLLM, supporting 100+ AI providers
+- **Simplified Configuration**: Removed `provider` field, now using `model: "provider/model_name"` format
+- **New Features**: Auto-retry (`num_retries`), fallback models (`fallback_models`)
+- **Configuration Changes**:
+  - `ai.provider` → Removed (merged into model)
+  - `ai.base_url` → `ai.api_base`
+  - `AI_PROVIDER` environment variable → Removed
+  - `AI_BASE_URL` environment variable → `AI_API_BASE`
+- **Model Format Examples**:
+  - DeepSeek: `deepseek/deepseek-chat`
+  - OpenAI: `openai/gpt-4o`
+  - Gemini: `gemini/gemini-2.5-flash`
+  - Anthropic: `anthropic/claude-3-5-sonnet`
 
 ### 2026/01/17 - v5.2.0
 
@@ -3233,19 +3251,32 @@ The simplest way is via environment variables (Recommended for GitHub Secrets or
 |--------------|-------|-------------|
 | `AI_ANALYSIS_ENABLED` | `true` | Enable switch |
 | `AI_API_KEY` | `sk-xxxxxx` | Your API Key |
-| `AI_PROVIDER` | `deepseek` | AI Provider (see table below) |
-| `AI_MODEL` | `deepseek-chat` | Model Name |
+| `AI_MODEL` | `deepseek/deepseek-chat` | Model identifier (format: `provider/model`) |
 
-**Supported AI Providers**:
+**Supported AI Providers** (Based on LiteLLM, supports 100+ providers):
 
-| Provider | AI_PROVIDER Value | Default Model (AI_MODEL) |
-|----------|-------------------|------------------------|
-| **DeepSeek** (Recommended) | `deepseek` | `deepseek-chat` |
-| **OpenAI** | `openai` | `gpt-4o` |
-| **Google Gemini** | `gemini` | `gemini-1.5-flash` |
-| **Custom** (OneAPI) | `custom` | Requires `AI_BASE_URL` |
+| Provider | AI_MODEL Value | Description |
+|----------|----------------|-------------|
+| **DeepSeek** (Recommended) | `deepseek/deepseek-chat` | Excellent cost-performance ratio for high-frequency analysis |
+| **OpenAI** | `openai/gpt-4o`<br>`openai/gpt-4o-mini` | GPT-4o series |
+| **Google Gemini** | `gemini/gemini-1.5-flash`<br>`gemini/gemini-1.5-pro` | Gemini series |
+| **Claude** | `anthropic/claude-3-5-sonnet-20241022` | Anthropic Claude series |
+| **Zhipu AI** | `zhipu/glm-4-plus`<br>`zhipu/glm-4-flash` | Chinese model with native Chinese support |
+| **Moonshot** | `moonshot/moonshot-v1-8k`<br>`moonshot/moonshot-v1-32k` | Kimi series |
+| **Qwen** | `qwen/qwen-plus`<br>`qwen/qwen-turbo` | Alibaba Cloud Tongyi Qianwen |
+| **Custom API** | Any format | Use with `AI_API_BASE` |
 
-> 💡 **Tip**: DeepSeek offers excellent performance/price ratio, highly suitable for high-frequency news analysis.
+> 💡 **New Feature**: Now based on [LiteLLM](https://github.com/BerriAI/litellm) unified interface, supporting 100+ AI providers with simpler configuration and better error handling.
+
+**Optional Configurations**:
+
+| Variable Name | Default | Description |
+|--------------|---------|-------------|
+| `AI_API_BASE` | (auto) | Custom API endpoint (e.g., OneAPI, local models) |
+| `AI_TEMPERATURE` | `1.0` | Sampling temperature (0-2, higher = more random) |
+| `AI_MAX_TOKENS` | `5000` | Maximum tokens to generate |
+| `AI_TIMEOUT` | `120` | Request timeout (seconds) |
+| `AI_NUM_RETRIES` | `2` | Number of retries on failure |
 
 #### Advanced: AI Translation
 

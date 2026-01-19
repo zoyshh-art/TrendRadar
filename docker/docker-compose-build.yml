@@ -45,9 +45,8 @@ services:
       # AI 配置（ai_analysis 和 ai_translation 共享模型配置）
       - AI_ANALYSIS_ENABLED=${AI_ANALYSIS_ENABLED:-false}
       - AI_API_KEY=${AI_API_KEY:-}
-      - AI_PROVIDER=${AI_PROVIDER:-}
       - AI_MODEL=${AI_MODEL:-}
-      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AI_API_BASE=${AI_API_BASE:-}
       # 远程存储配置（S3 兼容协议）
       - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:-}

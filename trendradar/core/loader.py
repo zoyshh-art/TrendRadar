@@ -217,19 +217,25 @@ def _load_display_config(config_data: Dict) -> Dict:
 
 
 def _load_ai_config(config_data: Dict) -> Dict:
-    """加载 AI 模型共享配置"""
+    """加载 AI 模型配置（LiteLLM 格式）"""
     ai_config = config_data.get("ai", {})
 
     timeout_env = _get_env_int_or_none("AI_TIMEOUT")
 
     return {
-        "PROVIDER": _get_env_str("AI_PROVIDER") or ai_config.get("provider", "deepseek"),
+        # LiteLLM 核心配置
+        "MODEL": _get_env_str("AI_MODEL") or ai_config.get("model", "deepseek/deepseek-chat"),
         "API_KEY": _get_env_str("AI_API_KEY") or ai_config.get("api_key", ""),
-        "MODEL": _get_env_str("AI_MODEL") or ai_config.get("model", "deepseek-chat"),
-        "BASE_URL": _get_env_str("AI_BASE_URL") or ai_config.get("base_url", ""),
-        "TIMEOUT": timeout_env if timeout_env is not None else ai_config.get("timeout", 90),
+        "API_BASE": _get_env_str("AI_API_BASE") or ai_config.get("api_base", ""),
+
+        # 生成参数
+        "TIMEOUT": timeout_env if timeout_env is not None else ai_config.get("timeout", 120),
         "TEMPERATURE": ai_config.get("temperature", 1.0),
         "MAX_TOKENS": ai_config.get("max_tokens", 5000),
+
+        # LiteLLM 高级选项
+        "NUM_RETRIES": ai_config.get("num_retries", 2),
+        "FALLBACK_MODELS": ai_config.get("fallback_models", []),
         "EXTRA_PARAMS": ai_config.get("extra_params", {}),
     }
 
