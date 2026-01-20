@@ -295,8 +295,8 @@
 
 本次更新对推送消息进行了区域化重构，现在推送内容清晰地划分为五大核心板块：
 
-1.  **📊 热榜新闻**：根据您的关键词精准筛选后的全网热点聚合。
-2.  **📰 RSS 订阅**：您的个性化订阅源内容，支持按关键词分组。
+1.  **📊 热榜新闻**：根据你的关键词精准筛选后的全网热点聚合。
+2.  **📰 RSS 订阅**：你的个性化订阅源内容，支持按关键词分组。
 3.  **🆕 本次新增**：实时捕捉自上次运行以来的全新热点（带 🆕 标记）。
 4.  **📋 独立展示区**：指定平台的完整热榜或 RSS 源展示，**完全不受关键词过滤限制**。
 5.  **✨ AI 分析板块**：由 AI 驱动的深度洞察，包含趋势概述、热度走势及**极其重要**的情感倾向分析。
@@ -3254,10 +3254,6 @@ app:
 | **DeepSeek** (推荐) | `deepseek/deepseek-chat` | 性价比极高，适合高频分析 |
 | **OpenAI** | `openai/gpt-4o`<br>`openai/gpt-4o-mini` | GPT-4o 系列 |
 | **Google Gemini** | `gemini/gemini-1.5-flash`<br>`gemini/gemini-1.5-pro` | Gemini 系列 |
-| **Claude** | `anthropic/claude-3-5-sonnet-20241022` | Anthropic Claude 系列 |
-| **智谱 AI** | `zhipu/glm-4-plus`<br>`zhipu/glm-4-flash` | 国内模型，支持中文 |
-| **月之暗面** | `moonshot/moonshot-v1-8k`<br>`moonshot/moonshot-v1-32k` | Kimi 系列 |
-| **通义千问** | `qwen/qwen-plus`<br>`qwen/qwen-turbo` | 阿里云通义千问 |
 | **自定义 API** | 任意格式 | 配合 `AI_API_BASE` 使用 |
 
 > 💡 **新特性**：现已基于 [LiteLLM](https://github.com/BerriAI/litellm) 统一接口，支持 100+ AI 提供商，配置更简单、错误处理更完善。

@@ -3260,10 +3260,6 @@ The simplest way is via environment variables (Recommended for GitHub Secrets or
 | **DeepSeek** (Recommended) | `deepseek/deepseek-chat` | Excellent cost-performance ratio for high-frequency analysis |
 | **OpenAI** | `openai/gpt-4o`<br>`openai/gpt-4o-mini` | GPT-4o series |
 | **Google Gemini** | `gemini/gemini-1.5-flash`<br>`gemini/gemini-1.5-pro` | Gemini series |
-| **Claude** | `anthropic/claude-3-5-sonnet-20241022` | Anthropic Claude series |
-| **Zhipu AI** | `zhipu/glm-4-plus`<br>`zhipu/glm-4-flash` | Chinese model with native Chinese support |
-| **Moonshot** | `moonshot/moonshot-v1-8k`<br>`moonshot/moonshot-v1-32k` | Kimi series |
-| **Qwen** | `qwen/qwen-plus`<br>`qwen/qwen-turbo` | Alibaba Cloud Tongyi Qianwen |
 | **Custom API** | Any format | Use with `AI_API_BASE` |
 
 > 💡 **New Feature**: Now based on [LiteLLM](https://github.com/BerriAI/litellm) unified interface, supporting 100+ AI providers with simpler configuration and better error handling.
