@@ -464,6 +464,33 @@ class StorageBackend(ABC):
         """
         pass
 
+    @abstractmethod
+    def has_ai_analyzed_today(self, date: Optional[str] = None) -> bool:
+        """
+        检查指定日期是否已进行过 AI 分析
+
+        Args:
+            date: 日期字符串（YYYY-MM-DD），默认为今天
+
+        Returns:
+            是否已分析
+        """
+        pass
+
+    @abstractmethod
+    def record_ai_analysis(self, analysis_mode: str, date: Optional[str] = None) -> bool:
+        """
+        记录 AI 分析
+
+        Args:
+            analysis_mode: 分析模式（daily/current/incremental）
+            date: 日期字符串（YYYY-MM-DD），默认为今天
+
+        Returns:
+            是否记录成功
+        """
+        pass
+
 
 def convert_crawl_results_to_news_data(
     results: Dict[str, Dict],

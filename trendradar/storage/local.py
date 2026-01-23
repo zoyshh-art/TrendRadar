@@ -190,6 +190,18 @@ class LocalStorageBackend(SQLiteStorageMixin, StorageBackend):
             print(f"[本地存储] 推送记录已保存: {report_type} at {now_str}")
         return success
 
+    def has_ai_analyzed_today(self, date: Optional[str] = None) -> bool:
+        """检查指定日期是否已进行过 AI 分析"""
+        return self._has_ai_analyzed_today_impl(date)
+
+    def record_ai_analysis(self, analysis_mode: str, date: Optional[str] = None) -> bool:
+        """记录 AI 分析"""
+        success = self._record_ai_analysis_impl(analysis_mode, date)
+        if success:
+            now_str = self._get_configured_time().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"[本地存储] AI 分析记录已保存: {analysis_mode} at {now_str}")
+        return success
+
     # ========================================
     # RSS 数据存储方法
     # ========================================

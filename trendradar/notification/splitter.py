@@ -109,12 +109,32 @@ def split_content_into_batches(
     ai_stats_line = ""
     if ai_stats and ai_stats.get("analyzed_news", 0) > 0:
         analyzed_news = ai_stats.get("analyzed_news", 0)
+        total_news = ai_stats.get("total_news", 0)
+        ai_mode = ai_stats.get("ai_mode", "")
+
+        # 构建分析数显示：如果被截断则显示 "实际分析数/总可分析数"
+        if total_news > analyzed_news:
+            news_display = f"{analyzed_news}/{total_news}"
+        else:
+            news_display = str(analyzed_news)
+
+        # 如果 AI 模式与推送模式不同，显示模式标识
+        mode_suffix = ""
+        if ai_mode and ai_mode != mode:
+            mode_map = {
+                "daily": "全天汇总",
+                "current": "当前榜单",
+                "incremental": "增量分析"
+            }
+            mode_label = mode_map.get(ai_mode, ai_mode)
+            mode_suffix = f" ({mode_label})"
+
         if format_type in ("wework", "bark", "ntfy", "feishu", "dingtalk"):
-            ai_stats_line = f"**AI 分析数：** {analyzed_news}\n"
+            ai_stats_line = f"**AI 分析数：** {news_display}{mode_suffix}\n"
         elif format_type == "slack":
-            ai_stats_line = f"*AI 分析数：* {analyzed_news}\n"
+            ai_stats_line = f"*AI 分析数：* {news_display}{mode_suffix}\n"
         elif format_type == "telegram":
-            ai_stats_line = f"AI 分析数： {analyzed_news}\n"
+            ai_stats_line = f"AI 分析数： {news_display}{mode_suffix}\n"
 
     # 构建统一的头部（总是显示总新闻数、时间和类型）
     if format_type in ("wework", "bark"):

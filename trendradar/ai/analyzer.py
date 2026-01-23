@@ -35,6 +35,7 @@ class AIAnalysisResult:
     max_news_limit: int = 0              # 分析上限配置值
     hotlist_count: int = 0               # 热榜新闻数
     rss_count: int = 0                   # RSS 新闻数
+    ai_mode: str = ""                    # AI 分析使用的模式 (daily/current/incremental)
 
 
 class AIAnalyzer:
@@ -134,6 +135,24 @@ class AIAnalyzer:
         Returns:
             AIAnalysisResult: 分析结果
         """
+        
+        # 打印配置信息方便调试
+        model = self.ai_config.get("MODEL", "unknown")
+        api_key = self.client.api_key or ""
+        api_base = self.ai_config.get("API_BASE", "")
+        masked_key = f"{api_key[:5]}******" if len(api_key) >= 5 else "******"
+        model_display = model.replace("/", "/\u200b") if model else "unknown"
+
+        print(f"[AI] 模型: {model_display}")
+        print(f"[AI] Key : {masked_key}")
+
+        if api_base:
+            print(f"[AI] 接口: 存在自定义 API 端点")
+
+        timeout = self.ai_config.get("TIMEOUT", 120)
+        max_tokens = self.ai_config.get("MAX_TOKENS", 5000)
+        print(f"[AI] 参数: timeout={timeout}, max_tokens={max_tokens}")
+
         if not self.client.api_key:
             return AIAnalysisResult(
                 success=False,
@@ -397,9 +416,7 @@ class AIAnalyzer:
             result.error = "AI 返回空响应"
             return result
 
-        # 尝试解析 JSON
         try:
-            # 提取 JSON 部分
             json_str = response
 
             if "```json" in response:

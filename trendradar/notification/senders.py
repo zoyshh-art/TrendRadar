@@ -135,6 +135,7 @@ def send_to_feishu(
                 "max_news_limit": getattr(ai_analysis, "max_news_limit", 0),
                 "hotlist_count": getattr(ai_analysis, "hotlist_count", 0),
                 "rss_count": getattr(ai_analysis, "rss_count", 0),
+                "ai_mode": getattr(ai_analysis, "ai_mode", ""),
             }
 
     # 预留批次头部空间，避免添加头部后超限
@@ -264,6 +265,7 @@ def send_to_dingtalk(
                 "max_news_limit": getattr(ai_analysis, "max_news_limit", 0),
                 "hotlist_count": getattr(ai_analysis, "hotlist_count", 0),
                 "rss_count": getattr(ai_analysis, "rss_count", 0),
+                "ai_mode": getattr(ai_analysis, "ai_mode", ""),
             }
 
     # 预留批次头部空间，避免添加头部后超限
@@ -404,6 +406,7 @@ def send_to_wework(
                 "max_news_limit": getattr(ai_analysis, "max_news_limit", 0),
                 "hotlist_count": getattr(ai_analysis, "hotlist_count", 0),
                 "rss_count": getattr(ai_analysis, "rss_count", 0),
+                "ai_mode": getattr(ai_analysis, "ai_mode", ""),
             }
 
     # 获取分批内容，预留批次头部空间
@@ -533,6 +536,7 @@ def send_to_telegram(
                 "max_news_limit": getattr(ai_analysis, "max_news_limit", 0),
                 "hotlist_count": getattr(ai_analysis, "hotlist_count", 0),
                 "rss_count": getattr(ai_analysis, "rss_count", 0),
+                "ai_mode": getattr(ai_analysis, "ai_mode", ""),
             }
 
     # 获取分批内容，预留批次头部空间
@@ -842,6 +846,7 @@ def send_to_ntfy(
                 "max_news_limit": getattr(ai_analysis, "max_news_limit", 0),
                 "hotlist_count": getattr(ai_analysis, "hotlist_count", 0),
                 "rss_count": getattr(ai_analysis, "rss_count", 0),
+                "ai_mode": getattr(ai_analysis, "ai_mode", ""),
             }
 
     # 获取分批内容，预留批次头部空间
@@ -1028,6 +1033,7 @@ def send_to_bark(
                 "max_news_limit": getattr(ai_analysis, "max_news_limit", 0),
                 "hotlist_count": getattr(ai_analysis, "hotlist_count", 0),
                 "rss_count": getattr(ai_analysis, "rss_count", 0),
+                "ai_mode": getattr(ai_analysis, "ai_mode", ""),
             }
 
     # 获取分批内容，预留批次头部空间
@@ -1190,6 +1196,7 @@ def send_to_slack(
                 "max_news_limit": getattr(ai_analysis, "max_news_limit", 0),
                 "hotlist_count": getattr(ai_analysis, "hotlist_count", 0),
                 "rss_count": getattr(ai_analysis, "rss_count", 0),
+                "ai_mode": getattr(ai_analysis, "ai_mode", ""),
             }
 
     # 获取分批内容，预留批次头部空间

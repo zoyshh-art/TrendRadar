@@ -1,6 +1,6 @@
 [project]
 name = "trendradar"
-version = "5.3.0"
+version = "5.4.0"
 description = "TrendRadar - 热点新闻聚合与分析工具"
 requires-python = ">=3.10"
 dependencies = [
@@ -12,6 +12,7 @@ dependencies = [
     "feedparser>=6.0.0,<7.0.0",
     "boto3>=1.35.0,<2.0.0",
     "litellm>=1.57.0,<2.0.0",
+    "tenacity==8.5.0"
 ]
 
 [project.scripts]

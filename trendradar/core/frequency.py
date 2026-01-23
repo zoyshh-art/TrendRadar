@@ -23,47 +23,51 @@ def _parse_word(word: str) -> Dict:
     """
     解析单个词，识别是否为正则表达式，支持显示名称
 
-    语法：
-    - 普通词：word
-    - 正则表达式：/pattern/ 或 /pattern/i（flags 会被忽略，默认已启用忽略大小写）
-    - 带显示名称：word => 显示名称 或 word=>显示名称（=>两边空格可选）
-    - 正则带显示名称：/pattern/ => 显示名称
-
     Args:
-        word: 原始词
+        word: 原始配置行 (e.g. "/京东|刘强东/ => 京东")
 
     Returns:
-        {"word": str, "is_regex": bool, "pattern": Optional[re.Pattern], "display_name": Optional[str]}
+        Dict: 包含 word, is_regex, pattern, display_name
     """
     display_name = None
 
-    # 解析 => 显示名称 语法（支持 => 两边有或没有空格）
-    # 使用正则匹配：空格可选的 =>
-    display_match = re.search(r'\s*=>\s*', word)
-    if display_match:
+    # 1. 优先处理显示名称 (=>)
+    # 先切分出 "配置内容" 和 "显示名称"
+    if '=>' in word:
         parts = re.split(r'\s*=>\s*', word, 1)
-        word = parts[0].strip()
-        display_name = parts[1].strip() if len(parts) > 1 and parts[1].strip() else None
+        word_config = parts[0].strip()
+        # 只有当 => 右边有内容时才作为 display_name
+        if len(parts) > 1 and parts[1].strip():
+            display_name = parts[1].strip()
+    else:
+        word_config = word.strip()
 
-    # 解析正则表达式：支持 /pattern/ 或 /pattern/flags（如 /pattern/i）
-    # flags 会被忽略，因为默认已启用 IGNORECASE
-    regex_match = re.match(r'^/(.+)/([gimsux]*)$', word)
+    # 2. 解析正则表达式
+    # 规则：以 / 开头，以 / 结尾(可能跟 flags)，中间内容贪婪提取
+    # [a-z]*$ 表示允许末尾有 flags (如 i, g)，但在下面代码中会被忽略
+    regex_match = re.match(r'^/(.+)/[a-z]*$', word_config)
+
     if regex_match:
         pattern_str = regex_match.group(1)
-        # flags 参数被忽略，统一使用 IGNORECASE
         try:
             pattern = re.compile(pattern_str, re.IGNORECASE)
+            
             return {
                 "word": pattern_str,
                 "is_regex": True,
                 "pattern": pattern,
                 "display_name": display_name,
             }
-        except re.error:
-            # 正则表达式无效，当作普通词处理
+        except re.error as e:
+            print(f"Warning: Invalid regex pattern '/{pattern_str}/': {e}")
             pass
 
-    return {"word": word, "is_regex": False, "pattern": None, "display_name": display_name}
+    return {
+        "word": word_config, 
+        "is_regex": False, 
+        "pattern": None, 
+        "display_name": display_name
+    }
 
 
 def _word_matches(word_config: Union[str, Dict], title_lower: str) -> bool:

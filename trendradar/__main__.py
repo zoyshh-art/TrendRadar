@@ -7,6 +7,7 @@ TrendRadar 主程序
 """
 
 import os
+import re
 import webbrowser
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
@@ -23,10 +24,32 @@ from trendradar.utils.time import is_within_days
 from trendradar.ai import AIAnalyzer, AIAnalysisResult
 
 
-def check_version_update(
-    current_version: str, version_url: str, proxy_url: Optional[str] = None
-) -> Tuple[bool, Optional[str]]:
-    """检查版本更新"""
+def _parse_version(version_str: str) -> Tuple[int, int, int]:
+    """解析版本号字符串为元组"""
+    try:
+        parts = version_str.strip().split(".")
+        if len(parts) >= 3:
+            return int(parts[0]), int(parts[1]), int(parts[2])
+        return 0, 0, 0
+    except:
+        return 0, 0, 0
+
+
+def _compare_version(local: str, remote: str) -> str:
+    """比较版本号，返回状态文字"""
+    local_tuple = _parse_version(local)
+    remote_tuple = _parse_version(remote)
+
+    if local_tuple < remote_tuple:
+        return "⚠️ 需要更新"
+    elif local_tuple > remote_tuple:
+        return "🔮 超前版本"
+    else:
+        return "✅ 已是最新"
+
+
+def _fetch_remote_version(version_url: str, proxy_url: Optional[str] = None) -> Optional[str]:
+    """获取远程版本号"""
     try:
         proxies = None
         if proxy_url:
@@ -38,33 +61,123 @@ def check_version_update(
             "Cache-Control": "no-cache",
         }
 
-        response = requests.get(
-            version_url, proxies=proxies, headers=headers, timeout=10
-        )
+        response = requests.get(version_url, proxies=proxies, headers=headers, timeout=10)
         response.raise_for_status()
-
-        remote_version = response.text.strip()
-        print(f"当前版本: {current_version}, 远程版本: {remote_version}")
-
-        # 比较版本
-        def parse_version(version_str):
-            try:
-                parts = version_str.strip().split(".")
-                if len(parts) != 3:
-                    raise ValueError("版本号格式不正确")
-                return int(parts[0]), int(parts[1]), int(parts[2])
-            except:
-                return 0, 0, 0
-
-        current_tuple = parse_version(current_version)
-        remote_tuple = parse_version(remote_version)
-
-        need_update = current_tuple < remote_tuple
-        return need_update, remote_version if need_update else None
-
+        return response.text.strip()
     except Exception as e:
-        print(f"版本检查失败: {e}")
-        return False, None
+        print(f"[版本检查] 获取远程版本失败: {e}")
+        return None
+
+
+def _parse_config_versions(content: str) -> Dict[str, str]:
+    """解析配置文件版本内容为字典"""
+    versions = {}
+    try:
+        if not content:
+            return versions
+        for line in content.splitlines():
+            line = line.strip()
+            if not line or "=" not in line:
+                continue
+            name, version = line.split("=", 1)
+            versions[name.strip()] = version.strip()
+    except Exception as e:
+        print(f"[版本检查] 解析配置版本失败: {e}")
+    return versions
+
+
+def check_all_versions(
+    version_url: str,
+    configs_version_url: Optional[str] = None,
+    proxy_url: Optional[str] = None
+) -> Tuple[bool, Optional[str]]:
+    """
+    统一版本检查：程序版本 + 配置文件版本
+
+    Args:
+        version_url: 远程程序版本检查 URL
+        configs_version_url: 远程配置文件版本检查 URL (返回格式: filename=version)
+        proxy_url: 代理 URL
+
+    Returns:
+        (need_update, remote_version): 程序是否需要更新及远程版本号
+    """
+    # 获取远程版本
+    remote_version = _fetch_remote_version(version_url, proxy_url)
+
+    # 获取远程配置版本（如果有提供 URL）
+    remote_config_versions = {}
+    if configs_version_url:
+        content = _fetch_remote_version(configs_version_url, proxy_url)
+        if content:
+            remote_config_versions = _parse_config_versions(content)
+
+    print("=" * 60)
+    print("版本检查")
+    print("=" * 60)
+
+    if remote_version:
+        print(f"远程程序版本: {remote_version}")
+    else:
+        print("远程程序版本: 获取失败")
+
+    if configs_version_url:
+        if remote_config_versions:
+            print(f"远程配置清单: 获取成功 ({len(remote_config_versions)} 个文件)")
+        else:
+            print("远程配置清单: 获取失败或为空")
+
+    print("-" * 60)
+
+    program_status = _compare_version(__version__, remote_version) if remote_version else "(无法比较)"
+    print(f"  主程序版本: {__version__} {program_status}")
+
+    config_files = [
+        Path("config/config.yaml"),
+        Path("config/frequency_words.txt"),
+        Path("config/ai_analysis_prompt.txt"),
+        Path("config/ai_translation_prompt.txt"),
+    ]
+
+    version_pattern = re.compile(r"Version:\s*(\d+\.\d+\.\d+)", re.IGNORECASE)
+
+    for config_file in config_files:
+        if not config_file.exists():
+            print(f"  {config_file.name}: 文件不存在")
+            continue
+
+        try:
+            with open(config_file, "r", encoding="utf-8") as f:
+                local_version = None
+                for i, line in enumerate(f):
+                    if i >= 20:
+                        break
+                    match = version_pattern.search(line)
+                    if match:
+                        local_version = match.group(1)
+                        break
+
+                # 获取该文件的远程版本
+                target_remote_version = remote_config_versions.get(config_file.name)
+
+                if local_version:
+                    if target_remote_version:
+                        status = _compare_version(local_version, target_remote_version)
+                        print(f"  {config_file.name}: {local_version} {status}")
+                    else:
+                        print(f"  {config_file.name}: {local_version} (未找到远程版本)")
+                else:
+                    print(f"  {config_file.name}: 未找到本地版本号")
+        except Exception as e:
+            print(f"  {config_file.name}: 读取失败 - {e}")
+
+    print("=" * 60)
+
+    # 返回程序版本的更新状态
+    if remote_version:
+        need_update = _parse_version(__version__) < _parse_version(remote_version)
+        return need_update, remote_version if need_update else None
+    return False, None
 
 
 # === 主分析器 ===
@@ -93,10 +206,11 @@ class NewsAnalyzer:
         },
     }
 
-    def __init__(self):
-        # 加载配置
-        print("正在加载配置...")
-        config = load_config()
+    def __init__(self, config: Optional[Dict] = None):
+        # 使用传入的配置或加载新配置
+        if config is None:
+            print("正在加载配置...")
+            config = load_config()
         print(f"TrendRadar v{__version__} 配置加载完成")
         print(f"监控平台数量: {len(config['PLATFORMS'])}")
         print(f"时区: {config.get('TIMEZONE', 'Asia/Shanghai')}")
@@ -116,9 +230,7 @@ class NewsAnalyzer:
 
         # 初始化存储管理器（使用 AppContext）
         self._init_storage_manager()
-
-        if self.is_github_actions:
-            self._check_version_update()
+        # 注意：update_info 由 main() 函数设置，避免重复请求远程版本
 
     def _init_storage_manager(self) -> None:
         """初始化存储管理器（使用 AppContext）"""
@@ -162,21 +274,21 @@ class NewsAnalyzer:
         else:
             print("GitHub Actions环境，不使用代理")
 
-    def _check_version_update(self) -> None:
-        """检查版本更新"""
+    def _set_update_info_from_config(self) -> None:
+        """从已缓存的远程版本设置更新信息（不再重复请求）"""
         try:
-            need_update, remote_version = check_version_update(
-                __version__, self.ctx.config["VERSION_CHECK_URL"], self.proxy_url
-            )
+            version_url = self.ctx.config.get("VERSION_CHECK_URL", "")
+            if not version_url:
+                return
 
-            if need_update and remote_version:
-                self.update_info = {
-                    "current_version": __version__,
-                    "remote_version": remote_version,
-                }
-                print(f"发现新版本: {remote_version} (当前: {__version__})")
-            else:
-                print("版本检查完成，当前为最新版本")
+            remote_version = _fetch_remote_version(version_url, self.proxy_url)
+            if remote_version:
+                need_update = _parse_version(__version__) < _parse_version(remote_version)
+                if need_update:
+                    self.update_info = {
+                        "current_version": __version__,
+                        "remote_version": remote_version,
+                    }
         except Exception as e:
             print(f"版本检查出错: {e}")
 
@@ -210,12 +322,10 @@ class NewsAnalyzer:
     ) -> bool:
         """检查是否有有效的新闻内容"""
         if self.report_mode == "incremental":
-            # 增量模式：必须有新增标题且匹配了关键词才推送
-            has_new_titles = bool(
-                new_titles and any(len(titles) > 0 for titles in new_titles.values())
-            )
+            # 增量模式：只要有匹配的新闻就推送
+            # count_word_frequency 已经确保只处理新增的新闻（包括当天第一次爬取的情况）
             has_matched_news = any(stat["count"] > 0 for stat in stats)
-            return has_new_titles and has_matched_news
+            return has_matched_news
         elif self.report_mode == "current":
             # current模式：只要stats有内容就说明有匹配的新闻
             return any(stat["count"] > 0 for stat in stats)
@@ -227,6 +337,114 @@ class NewsAnalyzer:
             )
             return has_matched_news or has_new_news
 
+    def _prepare_ai_analysis_data(
+        self,
+        ai_mode: str,
+        current_results: Optional[Dict] = None,
+        current_id_to_name: Optional[Dict] = None,
+    ) -> Tuple[List[Dict], Optional[Dict]]:
+        """
+        为 AI 分析准备指定模式的数据
+
+        Args:
+            ai_mode: AI 分析模式 (daily/current/incremental)
+            current_results: 当前抓取的结果（用于 incremental 模式）
+            current_id_to_name: 当前的平台映射（用于 incremental 模式）
+
+        Returns:
+            Tuple[stats, id_to_name]: 统计数据和平台映射
+        """
+        try:
+            word_groups, filter_words, global_filters = self.ctx.load_frequency_words()
+
+            if ai_mode == "incremental":
+                # incremental 模式：使用当前抓取的数据
+                if not current_results or not current_id_to_name:
+                    print("[AI] incremental 模式需要当前抓取数据，但未提供")
+                    return [], None
+
+                # 准备当前时间信息
+                time_info = self.ctx.format_time()
+                title_info = self._prepare_current_title_info(current_results, time_info)
+
+                # 检测新增标题
+                new_titles = self.ctx.detect_new_titles(list(current_results.keys()))
+
+                # 统计计算
+                stats, _ = self.ctx.count_frequency(
+                    current_results,
+                    word_groups,
+                    filter_words,
+                    current_id_to_name,
+                    title_info,
+                    new_titles,
+                    mode="incremental",
+                    global_filters=global_filters,
+                    quiet=True,
+                )
+
+                # 如果是 platform 模式，转换数据结构
+                if self.ctx.display_mode == "platform" and stats:
+                    from trendradar.core.stats import convert_keyword_stats_to_platform_stats
+                    stats = convert_keyword_stats_to_platform_stats(
+                        stats,
+                        self.ctx.weight_config,
+                        self.ctx.rank_threshold,
+                    )
+
+                return stats, current_id_to_name
+
+            elif ai_mode in ["daily", "current"]:
+                # 加载历史数据
+                analysis_data = self._load_analysis_data(quiet=True)
+                if not analysis_data:
+                    print(f"[AI] 无法加载历史数据用于 {ai_mode} 模式分析")
+                    return [], None
+
+                (
+                    all_results,
+                    id_to_name,
+                    title_info,
+                    new_titles,
+                    _,
+                    _,
+                    _,
+                ) = analysis_data
+
+                # 统计计算
+                stats, _ = self.ctx.count_frequency(
+                    all_results,
+                    word_groups,
+                    filter_words,
+                    id_to_name,
+                    title_info,
+                    new_titles,
+                    mode=ai_mode,
+                    global_filters=global_filters,
+                    quiet=True,
+                )
+
+                # 如果是 platform 模式，转换数据结构
+                if self.ctx.display_mode == "platform" and stats:
+                    from trendradar.core.stats import convert_keyword_stats_to_platform_stats
+                    stats = convert_keyword_stats_to_platform_stats(
+                        stats,
+                        self.ctx.weight_config,
+                        self.ctx.rank_threshold,
+                    )
+
+                return stats, id_to_name
+            else:
+                print(f"[AI] 未知的 AI 模式: {ai_mode}")
+                return [], None
+
+        except Exception as e:
+            print(f"[AI] 准备 {ai_mode} 模式数据时出错: {e}")
+            if self.ctx.config.get("DEBUG", False):
+                import traceback
+                traceback.print_exc()
+            return [], None
+
     def _run_ai_analysis(
         self,
         stats: List[Dict],
@@ -234,11 +452,34 @@ class NewsAnalyzer:
         mode: str,
         report_type: str,
         id_to_name: Optional[Dict],
+        current_results: Optional[Dict] = None,
     ) -> Optional[AIAnalysisResult]:
         """执行 AI 分析"""
         analysis_config = self.ctx.config.get("AI_ANALYSIS", {})
         if not analysis_config.get("ENABLED", False):
             return None
+
+        # AI 分析时间窗口控制
+        analysis_window = analysis_config.get("ANALYSIS_WINDOW", {})
+        if analysis_window.get("ENABLED", False):
+            push_manager = self.ctx.create_push_manager()
+            time_range_start = analysis_window["TIME_RANGE"]["START"]
+            time_range_end = analysis_window["TIME_RANGE"]["END"]
+
+            if not push_manager.is_in_time_range(time_range_start, time_range_end):
+                now = self.ctx.get_time()
+                print(
+                    f"[AI] 分析窗口控制：当前时间 {now.strftime('%H:%M')} 不在分析时间窗口 {time_range_start}-{time_range_end} 内，跳过 AI 分析"
+                )
+                return None
+
+            if analysis_window.get("ONCE_PER_DAY", False):
+                # 检查今天是否已经进行过 AI 分析
+                if push_manager.storage_backend.has_ai_analyzed_today():
+                    print(f"[AI] 分析窗口控制：今天已分析过，跳过本次 AI 分析")
+                    return None
+                else:
+                    print(f"[AI] 分析窗口控制：今天首次分析")
 
         print("[AI] 正在进行 AI 分析...")
         try:
@@ -246,27 +487,78 @@ class NewsAnalyzer:
             debug_mode = self.ctx.config.get("DEBUG", False)
             analyzer = AIAnalyzer(ai_config, analysis_config, self.ctx.get_time, debug=debug_mode)
 
+            # 确定 AI 分析使用的模式
+            ai_mode_config = analysis_config.get("MODE", "follow_report")
+            if ai_mode_config == "follow_report":
+                # 跟随推送报告模式
+                ai_mode = mode
+                ai_stats = stats
+                ai_id_to_name = id_to_name
+            elif ai_mode_config in ["daily", "current", "incremental"]:
+                # 使用独立配置的模式，需要重新准备数据
+                ai_mode = ai_mode_config
+                if ai_mode != mode:
+                    print(f"[AI] 使用独立分析模式: {ai_mode} (推送模式: {mode})")
+                    print(f"[AI] 正在准备 {ai_mode} 模式的数据...")
+
+                    # 根据 AI 模式重新准备数据
+                    ai_stats, ai_id_to_name = self._prepare_ai_analysis_data(
+                        ai_mode, current_results, id_to_name
+                    )
+                    if not ai_stats:
+                        print(f"[AI] 警告: 无法准备 {ai_mode} 模式的数据，回退到推送模式数据")
+                        ai_stats = stats
+                        ai_id_to_name = id_to_name
+                        ai_mode = mode
+                else:
+                    ai_stats = stats
+                    ai_id_to_name = id_to_name
+            else:
+                # 配置错误，回退到跟随模式
+                print(f"[AI] 警告: 无效的 ai_analysis.mode 配置 '{ai_mode_config}'，使用推送模式 '{mode}'")
+                ai_mode = mode
+                ai_stats = stats
+                ai_id_to_name = id_to_name
+
             # 提取平台列表
-            platforms = list(id_to_name.values()) if id_to_name else []
+            platforms = list(ai_id_to_name.values()) if ai_id_to_name else []
 
             # 提取关键词列表
-            keywords = [s.get("word", "") for s in stats if s.get("word")] if stats else []
+            keywords = [s.get("word", "") for s in ai_stats if s.get("word")] if ai_stats else []
+
+            # 确定报告类型
+            if ai_mode != mode:
+                # 根据 AI 模式确定报告类型
+                ai_report_type = {
+                    "daily": "当日汇总",
+                    "current": "当前榜单",
+                    "incremental": "增量更新"
+                }.get(ai_mode, report_type)
+            else:
+                ai_report_type = report_type
 
             result = analyzer.analyze(
-                stats=stats,
+                stats=ai_stats,
                 rss_stats=rss_items,
-                report_mode=mode,
-                report_type=report_type,
+                report_mode=ai_mode,
+                report_type=ai_report_type,
                 platforms=platforms,
                 keywords=keywords,
             )
 
+            # 设置 AI 分析使用的模式
             if result.success:
+                result.ai_mode = ai_mode
                 if result.error:
                     # 成功但有警告（如 JSON 解析问题但使用了原始文本）
                     print(f"[AI] 分析完成（有警告: {result.error}）")
                 else:
                     print("[AI] 分析完成")
+
+                # 记录 AI 分析（如果启用了 once_per_day）
+                if analysis_window.get("ENABLED", False) and analysis_window.get("ONCE_PER_DAY", False):
+                    push_manager = self.ctx.create_push_manager()
+                    push_manager.storage_backend.record_ai_analysis(ai_mode)
             else:
                 print(f"[AI] 分析失败: {result.error}")
 
@@ -538,7 +830,7 @@ class NewsAnalyzer:
             mode_strategy = self._get_mode_strategy()
             report_type = mode_strategy["report_type"]
             ai_result = self._run_ai_analysis(
-                stats, rss_items, mode, report_type, id_to_name
+                stats, rss_items, mode, report_type, id_to_name, current_results=data_source
             )
 
         # HTML生成（如果启用）
@@ -573,6 +865,7 @@ class NewsAnalyzer:
         rss_new_items: Optional[List[Dict]] = None,
         standalone_data: Optional[Dict] = None,
         ai_result: Optional[AIAnalysisResult] = None,
+        current_results: Optional[Dict] = None,
     ) -> bool:
         """统一的通知发送逻辑，包含所有判断条件，支持热榜+RSS合并推送+AI分析+独立展示区"""
         has_notification = self._has_notification_configured()
@@ -627,7 +920,7 @@ class NewsAnalyzer:
                 ai_config = cfg.get("AI_ANALYSIS", {})
                 if ai_config.get("ENABLED", False):
                     ai_result = self._run_ai_analysis(
-                        stats, rss_items, mode, report_type, id_to_name
+                        stats, rss_items, mode, report_type, id_to_name, current_results=current_results
                     )
 
             # 准备报告数据
@@ -677,13 +970,10 @@ class NewsAnalyzer:
         ):
             mode_strategy = self._get_mode_strategy()
             if self.report_mode == "incremental":
-                has_new = bool(
-                    new_titles and any(len(titles) > 0 for titles in new_titles.values())
-                )
-                if not has_new and not has_rss_content:
-                    print("跳过通知：增量模式下未检测到新增的新闻和RSS")
-                elif not has_new:
-                    print("跳过通知：增量模式下新增新闻未匹配到关键词")
+                if not has_rss_content:
+                    print("跳过通知：增量模式下未检测到匹配的新闻和RSS")
+                else:
+                    print("跳过通知：增量模式下新闻未匹配到关键词")
             else:
                 print(
                     f"跳过通知：{mode_strategy['mode_name']}下未检测到匹配的新闻"
@@ -1299,6 +1589,7 @@ class NewsAnalyzer:
                 rss_new_items=rss_new_items,
                 standalone_data=standalone_data,
                 ai_result=ai_result,
+                current_results=results,
             )
 
         # 打开浏览器（仅在非容器环境）
@@ -1344,7 +1635,27 @@ def main():
     """主程序入口"""
     debug_mode = False
     try:
-        analyzer = NewsAnalyzer()
+        # 先加载配置以获取 version_check_url
+        config = load_config()
+        version_url = config.get("VERSION_CHECK_URL", "")
+        configs_version_url = config.get("CONFIGS_VERSION_CHECK_URL", "")
+
+        # 统一版本检查（程序版本 + 配置文件版本，只请求一次远程）
+        need_update = False
+        remote_version = None
+        if version_url:
+            need_update, remote_version = check_all_versions(version_url, configs_version_url)
+
+        # 复用已加载的配置，避免重复加载
+        analyzer = NewsAnalyzer(config=config)
+
+        # 设置更新信息（复用已获取的远程版本，不再重复请求）
+        if analyzer.is_github_actions and need_update and remote_version:
+            analyzer.update_info = {
+                "current_version": __version__,
+                "remote_version": remote_version,
+            }
+
         # 获取 debug 配置
         debug_mode = analyzer.ctx.config.get("DEBUG", False)
         analyzer.run()

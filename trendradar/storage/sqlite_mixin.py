@@ -755,6 +755,69 @@ class SQLiteStorageMixin:
             print(f"[存储] 记录推送失败: {e}")
             return False
 
+    def _has_ai_analyzed_today_impl(self, date: Optional[str] = None) -> bool:
+        """
+        检查指定日期是否已进行过 AI 分析
+
+        Args:
+            date: 日期字符串（YYYY-MM-DD），默认为今天
+
+        Returns:
+            是否已分析
+        """
+        try:
+            conn = self._get_connection(date)
+            cursor = conn.cursor()
+
+            target_date = self._format_date_folder(date)
+
+            cursor.execute("""
+                SELECT ai_analyzed FROM push_records WHERE date = ?
+            """, (target_date,))
+
+            row = cursor.fetchone()
+            if row:
+                return bool(row[0])
+            return False
+
+        except Exception as e:
+            print(f"[存储] 检查 AI 分析记录失败: {e}")
+            return False
+
+    def _record_ai_analysis_impl(self, analysis_mode: str, date: Optional[str] = None) -> bool:
+        """
+        记录 AI 分析
+
+        Args:
+            analysis_mode: 分析模式（daily/current/incremental）
+            date: 日期字符串（YYYY-MM-DD），默认为今天
+
+        Returns:
+            是否记录成功
+        """
+        try:
+            conn = self._get_connection(date)
+            cursor = conn.cursor()
+
+            target_date = self._format_date_folder(date)
+            now_str = self._get_configured_time().strftime("%Y-%m-%d %H:%M:%S")
+
+            cursor.execute("""
+                INSERT INTO push_records (date, ai_analyzed, ai_analysis_time, ai_analysis_mode, created_at)
+                VALUES (?, 1, ?, ?, ?)
+                ON CONFLICT(date) DO UPDATE SET
+                    ai_analyzed = 1,
+                    ai_analysis_time = excluded.ai_analysis_time,
+                    ai_analysis_mode = excluded.ai_analysis_mode
+            """, (target_date, now_str, analysis_mode, now_str))
+
+            conn.commit()
+            return True
+
+        except Exception as e:
+            print(f"[存储] 记录 AI 分析失败: {e}")
+            return False
+
     # ========================================
     # RSS 数据存储
     # ========================================

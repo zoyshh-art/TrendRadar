@@ -307,6 +307,31 @@ class StorageManager:
         """
         return self.get_backend().record_push(report_type, date)
 
+    def has_ai_analyzed_today(self, date: Optional[str] = None) -> bool:
+        """
+        检查指定日期是否已进行过 AI 分析
+
+        Args:
+            date: 日期字符串（YYYY-MM-DD），默认为今天
+
+        Returns:
+            是否已分析
+        """
+        return self.get_backend().has_ai_analyzed_today(date)
+
+    def record_ai_analysis(self, analysis_mode: str, date: Optional[str] = None) -> bool:
+        """
+        记录 AI 分析
+
+        Args:
+            analysis_mode: 分析模式（daily/current/incremental）
+            date: 日期字符串（YYYY-MM-DD），默认为今天
+
+        Returns:
+            是否记录成功
+        """
+        return self.get_backend().record_ai_analysis(analysis_mode, date)
+
 
 def get_storage_manager(
     backend_type: str = "auto",
