@@ -8,12 +8,10 @@ Deploy in <strong>30 seconds</strong> — Say goodbye to endless scrolling, only
 
 <a href="https://trendshift.io/repositories/14726" target="_blank"><img src="https://trendshift.io/api/badge/repositories/14726" alt="sansan0%2FTrendRadar | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-<a href="https://shandianshuo.cn" target="_blank" title="AI Voice Input, 4x Faster Than Typing ⚡"><img src="_image/shandianshuo.png" alt="FlashSpeak logo" height="50"/></a>
-
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v5.4.0-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v5.5.0-blue.svg)](https://github.com/sansan0/TrendRadar)
 [![MCP](https://img.shields.io/badge/MCP-v3.1.7-green.svg)](https://github.com/sansan0/TrendRadar)
 [![RSS](https://img.shields.io/badge/RSS-Feed_Support-orange.svg?style=flat-square&logo=rss&logoColor=white)](https://github.com/sansan0/TrendRadar)
 [![AI Translation](https://img.shields.io/badge/AI-Multi--Language-purple.svg?style=flat-square)](https://github.com/sansan0/TrendRadar)
@@ -137,34 +135,63 @@ After communication, the author indicated no concerns about server pressure, but
 
 ## 🪄 Sponsors
 
-> Writing reports, replying messages making your wrists tired? Try「FlashSpeak」AI Voice Input - Speak instead of type, 4x faster ⚡
-
 <div align="center">
 
-[![Mac Download](https://img.shields.io/badge/Mac-Free_Download-FF6B6B?style=for-the-badge&logo=apple&logoColor=white)](https://shandianshuo.cn) [![Windows Download](https://img.shields.io/badge/Windows-Free_Download-FF6B6B?style=for-the-badge&logo=lightning&logoColor=white)](https://shandianshuo.cn)
-<a href="https://shandianshuo.cn" target="_blank">
-  <img src="_image/banner-shandianshuo.png" alt="FlashSpeak" width="600"/>
-</a>
+> **Sponsorship Open**  
+>
+> Seeking quality product partners.  
+> More than features, I value **your attitude towards users**.  
+> Please share your user community or feedback channels—I want to see how you support your users.  
+> [📩 Contact Me](mailto:path@linux.do)  
+
 </div>
 
 <br>
 
-## ☕ Support Project
+<a name="-support-project"></a>
 
-> If this project is helpful to you, you can choose the following ways to support:
-> 1. **Public Welfare**: Search for **Tencent Charity** on WeChat and donate to **Education Support** related projects as you wish.
->
-> 2. **Sponsor the Developer**: Your sponsorship will be used to replenish caffeine for the carbon-based organism and Token consumption for the silicon-based organism.
+## ✨ Find it useful? Support TrendRadar
 
+TrendRadar is a completely free and open-source project. Your support fuels the motivation for continuous updates.
 
-- **GitHub Issues**: Suitable for targeted answers. Please provide complete info when asking (screenshots, error logs, system environment, etc.).
-- **Official Account**: Suggested for interaction. Please prioritize public comments under relevant articles. If you need to ask questions, liking, recommending, or sharing articles to show support is highly appreciated! (´▽`ʃ♡ƪ).
-  <br>*(Friendly Reminder: This is a free open-source project, not a commercial service. Please check the documentation first if you encounter issues. Patience and courtesy are expected. I cannot respond to demands for customer support or emotional accusations. Thank you for understanding. Additionally, significant effort went into the documentation; it is strongly recommended to read the [**🚀 Quick Start**](#-quick-start) section first, where most deployment answers can be found.)*
+### ❤️ Donate
 
+A bottle of water or a snack represents your love.
+Any amount is welcome; even 1 RMB is a gesture of kindness.
 
-| Official Account | WeChat Appreciation | Alipay Appreciation |
-|:---:|:---:|:---:|
-| <img src="_image/weixin.png" width="300" title="Silicon Tea Room"/> | <img src="https://cdn-1258574687.cos.ap-shanghai.myqcloud.com/img/%2F2025%2F07%2F17%2F2ae0a88d98079f7e876c2b4dc85233c6-9e8025.JPG" width="300" title="WeChat Pay"/> | <img src="https://cdn-1258574687.cos.ap-shanghai.myqcloud.com/img/%2F2025%2F07%2F17%2F1ed4f20ab8e35be51f8e84c94e6e239b4-fe4947.JPG" width="300" title="Alipay"/> |
+> Your sponsorship will be used to replenish caffeine for carbon-based lifeforms ☕️ and API Tokens for silicon-based lifeforms 🤖.
+
+<div align="center">
+
+| WeChat Pay | Alipay |
+| --- | --- |
+| <img src="https://cdn-1258574687.cos.ap-shanghai.myqcloud.com/img/%2F2025%2F07%2F17%2F2ae0a88d98079f7e876c2b4dc85233c6-9e8025.JPG" width="240" alt="WeChat Pay"> | <img src="https://cdn-1258574687.cos.ap-shanghai.myqcloud.com/img/%2F2025%2F07%2F17%2F1ed4f20ab8e35be51f8e84c94e6e239b4-fe4947.JPG" width="240" alt="Alipay"> |
+
+</div>
+
+### 🌟 Other Ways to Support
+
+1. **Star the Repo** ⭐️: It only takes **1 second**. Letting more people see this project is the greatest recognition for me.
+2. **Charity** 🌻: Search for **Tencent Charity** (or support a local charity) to help students in need. Pass this kindness forward.
+
+---
+
+### 💬 Feedback & Community
+
+* **GitHub Issues**: Best for specific technical issues. Please provide complete information (screenshots, error logs, etc.) to help locate the problem quickly.
+* **WeChat Official Account**: It is recommended to leave comments under relevant articles. If you need to ask questions in the background, **liking/recommending** the article first is the best "icebreaker," and I can feel your appreciation (´▽`ʃ♡ƪ).
+
+> **Friendly Reminder**:  
+> This project is for open-source sharing, not a commercial product. A lot of effort went into the documentation; most deployment issues can be answered in **[🚀 Quick Start](#-quick-start)**.   
+> *Please be patient and polite when asking questions. Treat the author as a friend, not customer service, for better communication efficiency!*  
+
+<div align="center">
+
+| Follow on WeChat |
+| --- |
+| <img src="_image/weixin.png" width="500" title="Silicon-based Tea Room"/> |
+
+</div>
 
 <br>
 

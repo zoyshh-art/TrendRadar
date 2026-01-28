@@ -8,12 +8,11 @@
 
 <a href="https://trendshift.io/repositories/14726" target="_blank"><img src="https://trendshift.io/api/badge/repositories/14726" alt="sansan0%2FTrendRadar | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-<a href="https://shandianshuo.cn" target="_blank" title="AI 语音输入，比打字快 4 倍 ⚡"><img src="_image/shandianshuo.png" alt="闪电说 logo" height="50"/></a>
 
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v5.4.0-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v5.5.0-blue.svg)](https://github.com/sansan0/TrendRadar)
 [![MCP](https://img.shields.io/badge/MCP-v3.1.7-green.svg)](https://github.com/sansan0/TrendRadar)
 [![RSS](https://img.shields.io/badge/RSS-订阅源支持-orange.svg?style=flat-square&logo=rss&logoColor=white)](https://github.com/sansan0/TrendRadar)
 [![AI翻译](https://img.shields.io/badge/AI-多语言推送-purple.svg?style=flat-square)](https://github.com/sansan0/TrendRadar)
@@ -184,34 +183,62 @@
 
 ## 🪄 赞助商
 
-> 每天写报告、回复消息是否让手腕疲惫？试试「闪电说」AI 语音输入法 —— 说话，比打字快 4 倍 ⚡ 
-
 <div align="center">
 
-[![Mac下载](https://img.shields.io/badge/Mac-免费下载-FF6B6B?style=for-the-badge&logo=apple&logoColor=white)](https://shandianshuo.cn) [![Windows下载](https://img.shields.io/badge/Windows-免费下载-FF6B6B?style=for-the-badge&logo=lightning&logoColor=white)](https://shandianshuo.cn)
-<a href="https://shandianshuo.cn" target="_blank">
-  <img src="_image/banner-shandianshuo.png" alt="闪电说" width="600"/>
-</a>
+> **虚位以待**
+>
+> 寻找靠谱的产品赞助。   
+> 比起功能，我更看重**你对待用户的态度**。  
+> 请附带你的用户群或反馈渠道，让我看到你是如何帮助用户解决问题的。  
+> [📩 点击联系](mailto:path@linux.do) 
+
 </div>
 
 <br>
 
-## ☕ 支持项目
+<a name="-支持项目"></a>
+## ✨ 觉得好用？支持一下
 
-> 如果本项目对你有帮助，你可以选择以下方式支持：
-> 1. **公益助学**：微信搜索**腾讯公益**，对里面的**助学**相关的项目随心捐。
->
-> 2. **赞助开发者**：你的赞助将用于补充碳基生物的咖啡因和硅基生物的 Token 消耗。
+TrendRadar 是完全开源免费的项目，持续更新需要你的动力支持。
 
+### ❤️ 随心赞赏
 
-- **GitHub Issues**：适合针对性强的解答。提问时请提供完整信息（截图、错误日志、系统环境等）。
-- **公众号交流**：建议优先在相关文章下的公共留言区交流。若需提问，欢迎先点赞、推荐或分享文章表达支持，我在后台都能感受到这份心意哟 (´▽`ʃ♡ƪ)。
-  <br>*(友情提示：本项目为免费开源分享，非商业服务。遇到部署问题请先查阅文档，提问请保持耐心与礼貌。对于将开源作者视为客服或带有情绪的指责，恕难回应，感谢理解。此外，文档倾注了大量心血，强烈建议优先阅读 [**🚀 快速开始**](#-快速开始) 章节，绝大多数部署问题都能从中找到答案。)*
+一瓶水、一包辣条都是爱。
+金额随意，1 元也是一份心意。
 
+> 你的赞助将用于补充碳基生物的咖啡因 ☕️ 和硅基生物的 API Token 消耗 🤖。
 
-|公众号关注 |微信点赞 | 支付宝点赞 |
-|:---:|:---:|:---:|
-| <img src="_image/weixin.png" width="300" title="硅基茶水间"/> | <img src="https://cdn-1258574687.cos.ap-shanghai.myqcloud.com/img/%2F2025%2F07%2F17%2F2ae0a88d98079f7e876c2b4dc85233c6-9e8025.JPG" width="300" title="微信支付"/> | <img src="https://cdn-1258574687.cos.ap-shanghai.myqcloud.com/img/%2F2025%2F07%2F17%2F1ed4f20ab8e35be51f8e84c94e6e239b4-fe4947.JPG" width="300" title="支付宝支付"/> |
+<div align="center">
+
+| 微信赞赏 | 支付宝赞赏 |
+|:---:|:---:|
+| <img src="https://cdn-1258574687.cos.ap-shanghai.myqcloud.com/img/%2F2025%2F07%2F17%2F2ae0a88d98079f7e876c2b4dc85233c6-9e8025.JPG" width="240" alt="微信赞赏"> | <img src="https://cdn-1258574687.cos.ap-shanghai.myqcloud.com/img/%2F2025%2F07%2F17%2F1ed4f20ab8e35be51f8e84c94e6e239b4-fe4947.JPG" width="240" alt="支付宝赞赏"> |
+
+</div>
+
+### 🌟 其他支持方式
+
+1. **点亮 Star** ⭐️：动动手指只需 **1 秒**，让更多人看到这个项目，这是对我最大的认可。
+2. **公益助学** 🌻：微信搜索**腾讯公益**，支持**助学**项目。将这份善意传递给需要的人。
+
+---
+
+### 💬 交流与反馈
+
+- **GitHub Issues**：适合具体的技术问题。提问时请提供完整信息（截图、错误日志等），有助于快速定位。
+- **公众号交流**：建议优先在相关文章下的留言区交流。若需后台提问，**先点赞/推荐**文章是最好的“敲门砖”，我在后台都能感受到这份心意哟 (´▽`ʃ♡ƪ)。
+
+> **友情提示**：   
+> 本项目为开源分享，非商业产品。文档倾注了大量心血，绝大多数部署问题都能在 [**🚀 快速开始**](#-快速开始) 中找到答案。   
+> *提问请保持耐心与礼貌，把作者当朋友而非客服，沟通效率会更高哦！*  
+
+<div align="center">
+
+|公众号关注 |
+|:---:|
+| <img src="_image/weixin.png" width="500" title="硅基茶水间"/> |
+
+</div>
 
 <br>
 
@@ -221,12 +248,11 @@
 - **提示**：建议查看【历史更新】，明确具体的【功能内容】
 
 
-### 2026/01/23 - v5.4.0
+### 2026/01/28 - v5.5.0
 
-- 增加 AI 分析模式的独立控制功能，可选 follow_report | daily | current | incremental 
-- 新增 AI 分析时间窗口控制，支持自定义运行段及每日频次限制
-- 增加配置文件版本管理功能
-- 修复若干bug
+> 和 mcp 功能一样, 这个小工具我也不新开一个仓库维护了, 反正纯前端, 都搁一起吧
+
+- 增加 trendradar 的可视化配置编辑器 
 
 
 ### 2026/01/10 - mcp-v3.0.0~v3.1.5
@@ -242,6 +268,14 @@
 
 <details>
 <summary>👉 点击展开：<strong>历史更新</strong></summary>
+
+
+### 2026/01/23 - v5.4.0
+
+- 增加 AI 分析模式的独立控制功能，可选 follow_report | daily | current | incremental 
+- 新增 AI 分析时间窗口控制，支持自定义运行段及每日频次限制
+- 增加配置文件版本管理功能
+- 修复若干bug
 
 
 ### 2026/01/19 - v5.3.0
