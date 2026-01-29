@@ -1367,10 +1367,8 @@ function buildFrequencyText(data) {
         data.globalFilter.forEach(filter => {
             result.push(filter);
         });
-        result.push('');
-        result.push('');
 
-        // 跳过原始文件中的 [GLOBAL_FILTER] 内容（非注释行），保留注释直到 [WORD_GROUPS]
+        // 跳过原始文件中的 [GLOBAL_FILTER] 内容（非注释行），保留空行和注释直到 [WORD_GROUPS]
         while (i < lines.length) {
             const line = lines[i];
             const trimmed = line.trim();
@@ -1386,7 +1384,6 @@ function buildFrequencyText(data) {
 
         // 第三步：重建 [WORD_GROUPS] 区域
         result.push('[WORD_GROUPS]');
-        result.push('');
 
         // 添加词组（注释已保存在每个词组的 precedingComments 中）
         data.wordGroups.forEach((group, index) => {
