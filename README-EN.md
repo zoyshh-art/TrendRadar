@@ -174,6 +174,19 @@ Any amount is welcome; even 1 RMB is a gesture of kindness.
 1. **Star the Repo** ⭐️: It only takes **1 second**. Letting more people see this project is the greatest recognition for me.
 2. **Charity** 🌻: Search for **Tencent Charity** (or support a local charity) to help students in need. Pass this kindness forward.
 
+### 🤝 Attribution & Secondary Development
+
+If you utilize the core code or draw inspiration from the logic of this project, **it would be greatly appreciated** if you could acknowledge the source in your README or documentation and include a link to this repository.
+
+> [https://github.com/sansan0/TrendRadar](https://github.com/sansan0/TrendRadar)
+
+This contributes to the sustainable maintenance of the project and the growth of the community. Thank you for your respect and support! ❤️
+
+**Reference Example** (e.g., my other project):
+
+> [https://github.com/sansan0/bilibili-comment-analyzer](https://github.com/sansan0/bilibili-comment-analyzer)
+
+
 ---
 
 ### 💬 Feedback & Community

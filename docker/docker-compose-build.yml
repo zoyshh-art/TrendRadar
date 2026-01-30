@@ -43,7 +43,7 @@ services:
       - GENERIC_WEBHOOK_URL=${GENERIC_WEBHOOK_URL:-}
       - GENERIC_WEBHOOK_TEMPLATE=${GENERIC_WEBHOOK_TEMPLATE:-}
       # AI 配置（ai_analysis 和 ai_translation 共享模型配置）
-      - AI_ANALYSIS_ENABLED=${AI_ANALYSIS_ENABLED:-false}
+      - AI_ANALYSIS_ENABLED=${AI_ANALYSIS_ENABLED:-}
       - AI_API_KEY=${AI_API_KEY:-}
       - AI_MODEL=${AI_MODEL:-}
       - AI_API_BASE=${AI_API_BASE:-}
