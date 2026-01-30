@@ -385,7 +385,6 @@ class NewsAnalyzer:
 
                 # 如果是 platform 模式，转换数据结构
                 if self.ctx.display_mode == "platform" and stats:
-                    from trendradar.core.stats import convert_keyword_stats_to_platform_stats
                     stats = convert_keyword_stats_to_platform_stats(
                         stats,
                         self.ctx.weight_config,
@@ -426,7 +425,6 @@ class NewsAnalyzer:
 
                 # 如果是 platform 模式，转换数据结构
                 if self.ctx.display_mode == "platform" and stats:
-                    from trendradar.core.stats import convert_keyword_stats_to_platform_stats
                     stats = convert_keyword_stats_to_platform_stats(
                         stats,
                         self.ctx.weight_config,
