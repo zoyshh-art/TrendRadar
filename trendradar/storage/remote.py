@@ -93,10 +93,10 @@ class RemoteStorageBackend(SQLiteStorageMixin, StorageBackend):
         # 初始化 S3 客户端
         # 使用 virtual-hosted style addressing（主流）
         # 根据服务商选择签名版本：
-        # - 腾讯云 COS 使用 SigV2 以避免 chunked encoding 问题
-        # - 其他服务商（AWS S3、Cloudflare R2、阿里云 OSS、MinIO 等）默认使用 SigV4
-        is_tencent_cos = "myqcloud.com" in endpoint_url.lower()
-        signature_version = 's3' if is_tencent_cos else 's3v4'
+        # - 腾讯云 COS 和 阿里云 OSS 使用 SigV2 以避免 chunked encoding 问题
+        # - 其他服务商（AWS S3、Cloudflare R2、MinIO 等）默认使用 SigV4
+        use_sigv2 = "myqcloud.com" in endpoint_url.lower() or "aliyuncs.com" in endpoint_url.lower()
+        signature_version = 's3' if use_sigv2 else 's3v4'
 
         s3_config = BotoConfig(
             s3={"addressing_style": "virtual"},
