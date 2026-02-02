@@ -9,6 +9,7 @@ import os
 from typing import Optional
 
 from trendradar.storage.base import StorageBackend, NewsData, RSSData
+from trendradar.utils.time import DEFAULT_TIMEZONE
 
 
 # 存储管理器单例
@@ -37,7 +38,7 @@ class StorageManager:
         remote_retention_days: int = 0,
         pull_enabled: bool = False,
         pull_days: int = 0,
-        timezone: str = "Asia/Shanghai",
+        timezone: str = DEFAULT_TIMEZONE,
     ):
         """
         初始化存储管理器
@@ -52,7 +53,7 @@ class StorageManager:
             remote_retention_days: 远程数据保留天数（0 = 无限制）
             pull_enabled: 是否启用启动时自动拉取
             pull_days: 拉取最近 N 天的数据
-            timezone: 时区配置（默认 Asia/Shanghai）
+            timezone: 时区配置
         """
         self.backend_type = backend_type
         self.data_dir = data_dir
@@ -343,7 +344,7 @@ def get_storage_manager(
     remote_retention_days: int = 0,
     pull_enabled: bool = False,
     pull_days: int = 0,
-    timezone: str = "Asia/Shanghai",
+    timezone: str = DEFAULT_TIMEZONE,
     force_new: bool = False,
 ) -> StorageManager:
     """
@@ -359,7 +360,7 @@ def get_storage_manager(
         remote_retention_days: 远程数据保留天数（0 = 无限制）
         pull_enabled: 是否启用启动时自动拉取
         pull_days: 拉取最近 N 天的数据
-        timezone: 时区配置（默认 Asia/Shanghai）
+        timezone: 时区配置
         force_new: 是否强制创建新实例
 
     Returns:

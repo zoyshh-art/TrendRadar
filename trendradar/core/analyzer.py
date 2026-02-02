@@ -11,6 +11,7 @@
 from typing import Dict, List, Tuple, Optional, Callable
 
 from trendradar.core.frequency import matches_word_groups, _word_matches
+from trendradar.utils.time import DEFAULT_TIMEZONE
 
 
 def calculate_news_weight(
@@ -496,7 +497,7 @@ def count_rss_frequency(
     new_items: Optional[List[Dict]] = None,
     max_news_per_keyword: int = 0,
     sort_by_position_first: bool = False,
-    timezone: str = "Asia/Shanghai",
+    timezone: str = DEFAULT_TIMEZONE,
     rank_threshold: int = 5,
     quiet: bool = False,
 ) -> Tuple[List[Dict], int]:

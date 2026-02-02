@@ -16,6 +16,7 @@ from typing import Dict, List, Optional
 from trendradar.storage.base import StorageBackend, NewsItem, NewsData, RSSItem, RSSData
 from trendradar.storage.sqlite_mixin import SQLiteStorageMixin
 from trendradar.utils.time import (
+    DEFAULT_TIMEZONE,
     get_configured_time,
     format_date_folder,
     format_time_filename,
@@ -37,7 +38,7 @@ class LocalStorageBackend(SQLiteStorageMixin, StorageBackend):
         data_dir: str = "output",
         enable_txt: bool = True,
         enable_html: bool = True,
-        timezone: str = "Asia/Shanghai",
+        timezone: str = DEFAULT_TIMEZONE,
     ):
         """
         初始化本地存储后端
@@ -46,7 +47,7 @@ class LocalStorageBackend(SQLiteStorageMixin, StorageBackend):
             data_dir: 数据目录路径
             enable_txt: 是否启用 TXT 快照
             enable_html: 是否启用 HTML 报告
-            timezone: 时区配置（默认 Asia/Shanghai）
+            timezone: 时区配置
         """
         self.data_dir = Path(data_dir)
         self.enable_txt = enable_txt
@@ -201,6 +202,18 @@ class LocalStorageBackend(SQLiteStorageMixin, StorageBackend):
             now_str = self._get_configured_time().strftime("%Y-%m-%d %H:%M:%S")
             print(f"[本地存储] AI 分析记录已保存: {analysis_mode} at {now_str}")
         return success
+
+    def reset_push_state(self, date: Optional[str] = None) -> bool:
+        """重置推送状态"""
+        return self._reset_push_state_impl(date)
+
+    def reset_ai_analysis_state(self, date: Optional[str] = None) -> bool:
+        """重置 AI 分析状态"""
+        return self._reset_ai_analysis_state_impl(date)
+
+    def get_push_status(self, date: Optional[str] = None) -> dict:
+        """获取推送状态详情"""
+        return self._get_push_status_impl(date)
 
     # ========================================
     # RSS 数据存储方法

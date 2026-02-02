@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Callable
 
 from trendradar.report.formatter import format_title_for_platform
 from trendradar.report.helpers import format_rank_display
-from trendradar.utils.time import format_iso_time_friendly, convert_time_for_display
+from trendradar.utils.time import DEFAULT_TIMEZONE, format_iso_time_friendly, convert_time_for_display
 
 
 # 默认批次大小配置
@@ -37,7 +37,7 @@ def split_content_into_batches(
     get_time_func: Optional[Callable[[], datetime]] = None,
     rss_items: Optional[list] = None,
     rss_new_items: Optional[list] = None,
-    timezone: str = "Asia/Shanghai",
+    timezone: str = DEFAULT_TIMEZONE,
     display_mode: str = "keyword",
     ai_content: Optional[str] = None,
     standalone_data: Optional[Dict] = None,
@@ -834,7 +834,7 @@ def _process_rss_stats_section(
     current_batch: str,
     current_batch_has_content: bool,
     batches: List[str],
-    timezone: str = "Asia/Shanghai",
+    timezone: str = DEFAULT_TIMEZONE,
     add_separator: bool = True,
 ) -> tuple:
     """处理 RSS 统计区块（按关键词分组，与热榜统计格式一致）
@@ -1057,7 +1057,7 @@ def _process_rss_new_titles_section(
     current_batch: str,
     current_batch_has_content: bool,
     batches: List[str],
-    timezone: str = "Asia/Shanghai",
+    timezone: str = DEFAULT_TIMEZONE,
     add_separator: bool = True,
 ) -> tuple:
     """处理 RSS 新增区块（按来源分组，与热榜新增格式一致）
@@ -1237,7 +1237,7 @@ def _format_rss_item_line(
     item: Dict,
     index: int,
     format_type: str,
-    timezone: str = "Asia/Shanghai",
+    timezone: str = DEFAULT_TIMEZONE,
 ) -> str:
     """格式化单条 RSS 条目
 
@@ -1297,7 +1297,7 @@ def _process_standalone_section(
     current_batch: str,
     current_batch_has_content: bool,
     batches: List[str],
-    timezone: str = "Asia/Shanghai",
+    timezone: str = DEFAULT_TIMEZONE,
     rank_threshold: int = 10,
     add_separator: bool = True,
 ) -> tuple:

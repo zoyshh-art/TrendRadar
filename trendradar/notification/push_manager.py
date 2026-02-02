@@ -7,9 +7,11 @@
 """
 
 from datetime import datetime
-from typing import Callable, Optional, Any
+from typing import Callable, Optional, Any, Tuple
 
 import pytz
+
+from trendradar.utils.time import DEFAULT_TIMEZONE, TimeWindowChecker
 
 
 class PushRecordManager:
@@ -42,7 +44,7 @@ class PushRecordManager:
 
     def _default_get_time(self) -> datetime:
         """默认时间获取函数（使用 storage_backend 的时区配置）"""
-        timezone = getattr(self.storage_backend, 'timezone', 'Asia/Shanghai')
+        timezone = getattr(self.storage_backend, 'timezone', DEFAULT_TIMEZONE)
         return datetime.now(pytz.timezone(timezone))
 
     def has_pushed_today(self) -> bool:
@@ -77,34 +79,128 @@ class PushRecordManager:
         Returns:
             是否在时间范围内
         """
-        now = self.get_time()
-        current_time = now.strftime("%H:%M")
+        checker = TimeWindowChecker(
+            storage_backend=self.storage_backend,
+            get_time_func=self.get_time,
+            window_name="推送窗口",
+        )
+        return checker.is_in_time_range(start_time, end_time)
 
-        def normalize_time(time_str: str) -> str:
-            """将时间字符串标准化为 HH:MM 格式"""
-            try:
-                parts = time_str.strip().split(":")
-                if len(parts) != 2:
-                    raise ValueError(f"时间格式错误: {time_str}")
+    def check_push_window(self, window_config: dict) -> Tuple[bool, str]:
+        """
+        检查推送窗口控制
 
-                hour = int(parts[0])
-                minute = int(parts[1])
+        Args:
+            window_config: 推送窗口配置
 
-                if not (0 <= hour <= 23 and 0 <= minute <= 59):
-                    raise ValueError(f"时间范围错误: {time_str}")
+        Returns:
+            (should_push, reason) 元组
+        """
+        checker = TimeWindowChecker(
+            storage_backend=self.storage_backend,
+            get_time_func=self.get_time,
+            window_name="推送窗口",
+        )
+        return checker.check_window(
+            window_config=window_config,
+            check_once_per_day_func=self.has_pushed_today,
+        )
 
-                return f"{hour:02d}:{minute:02d}"
-            except Exception as e:
-                print(f"时间格式化错误 '{time_str}': {e}")
-                return time_str
+    def check_ai_analysis_window(self, window_config: dict) -> Tuple[bool, str]:
+        """
+        检查 AI 分析窗口控制
 
-        normalized_start = normalize_time(start_time)
-        normalized_end = normalize_time(end_time)
-        normalized_current = normalize_time(current_time)
+        Args:
+            window_config: AI 分析窗口配置
 
-        result = normalized_start <= normalized_current <= normalized_end
+        Returns:
+            (should_analyze, reason) 元组
+        """
+        checker = TimeWindowChecker(
+            storage_backend=self.storage_backend,
+            get_time_func=self.get_time,
+            window_name="AI 分析窗口",
+        )
+        return checker.check_window(
+            window_config=window_config,
+            check_once_per_day_func=self.storage_backend.has_ai_analyzed_today,
+        )
 
-        if not result:
-            print(f"时间窗口判断：当前 {normalized_current}，窗口 {normalized_start}-{normalized_end}")
+    def get_push_status(self, window_config: dict) -> dict:
+        """
+        获取推送状态信息
 
-        return result
+        Args:
+            window_config: 推送窗口配置
+
+        Returns:
+            状态信息字典
+        """
+        checker = TimeWindowChecker(
+            storage_backend=self.storage_backend,
+            get_time_func=self.get_time,
+            window_name="推送窗口",
+        )
+        status = checker.get_status(
+            window_config=window_config,
+            check_once_per_day_func=self.has_pushed_today,
+        )
+        status["window_type"] = "push"
+        return status
+
+    def get_ai_analysis_status(self, window_config: dict) -> dict:
+        """
+        获取 AI 分析状态信息
+
+        Args:
+            window_config: AI 分析窗口配置
+
+        Returns:
+            状态信息字典
+        """
+        checker = TimeWindowChecker(
+            storage_backend=self.storage_backend,
+            get_time_func=self.get_time,
+            window_name="AI 分析窗口",
+        )
+        status = checker.get_status(
+            window_config=window_config,
+            check_once_per_day_func=self.storage_backend.has_ai_analyzed_today,
+        )
+        status["window_type"] = "ai_analysis"
+        return status
+
+    def reset_push_state(self) -> bool:
+        """
+        重置今日推送状态
+
+        Returns:
+            是否重置成功
+        """
+        try:
+            # 通过存储后端重置推送记录
+            if hasattr(self.storage_backend, 'reset_push_state'):
+                return self.storage_backend.reset_push_state()
+            else:
+                print("[推送记录] 存储后端不支持重置推送状态")
+                return False
+        except Exception as e:
+            print(f"[推送记录] 重置推送状态失败: {e}")
+            return False
+
+    def reset_ai_analysis_state(self) -> bool:
+        """
+        重置今日 AI 分析状态
+
+        Returns:
+            是否重置成功
+        """
+        try:
+            if hasattr(self.storage_backend, 'reset_ai_analysis_state'):
+                return self.storage_backend.reset_ai_analysis_state()
+            else:
+                print("[推送记录] 存储后端不支持重置 AI 分析状态")
+                return False
+        except Exception as e:
+            print(f"[推送记录] 重置 AI 分析状态失败: {e}")
+            return False

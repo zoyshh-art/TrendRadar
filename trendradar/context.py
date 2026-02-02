@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from trendradar.utils.time import (
+    DEFAULT_TIMEZONE,
     get_configured_time,
     format_date_folder,
     format_time_filename,
@@ -78,7 +79,7 @@ class AppContext:
     @property
     def timezone(self) -> str:
         """获取配置的时区"""
-        return self.config.get("TIMEZONE", "Asia/Shanghai")
+        return self.config.get("TIMEZONE", DEFAULT_TIMEZONE)
 
     @property
     def rank_threshold(self) -> int:
@@ -429,7 +430,7 @@ class AppContext:
             get_time_func=self.get_time,
             rss_items=rss_items,
             rss_new_items=rss_new_items,
-            timezone=self.config.get("TIMEZONE", "Asia/Shanghai"),
+            timezone=self.config.get("TIMEZONE", DEFAULT_TIMEZONE),
             display_mode=self.display_mode,
             ai_content=ai_content,
             standalone_data=standalone_data,

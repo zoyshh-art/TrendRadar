@@ -818,6 +818,114 @@ class SQLiteStorageMixin:
             print(f"[存储] 记录 AI 分析失败: {e}")
             return False
 
+    def _reset_push_state_impl(self, date: Optional[str] = None) -> bool:
+        """
+        重置推送状态
+
+        Args:
+            date: 日期字符串（YYYY-MM-DD），默认为今天
+
+        Returns:
+            是否重置成功
+        """
+        try:
+            conn = self._get_connection(date)
+            cursor = conn.cursor()
+
+            target_date = self._format_date_folder(date)
+
+            cursor.execute("""
+                UPDATE push_records
+                SET pushed = 0, push_time = NULL
+                WHERE date = ?
+            """, (target_date,))
+
+            conn.commit()
+            print(f"[存储] 已重置 {target_date} 的推送状态")
+            return True
+
+        except Exception as e:
+            print(f"[存储] 重置推送状态失败: {e}")
+            return False
+
+    def _reset_ai_analysis_state_impl(self, date: Optional[str] = None) -> bool:
+        """
+        重置 AI 分析状态
+
+        Args:
+            date: 日期字符串（YYYY-MM-DD），默认为今天
+
+        Returns:
+            是否重置成功
+        """
+        try:
+            conn = self._get_connection(date)
+            cursor = conn.cursor()
+
+            target_date = self._format_date_folder(date)
+
+            cursor.execute("""
+                UPDATE push_records
+                SET ai_analyzed = 0, ai_analysis_time = NULL, ai_analysis_mode = NULL
+                WHERE date = ?
+            """, (target_date,))
+
+            conn.commit()
+            print(f"[存储] 已重置 {target_date} 的 AI 分析状态")
+            return True
+
+        except Exception as e:
+            print(f"[存储] 重置 AI 分析状态失败: {e}")
+            return False
+
+    def _get_push_status_impl(self, date: Optional[str] = None) -> dict:
+        """
+        获取推送状态详情
+
+        Args:
+            date: 日期字符串（YYYY-MM-DD），默认为今天
+
+        Returns:
+            状态详情字典
+        """
+        try:
+            conn = self._get_connection(date)
+            cursor = conn.cursor()
+
+            target_date = self._format_date_folder(date)
+
+            cursor.execute("""
+                SELECT date, pushed, push_time, report_type,
+                       ai_analyzed, ai_analysis_time, ai_analysis_mode
+                FROM push_records
+                WHERE date = ?
+            """, (target_date,))
+
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "date": row[0],
+                    "pushed": bool(row[1]),
+                    "push_time": row[2],
+                    "report_type": row[3],
+                    "ai_analyzed": bool(row[4]),
+                    "ai_analysis_time": row[5],
+                    "ai_analysis_mode": row[6],
+                }
+            return {
+                "date": target_date,
+                "pushed": False,
+                "push_time": None,
+                "report_type": None,
+                "ai_analyzed": False,
+                "ai_analysis_time": None,
+                "ai_analysis_mode": None,
+            }
+
+        except Exception as e:
+            print(f"[存储] 获取推送状态失败: {e}")
+            return {}
+
     # ========================================
     # RSS 数据存储
     # ========================================

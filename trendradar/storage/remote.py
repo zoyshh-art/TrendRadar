@@ -31,6 +31,7 @@ except ImportError:
 from trendradar.storage.base import StorageBackend, NewsItem, NewsData, RSSItem, RSSData
 from trendradar.storage.sqlite_mixin import SQLiteStorageMixin
 from trendradar.utils.time import (
+    DEFAULT_TIMEZONE,
     get_configured_time,
     format_date_folder,
     format_time_filename,
@@ -60,7 +61,7 @@ class RemoteStorageBackend(SQLiteStorageMixin, StorageBackend):
         enable_txt: bool = False,  # 远程模式默认不生成 TXT
         enable_html: bool = True,
         temp_dir: Optional[str] = None,
-        timezone: str = "Asia/Shanghai",
+        timezone: str = DEFAULT_TIMEZONE,
     ):
         """
         初始化远程存储后端
@@ -74,7 +75,7 @@ class RemoteStorageBackend(SQLiteStorageMixin, StorageBackend):
             enable_txt: 是否启用 TXT 快照（默认关闭）
             enable_html: 是否启用 HTML 报告
             temp_dir: 临时目录路径（默认使用系统临时目录）
-            timezone: 时区配置（默认 Asia/Shanghai）
+            timezone: 时区配置
         """
         if not HAS_BOTO3:
             raise ImportError("远程存储后端需要安装 boto3: pip install boto3")
@@ -436,6 +437,58 @@ class RemoteStorageBackend(SQLiteStorageMixin, StorageBackend):
                 return False
 
         return False
+
+    def reset_push_state(self, date: Optional[str] = None) -> bool:
+        """
+        重置推送状态（远程存储版本）
+
+        流程：下载远程数据库 → 重置状态 → 上传回远程
+        """
+        # 确保连接已建立（会自动下载远程数据库）
+        self._get_connection(date)
+
+        # 执行重置
+        success = self._reset_push_state_impl(date)
+
+        if success:
+            # 上传到远程存储
+            if self._upload_sqlite(date):
+                print(f"[远程存储] 推送状态重置已同步到远程存储")
+                return True
+            else:
+                print(f"[远程存储] 推送状态重置同步到远程存储失败")
+                return False
+
+        return False
+
+    def reset_ai_analysis_state(self, date: Optional[str] = None) -> bool:
+        """
+        重置 AI 分析状态（远程存储版本）
+
+        流程：下载远程数据库 → 重置状态 → 上传回远程
+        """
+        # 确保连接已建立（会自动下载远程数据库）
+        self._get_connection(date)
+
+        # 执行重置
+        success = self._reset_ai_analysis_state_impl(date)
+
+        if success:
+            # 上传到远程存储
+            if self._upload_sqlite(date):
+                print(f"[远程存储] AI 分析状态重置已同步到远程存储")
+                return True
+            else:
+                print(f"[远程存储] AI 分析状态重置同步到远程存储失败")
+                return False
+
+        return False
+
+    def get_push_status(self, date: Optional[str] = None) -> dict:
+        """获取推送状态详情"""
+        # 确保连接已建立（会自动下载远程数据库）
+        self._get_connection(date)
+        return self._get_push_status_impl(date)
 
     # ========================================
     # RSS 数据存储方法

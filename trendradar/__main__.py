@@ -6,6 +6,7 @@ TrendRadar 主程序
 支持: python -m trendradar
 """
 
+import argparse
 import os
 import re
 import webbrowser
@@ -20,7 +21,7 @@ from trendradar.core import load_config
 from trendradar.core.analyzer import convert_keyword_stats_to_platform_stats
 from trendradar.crawler import DataFetcher
 from trendradar.storage import convert_crawl_results_to_news_data
-from trendradar.utils.time import is_within_days
+from trendradar.utils.time import DEFAULT_TIMEZONE, is_within_days, calculate_days_old
 from trendradar.ai import AIAnalyzer, AIAnalysisResult
 
 
@@ -213,7 +214,7 @@ class NewsAnalyzer:
             config = load_config()
         print(f"TrendRadar v{__version__} 配置加载完成")
         print(f"监控平台数量: {len(config['PLATFORMS'])}")
-        print(f"时区: {config.get('TIMEZONE', 'Asia/Shanghai')}")
+        print(f"时区: {config.get('TIMEZONE', DEFAULT_TIMEZONE)}")
 
         # 创建应用上下文
         self.ctx = AppContext(config)
@@ -1102,7 +1103,7 @@ class NewsAnalyzer:
             # RSS 代理：优先使用 RSS 专属代理，否则使用爬虫默认代理
             rss_proxy_url = rss_config.get("PROXY_URL", "") or self.proxy_url or ""
             # 获取配置的时区
-            timezone = self.ctx.config.get("TIMEZONE", "Asia/Shanghai")
+            timezone = self.ctx.config.get("TIMEZONE", DEFAULT_TIMEZONE)
             # 获取新鲜度过滤配置
             freshness_config = rss_config.get("FRESHNESS_FILTER", {})
             freshness_enabled = freshness_config.get("ENABLED", True)
@@ -1312,13 +1313,15 @@ class NewsAnalyzer:
         """将 RSS 条目字典转换为列表格式，并应用新鲜度过滤（用于推送）"""
         rss_items = []
         filtered_count = 0
+        filtered_details = []  # 用于 DEBUG 模式下的详细日志
 
         # 获取新鲜度过滤配置
         rss_config = self.ctx.rss_config
         freshness_config = rss_config.get("FRESHNESS_FILTER", {})
         freshness_enabled = freshness_config.get("ENABLED", True)
         default_max_age_days = freshness_config.get("MAX_AGE_DAYS", 3)
-        timezone = self.ctx.config.get("TIMEZONE", "Asia/Shanghai")
+        timezone = self.ctx.config.get("TIMEZONE", DEFAULT_TIMEZONE)
+        debug_mode = self.ctx.config.get("DEBUG", False)
 
         # 构建 feed_id -> max_age_days 的映射
         feed_max_age_map = {}
@@ -1342,6 +1345,16 @@ class NewsAnalyzer:
                 if freshness_enabled and max_days > 0:
                     if item.published_at and not is_within_days(item.published_at, max_days, timezone):
                         filtered_count += 1
+                        # 记录详细信息用于 DEBUG 模式
+                        if debug_mode:
+                            days_old = calculate_days_old(item.published_at, timezone)
+                            feed_name = id_to_name.get(feed_id, feed_id)
+                            filtered_details.append({
+                                "title": item.title[:50] + "..." if len(item.title) > 50 else item.title,
+                                "feed": feed_name,
+                                "days_old": days_old,
+                                "max_days": max_days,
+                            })
                         continue  # 跳过超过指定天数的文章
 
                 rss_items.append({
@@ -1357,6 +1370,14 @@ class NewsAnalyzer:
         # 输出过滤统计
         if filtered_count > 0:
             print(f"[RSS] 新鲜度过滤：跳过 {filtered_count} 篇超过指定天数的旧文章（仍保留在数据库中）")
+            # DEBUG 模式下显示详细信息
+            if debug_mode and filtered_details:
+                print(f"[RSS] 被过滤的文章详情（共 {len(filtered_details)} 篇）：")
+                for detail in filtered_details[:10]:  # 最多显示 10 条
+                    days_str = f"{detail['days_old']:.1f}" if detail['days_old'] else "未知"
+                    print(f"  - [{days_str}天前] [{detail['feed']}] {detail['title']} (限制: {detail['max_days']}天)")
+                if len(filtered_details) > 10:
+                    print(f"  ... 还有 {len(filtered_details) - 10} 篇被过滤")
 
         return rss_items
 
@@ -1631,10 +1652,77 @@ class NewsAnalyzer:
 
 def main():
     """主程序入口"""
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(
+        description="TrendRadar - 热点新闻聚合与分析工具",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+状态管理命令:
+  --show-push-status     显示推送状态（窗口配置、今日是否已推送）
+  --show-ai-status       显示 AI 分析状态
+  --reset-push-state     重置今日推送状态（允许重新推送）
+  --reset-ai-state       重置今日 AI 分析状态
+  --force-push           忽略 once_per_day 限制，强制推送
+
+示例:
+  python -m trendradar                    # 正常运行
+  python -m trendradar --show-push-status # 查看推送状态
+  python -m trendradar --reset-push-state # 重置推送状态后再运行
+  python -m trendradar --force-push       # 强制推送（忽略今日已推送限制）
+"""
+    )
+    parser.add_argument(
+        "--show-push-status",
+        action="store_true",
+        help="显示推送状态信息"
+    )
+    parser.add_argument(
+        "--show-ai-status",
+        action="store_true",
+        help="显示 AI 分析状态信息"
+    )
+    parser.add_argument(
+        "--reset-push-state",
+        action="store_true",
+        help="重置今日推送状态"
+    )
+    parser.add_argument(
+        "--reset-ai-state",
+        action="store_true",
+        help="重置今日 AI 分析状态"
+    )
+    parser.add_argument(
+        "--force-push",
+        action="store_true",
+        help="忽略 once_per_day 限制，强制推送"
+    )
+    parser.add_argument(
+        "--force-ai",
+        action="store_true",
+        help="忽略 once_per_day 限制，强制 AI 分析"
+    )
+
+    args = parser.parse_args()
+
     debug_mode = False
     try:
-        # 先加载配置以获取 version_check_url
+        # 先加载配置
         config = load_config()
+
+        # 处理状态查看/重置命令
+        if args.show_push_status or args.show_ai_status or args.reset_push_state or args.reset_ai_state:
+            _handle_status_commands(config, args)
+            return
+
+        # 设置强制推送标志
+        if args.force_push:
+            config["_FORCE_PUSH"] = True
+            print("[CLI] 已启用强制推送模式，将忽略 once_per_day 限制")
+
+        if args.force_ai:
+            config["_FORCE_AI"] = True
+            print("[CLI] 已启用强制 AI 分析模式，将忽略 once_per_day 限制")
+
         version_url = config.get("VERSION_CHECK_URL", "")
         configs_version_url = config.get("CONFIGS_VERSION_CHECK_URL", "")
 
@@ -1667,6 +1755,71 @@ def main():
         print(f"❌ 程序运行错误: {e}")
         if debug_mode:
             raise
+
+
+def _handle_status_commands(config: Dict, args) -> None:
+    """处理状态查看/重置命令"""
+    from trendradar.context import AppContext
+
+    ctx = AppContext(config)
+    push_manager = ctx.create_push_manager()
+
+    print("=" * 60)
+    print(f"TrendRadar v{__version__} 状态信息")
+    print("=" * 60)
+
+    # 显示推送状态
+    if args.show_push_status:
+        push_window_config = config.get("PUSH_WINDOW", {})
+        status = push_manager.get_push_status(push_window_config)
+        print("\n📤 推送状态:")
+        print(f"  当前时间: {status['current_time']} ({status['timezone']})")
+        print(f"  当前日期: {status['current_date']}")
+        print(f"  窗口控制: {'启用' if status['enabled'] else '未启用'}")
+        if status['enabled']:
+            print(f"  窗口时间: {status['window_start']} - {status['window_end']}")
+            print(f"  当前在窗口内: {'是 ✅' if status.get('in_window') else '否 ❌'}")
+            print(f"  每天只推一次: {'是' if status.get('once_per_day') else '否'}")
+            if status.get('once_per_day'):
+                executed = status.get('executed_today', False)
+                print(f"  今日已推送: {'是 ⚠️' if executed else '否 ✅'}")
+
+    # 显示 AI 分析状态
+    if args.show_ai_status:
+        ai_window_config = config.get("AI_ANALYSIS", {}).get("ANALYSIS_WINDOW", {})
+        status = push_manager.get_ai_analysis_status(ai_window_config)
+        print("\n🤖 AI 分析状态:")
+        print(f"  当前时间: {status['current_time']} ({status['timezone']})")
+        print(f"  当前日期: {status['current_date']}")
+        print(f"  窗口控制: {'启用' if status['enabled'] else '未启用'}")
+        if status['enabled']:
+            print(f"  窗口时间: {status['window_start']} - {status['window_end']}")
+            print(f"  当前在窗口内: {'是 ✅' if status.get('in_window') else '否 ❌'}")
+            print(f"  每天只分析一次: {'是' if status.get('once_per_day') else '否'}")
+            if status.get('once_per_day'):
+                executed = status.get('executed_today', False)
+                print(f"  今日已分析: {'是 ⚠️' if executed else '否 ✅'}")
+
+    # 重置推送状态
+    if args.reset_push_state:
+        print("\n🔄 正在重置推送状态...")
+        if push_manager.reset_push_state():
+            print("  ✅ 推送状态已重置")
+        else:
+            print("  ❌ 重置失败")
+
+    # 重置 AI 分析状态
+    if args.reset_ai_state:
+        print("\n🔄 正在重置 AI 分析状态...")
+        if push_manager.reset_ai_analysis_state():
+            print("  ✅ AI 分析状态已重置")
+        else:
+            print("  ❌ 重置失败")
+
+    print("=" * 60)
+
+    # 清理资源
+    ctx.cleanup()
 
 
 if __name__ == "__main__":

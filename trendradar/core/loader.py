@@ -12,6 +12,7 @@ from typing import Dict, Any, Optional
 import yaml
 
 from .config import parse_multi_account_config, validate_paired_configs
+from trendradar.utils.time import DEFAULT_TIMEZONE
 
 
 def _get_env_bool(key: str, default: bool = False) -> Optional[bool]:
@@ -57,7 +58,7 @@ def _load_app_config(config_data: Dict) -> Dict:
         "VERSION_CHECK_URL": advanced.get("version_check_url", ""),
         "CONFIGS_VERSION_CHECK_URL": advanced.get("configs_version_check_url", ""),
         "SHOW_VERSION_UPDATE": app_config.get("show_version_update", True),
-        "TIMEZONE": _get_env_str("TIMEZONE") or app_config.get("timezone", "Asia/Shanghai"),
+        "TIMEZONE": _get_env_str("TIMEZONE") or app_config.get("timezone", DEFAULT_TIMEZONE),
         "DEBUG": _get_env_bool("DEBUG") if _get_env_bool("DEBUG") is not None else advanced.get("debug", False),
     }
 
@@ -225,7 +226,7 @@ def _load_ai_config(config_data: Dict) -> Dict:
 
     return {
         # LiteLLM 核心配置
-        "MODEL": _get_env_str("AI_MODEL") or ai_config.get("model", "deepseek/deepseek-chat"),
+        "MODEL": _get_env_str("AI_MODEL") or ai_config.get("model", ""),
         "API_KEY": _get_env_str("AI_API_KEY") or ai_config.get("api_key", ""),
         "API_BASE": _get_env_str("AI_API_BASE") or ai_config.get("api_base", ""),
 
