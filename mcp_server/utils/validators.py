@@ -349,7 +349,11 @@ def validate_date_range(date_range: Optional[Union[dict, str]]) -> Optional[tupl
     验证日期范围
 
     Args:
-        date_range: 日期范围字典或JSON字符串 {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}
+        date_range: 日期范围，支持多种格式：
+            - dict: {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}
+            - JSON 字符串: '{"start": "2025-01-01", "end": "2025-01-07"}'
+            - 单日字符串: "2025-01-01"（自动转为同一天的范围）
+            - 自然语言: "今天", "昨天", "本周", "最近7天" 等
 
     Returns:
         (start_date, end_date) 元组，或 None
@@ -360,20 +364,55 @@ def validate_date_range(date_range: Optional[Union[dict, str]]) -> Optional[tupl
     if date_range is None:
         return None
 
-    # 支持字符串形式的JSON输入（某些MCP客户端会将JSON对象序列化为字符串）
+    # 支持字符串形式的输入
     if isinstance(date_range, str):
-        try:
-            date_range = json.loads(date_range)
-        except json.JSONDecodeError as e:
-            raise InvalidParameterError(
-                f"date_range JSON 解析失败: {e}",
-                suggestion='请使用正确的JSON格式: {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}'
-            )
+        stripped = date_range.strip()
+
+        # 1. 检查是否是 JSON 对象格式
+        if stripped.startswith('{') and stripped.endswith('}'):
+            try:
+                date_range = json.loads(stripped)
+            except json.JSONDecodeError as e:
+                raise InvalidParameterError(
+                    f"date_range JSON 解析失败: {e}",
+                    suggestion='请使用正确的JSON格式: {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}'
+                )
+        # 2. 检查是否是单日字符串格式 YYYY-MM-DD
+        elif len(stripped) == 10 and stripped[4] == '-' and stripped[7] == '-':
+            try:
+                single_date = datetime.strptime(stripped, "%Y-%m-%d")
+                return (single_date, single_date)
+            except ValueError:
+                raise InvalidParameterError(
+                    f"日期格式错误: {stripped}",
+                    suggestion="请使用 YYYY-MM-DD 格式，例如: 2025-10-11"
+                )
+        # 3. 尝试自然语言解析
+        else:
+            try:
+                result = DateParser.resolve_date_range_expression(stripped)
+                if result.get("success"):
+                    dr = result["date_range"]
+                    start_date = datetime.strptime(dr["start"], "%Y-%m-%d")
+                    end_date = datetime.strptime(dr["end"], "%Y-%m-%d")
+                    return (start_date, end_date)
+                else:
+                    raise InvalidParameterError(
+                        f"无法识别的日期表达式: {stripped}",
+                        suggestion="支持格式: YYYY-MM-DD, {\"start\": \"...\", \"end\": \"...\"}, 或自然语言（今天、本周、最近7天等）"
+                    )
+            except InvalidParameterError:
+                raise
+            except Exception:
+                raise InvalidParameterError(
+                    f"日期解析失败: {stripped}",
+                    suggestion="支持格式: YYYY-MM-DD, {\"start\": \"...\", \"end\": \"...\"}, 或自然语言（今天、本周、最近7天等）"
+                )
 
     if not isinstance(date_range, dict):
         raise InvalidParameterError(
-            "date_range 必须是字典类型或有效的JSON字符串",
-            suggestion='例如: {"start": "2025-10-01", "end": "2025-10-11"}'
+            "date_range 必须是字典类型、日期字符串或有效的JSON字符串",
+            suggestion='例如: {"start": "2025-10-01", "end": "2025-10-11"} 或 "2025-10-01"'
         )
 
     start_str = date_range.get("start")

@@ -12,8 +12,8 @@
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v5.5.0-blue.svg)](https://github.com/sansan0/TrendRadar)
-[![MCP](https://img.shields.io/badge/MCP-v3.1.7-green.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v5.5.3-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![MCP](https://img.shields.io/badge/MCP-v3.2.0-green.svg)](https://github.com/sansan0/TrendRadar)
 [![RSS](https://img.shields.io/badge/RSS-订阅源支持-orange.svg?style=flat-square&logo=rss&logoColor=white)](https://github.com/sansan0/TrendRadar)
 [![AI翻译](https://img.shields.io/badge/AI-多语言推送-purple.svg?style=flat-square)](https://github.com/sansan0/TrendRadar)
 
@@ -229,9 +229,6 @@ TrendRadar 是完全开源免费的项目，持续更新需要你的动力支持
 
 这将有助于项目的持续维护和社区发展，感谢你的尊重与支持！❤️
 
-**示范参考**（比如我的这个项目）：
-> [https://github.com/sansan0/bilibili-comment-analyzer](https://github.com/sansan0/bilibili-comment-analyzer)
-
 ---
 
 ### 💬 交流与反馈
@@ -263,7 +260,20 @@ TrendRadar 是完全开源免费的项目，持续更新需要你的动力支持
 
 > 和 mcp 功能一样, 这个小工具我也不新开一个仓库维护了, 反正纯前端, 都搁一起吧
 
-- 增加 trendradar 的可视化配置编辑器 
+- 增加 trendradar 的可视化配置编辑器
+
+
+### 2026/02/02 - mcp-v3.2.0
+
+- **新增 read_article 工具**：通过 Jina AI Reader 读取单篇文章正文（Markdown 格式）
+- **新增 read_articles_batch 工具**：批量读取多篇文章（最多 5 篇，自动限速）
+- **推荐工作流**：`search_news(query="关键词", include_url=True)` → `read_article(url=...)` 读取正文
+- **文档更新**：README-MCP-FAQ.md 和 README-MCP-FAQ-EN.md 新增 Q19-Q20 文章读取相关说明
+
+
+
+<details>
+<summary>👉 点击展开：<strong>历史更新</strong></summary>
 
 
 ### 2026/01/10 - mcp-v3.0.0~v3.1.5
@@ -275,10 +285,6 @@ TrendRadar 是完全开源免费的项目，持续更新需要你的动力支持
 - **正则匹配修复**：`get_trending_topics` 支持 `/pattern/` 正则语法和 `display_name`
 - **缓存优化**：新增 `make_cache_key()` 函数，参数排序+MD5 哈希确保一致性
 - **新增 check_version 工具**：支持同时检查 TrendRadar 和 MCP Server 版本更新
-
-
-<details>
-<summary>👉 点击展开：<strong>历史更新</strong></summary>
 
 
 ### 2026/01/23 - v5.4.0
