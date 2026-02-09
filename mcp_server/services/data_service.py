@@ -378,14 +378,16 @@ class DataService:
         word_frequency = Counter()
         keyword_to_news = {}
 
+        # 预加载关键词数据（避免在循环内重复调用）
+        if extract_mode == "keywords":
+            from trendradar.core.frequency import _word_matches
+            word_groups = self.parser.parse_frequency_words()
+
         # 遍历要处理的标题
         for platform_id, titles in titles_to_process.items():
             for title in titles.keys():
                 if extract_mode == "keywords":
                     # 基于预设关键词统计（支持正则匹配）
-                    from trendradar.core.frequency import _word_matches
-
-                    word_groups = self.parser.parse_frequency_words()
                     title_lower = title.lower()
 
                     for group in word_groups:
@@ -495,17 +497,28 @@ class DataService:
                 "enable_notification": notification.get("enabled", True),
                 "enabled_channels": [],
                 "message_batch_size": batch_size.get("default", 4000),
-                "push_window": notification.get("push_window", {})
+                "push_window": {}  # 已迁移至调度系统（schedule + timeline.yaml）
             }
 
-            # 检测已配置的通知渠道
-            channels = notification.get("channels", {})
-            if channels.get("feishu", {}).get("webhook_url"):
-                push_config["enabled_channels"].append("feishu")
-            if channels.get("dingtalk", {}).get("webhook_url"):
-                push_config["enabled_channels"].append("dingtalk")
-            if channels.get("wework", {}).get("webhook_url"):
-                push_config["enabled_channels"].append("wework")
+            # 检测已配置的通知渠道（合并 config.yaml + .env）
+            from trendradar.core.loader import _load_webhook_config
+
+            webhook_config = _load_webhook_config(config_data)
+
+            channel_checks = {
+                "feishu": [webhook_config.get("FEISHU_WEBHOOK_URL")],
+                "dingtalk": [webhook_config.get("DINGTALK_WEBHOOK_URL")],
+                "wework": [webhook_config.get("WEWORK_WEBHOOK_URL")],
+                "telegram": [webhook_config.get("TELEGRAM_BOT_TOKEN"), webhook_config.get("TELEGRAM_CHAT_ID")],
+                "email": [webhook_config.get("EMAIL_FROM"), webhook_config.get("EMAIL_PASSWORD"), webhook_config.get("EMAIL_TO")],
+                "ntfy": [webhook_config.get("NTFY_SERVER_URL"), webhook_config.get("NTFY_TOPIC")],
+                "bark": [webhook_config.get("BARK_URL")],
+                "slack": [webhook_config.get("SLACK_WEBHOOK_URL")],
+                "generic_webhook": [webhook_config.get("GENERIC_WEBHOOK_URL")],
+            }
+            for ch_id, required_values in channel_checks.items():
+                if all(required_values):
+                    push_config["enabled_channels"].append(ch_id)
 
         if section == "all" or section == "keywords":
             keywords_config = {
