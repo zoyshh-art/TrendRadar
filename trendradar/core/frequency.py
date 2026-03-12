@@ -111,7 +111,7 @@ def load_frequency_words(
     - @数字：该词组最多显示的条数
 
     Args:
-        frequency_file: 频率词配置文件路径，默认从环境变量 FREQUENCY_WORDS_PATH 获取或使用 config/frequency_words.txt
+        frequency_file: 频率词配置文件路径，默认从环境变量 FREQUENCY_WORDS_PATH 获取或使用 config/frequency_words.txt，短文件名从 config/custom/keyword/ 查找
 
     Returns:
         (词组列表, 词组内过滤词, 全局过滤词)
@@ -126,7 +126,12 @@ def load_frequency_words(
 
     frequency_path = Path(frequency_file)
     if not frequency_path.exists():
-        raise FileNotFoundError(f"频率词文件 {frequency_file} 不存在")
+        # 尝试作为短文件名，拼接 config/custom/keyword/ 前缀
+        custom_path = Path("config/custom/keyword") / frequency_file
+        if custom_path.exists():
+            frequency_path = custom_path
+        else:
+            raise FileNotFoundError(f"频率词文件 {frequency_file} 不存在")
 
     with open(frequency_path, "r", encoding="utf-8") as f:
         content = f.read()
@@ -179,7 +184,6 @@ def load_frequency_words(
 
         group_required_words = []
         group_normal_words = []
-        group_filter_words = []
         group_max_count = 0  # 默认不限制
 
         for word in words:
@@ -196,7 +200,6 @@ def load_frequency_words(
                 filter_word = word[1:]
                 parsed = _parse_word(filter_word)
                 filter_words.append(parsed)
-                group_filter_words.append(parsed)
             elif word.startswith("+"):
                 # 必须词（支持正则语法）
                 req_word = word[1:]

@@ -41,48 +41,58 @@ function syncScroll(textareaId, backdropId) {
 }
 
 // ==========================================
-// 12. 支持项目弹窗逻辑
+// 12. 二维码放大弹窗逻辑
 // ==========================================
 
-/**
- * 打开支持弹窗
- */
-function openSupportModal() {
-    const modal = document.getElementById('support-modal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden'; // 禁止背景滚动
+const QR_MODAL_DATA = {
+    weixin: {
+        icon: '<i class="fa-brands fa-weixin text-green-600"></i>',
+        iconBg: 'bg-green-100',
+        title: '不迷路',
+        subtitle: '第一时间获取更新通知',
+        img: './assets/weixin.webp',
+        alt: '微信公众号',
+        hint: '微信扫码关注公众号'
+    },
+    donate: {
+        icon: '<i class="fa-solid fa-hand-holding-heart text-emerald-600"></i>',
+        iconBg: 'bg-emerald-100',
+        title: '随心赞赏',
+        subtitle: '金额随意，1 元也是鼓励 (´▽`ʃ♡ƪ)',
+        img: 'https://cdn-1258574687.cos.ap-shanghai.myqcloud.com/img/%2F2026%2F01%2F18ecce7c224ce0ea4c59394c29e408f8-e0d1db45.webp',
+        alt: '微信支付',
+        hint: '微信扫码 · 丰俭由人'
     }
+};
+
+function openQrModal(type) {
+    const data = QR_MODAL_DATA[type];
+    if (!data) return;
+    const modal = document.getElementById('qr-modal');
+    document.getElementById('qr-modal-icon').className = 'w-10 h-10 rounded-xl flex items-center justify-center text-lg ' + data.iconBg;
+    document.getElementById('qr-modal-icon').innerHTML = data.icon;
+    document.getElementById('qr-modal-title').textContent = data.title;
+    document.getElementById('qr-modal-subtitle').textContent = data.subtitle;
+    document.getElementById('qr-modal-img').src = data.img;
+    document.getElementById('qr-modal-img').alt = data.alt;
+    document.getElementById('qr-modal-hint').textContent = data.hint;
+    modal.classList.remove('hidden');
 }
 
-/**
- * 关闭支持弹窗
- */
-function closeSupportModal() {
-    const modal = document.getElementById('support-modal');
-    if (modal) {
-        modal.classList.add('hidden');
-        document.body.style.overflow = ''; // 恢复滚动
-    }
+function closeQrModal() {
+    const modal = document.getElementById('qr-modal');
+    if (modal) modal.classList.add('hidden');
 }
 
-/**
- * 点击外部关闭
- */
-function closeSupportModalOutside(event) {
-    if (event.target.id === 'support-modal') {
-        closeSupportModal();
-    }
-}
-
-window.openSupportModal = openSupportModal;
-window.closeSupportModal = closeSupportModal;
-window.closeSupportModalOutside = closeSupportModalOutside;
+window.openQrModal = openQrModal;
+window.closeQrModal = closeQrModal;
 const MODULE_DEFS = [
     { id: 1, name: "1. 基础设置", key: "app", editable: false },
     { id: 2, name: "2. 数据源 - 热榜平台", key: "platforms", editable: true },
     { id: 3, name: "3. 数据源 - RSS 订阅", key: "rss", editable: true },
     { id: 4, name: "4. 报告模式", key: "report", editable: true },
+    { id: "4.5", name: "4.5 筛选策略", key: "filter", editable: true },
+    { id: "4.6", name: "4.6 AI 智能筛选", key: "ai_filter", editable: true },
     { id: 5, name: "5. 推送内容控制", key: "display", editable: true },
     { id: 6, name: "6. 推送通知", key: "notification", editable: true, partial: true },
     { id: 7, name: "7. 存储配置", key: "storage", editable: false },
@@ -791,8 +801,9 @@ window.scrollToModuleInEditor = function(modKey) {
     const mod = MODULE_DEFS.find(m => m.key === modKey);
     if (!mod) return;
 
-    // 直接匹配包含模块编号的标题行，如：# 5. 推送内容控制
-    const moduleTitlePattern = new RegExp(`^#\\s*${mod.id}\\.\\s+`, 'i');
+    // 直接匹配包含模块编号的标题行，兼容 "4." 和 "4.5" 两种编号格式
+    const escapedId = String(mod.id).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const moduleTitlePattern = new RegExp(`^#\\s*${escapedId}(?:\\.)?\\s+`, 'i');
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -881,6 +892,35 @@ function renderControls(mod) {
             html += createToggleControl(mod.key, "sort_by_position_first", "按定义顺序排序");
             html += createNumberControl(mod.key, "rank_threshold", "排名高亮阈值");
             html += createNumberControl(mod.key, "max_news_per_keyword", "每个关键词最大显示数量");
+            break;
+        case "filter":
+            html = createSelectControl(mod.key, "method", "筛选方法", ["keyword", "ai"]);
+            html += createToggleControl(mod.key, "priority_sort_enabled", "AI 模式按标签优先级排序");
+            html += `<div class="text-xs text-gray-500 mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                        <i class="fa-solid fa-info-circle mr-1 text-blue-500"></i>
+                        <strong>说明：</strong><code>method=keyword</code> 使用 <code>frequency_words.txt</code>；
+                        <code>method=ai</code> 使用 <code>ai_interests.txt</code> + AI 筛选配置。<br>
+                        <code>priority_sort_enabled</code> 仅在 <code>method=ai</code> 时生效。
+                     </div>`;
+            break;
+        case "ai_filter":
+            html = `<div class="text-xs text-gray-500 mb-3 p-2 bg-blue-50 rounded border border-blue-200">
+                        <i class="fa-solid fa-info-circle mr-1 text-blue-500"></i>
+                        仅当 <strong>filter.method=ai</strong> 时生效。
+                    </div>`;
+            html += createNumberControl(mod.key, "batch_size", "每批标题数量");
+            html += createNumberControl(mod.key, "batch_interval", "分批间隔 (秒)");
+            html += createNumberControl(mod.key, "min_score", "最低分数阈值 (0~1)");
+            html += createInputControl(mod.key, "interests_file", "兴趣描述文件 (可选)");
+            html += `<div class="text-xs text-amber-700 mt-1 mb-3 p-2 bg-amber-50 rounded border border-amber-200">
+                        <i class="fa-solid fa-folder-tree mr-1"></i>
+                        留空时使用 <code>config/ai_interests.txt</code>；填写后仅从
+                        <code>config/custom/ai/</code> 查找该文件名。
+                     </div>`;
+            html += createNumberControl(mod.key, "reclassify_threshold", "全量重分类阈值 (0~1)");
+            html += createInputControl(mod.key, "prompt_file", "分类提示词文件");
+            html += createInputControl(mod.key, "extract_prompt_file", "标签提取提示词文件");
+            html += createInputControl(mod.key, "update_tags_prompt_file", "标签更新提示词文件");
             break;
         case "display":
             html = `<div class="text-xs font-bold text-gray-700 mb-2">推送内容控制 <span class="text-gray-400 font-normal">(可拖拽排序)</span></div>`;
@@ -1074,7 +1114,22 @@ function updateYamlFromUI(modKey, path, el) {
         }
     }
 
-    if (targetLine < 0) return;
+    if (targetLine < 0) {
+        // 允许为模块新增一级字段（例如默认被注释掉的 ai_filter.interests_file）
+        if (pathParts.length === 1) {
+            let formattedVal = newVal;
+            if (typeof newVal === 'string') {
+                formattedVal = `"${newVal.replace(/"/g, '\\"')}"`;
+            }
+
+            lines.splice(moduleEndLine, 0, `  ${searchKey}: ${formattedVal}`);
+            editor.value = lines.join('\n');
+            currentYaml = editor.value;
+            updateBackdrop('yaml-editor', 'yaml-backdrop');
+            debounceSaveConfig();
+        }
+        return;
+    }
 
     // 更新该行，保留注释
     const originalLine = lines[targetLine];
@@ -3937,7 +3992,7 @@ function renderPeriodDetails(config, presetName) {
         </div>
         <div class="tl-collapsible-body">
             <div class="text-xs text-gray-500 mb-2">不在任何时间段内时，使用以下配置：</div>
-            ${renderBehaviorToggles(defaults, presetName, 'default')}
+            ${renderBehaviorToggles(defaults, presetName, 'default', defaults)}
         </div>
     </div>`;
 
@@ -3967,7 +4022,7 @@ function renderPeriodDetails(config, presetName) {
                         <button onclick="deleteTlPeriod('${presetName}','${key}')" class="tl-inline-btn text-red-400 hover:text-red-600" title="删除"><i class="fa-regular fa-trash-can"></i></button>
                     </div>
                 </div>
-                ${renderBehaviorToggles(merged, presetName, key)}
+                ${renderBehaviorToggles(merged, presetName, key, p)}
             </div>`;
         });
         html += `</div>`;
@@ -4057,6 +4112,28 @@ function renderPeriodDetails(config, presetName) {
         </div>
     </div>`;
 
+    // custom 专属：时间段冲突策略
+    if (isCustom) {
+        const overlapPolicy = (config.overlap && config.overlap.policy) || 'error_on_overlap';
+        html += `<div class="mt-6">
+            <div class="tl-section-title"><i class="fa-solid fa-code-branch"></i>冲突策略 (Overlap)</div>
+            <div class="bg-white border border-gray-200 rounded-lg px-3 py-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500">policy:</span>
+                    <select class="text-xs border border-gray-200 rounded px-2 py-1 bg-white"
+                            onchange="onTlCustomOverlapPolicy(this.value)">
+                        <option value="error_on_overlap" ${overlapPolicy === 'error_on_overlap' ? 'selected' : ''}>error_on_overlap（推荐）</option>
+                        <option value="last_wins" ${overlapPolicy === 'last_wins' ? 'selected' : ''}>last_wins（后定义优先）</option>
+                    </select>
+                </div>
+                <div class="text-[10px] text-gray-400 mt-2">
+                    <i class="fa-solid fa-info-circle mr-1"></i>
+                    <code>error_on_overlap</code> 会在时间段重叠时直接报错；<code>last_wins</code> 会按 day_plans 中靠后的时间段覆盖。
+                </div>
+            </div>
+        </div>`;
+    }
+
     // 提示
     if (!isCustom) {
         html += `<div class="mt-4 text-xs text-gray-400 p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -4078,7 +4155,7 @@ function renderPeriodDetails(config, presetName) {
  * presetName: 当前预设名（用于定位 YAML 中的位置）
  * periodKey: 'default' 或时间段 key（如 'weekday_morning'）
  */
-function renderBehaviorToggles(cfg, presetName, periodKey) {
+function renderBehaviorToggles(cfg, presetName, periodKey, rawCfg = null) {
     const toggleItems = [
         { k: 'collect', label: '采集', icon: 'fa-download' },
         { k: 'analyze', label: '分析', icon: 'fa-brain' },
@@ -4156,6 +4233,44 @@ function renderBehaviorToggles(cfg, presetName, periodKey) {
         </div>`;
     }
 
+    // 可选筛选覆盖（仅显示“当前层”字段，避免把继承值误当作显式配置）
+    const baseCfg = rawCfg || {};
+    const filterMethod = baseCfg.filter_method || '';
+    const frequencyFile = baseCfg.frequency_file || '';
+    const interestsFile = baseCfg.interests_file || '';
+    const methodHint = periodKey === 'default' ? '不填则跟随全局 filter.method' : '不填则继承 default（再回退全局）';
+
+    html += `<div class="mt-3 pt-3 border-t border-gray-100">
+        <div class="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-2">筛选覆盖（可选）</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div>
+                <label class="block text-[10px] text-gray-400 mb-1">filter_method</label>
+                <select class="text-[10px] w-full border border-gray-200 rounded px-1.5 py-1 bg-white"
+                        onchange="onTlOptionalSelect('${presetName}','${periodKey}','filter_method',this.value)">
+                    <option value="" ${filterMethod === '' ? 'selected' : ''}>继承</option>
+                    <option value="keyword" ${filterMethod === 'keyword' ? 'selected' : ''}>keyword</option>
+                    <option value="ai" ${filterMethod === 'ai' ? 'selected' : ''}>ai</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] text-gray-400 mb-1">frequency_file</label>
+                <input type="text" value="${frequencyFile}" placeholder="如 tech.txt"
+                       class="text-[10px] w-full border border-gray-200 rounded px-1.5 py-1 bg-white"
+                       onchange="onTlOptionalInput('${presetName}','${periodKey}','frequency_file',this.value)">
+            </div>
+            <div>
+                <label class="block text-[10px] text-gray-400 mb-1">interests_file</label>
+                <input type="text" value="${interestsFile}" placeholder="如 geopolitics.txt"
+                       class="text-[10px] w-full border border-gray-200 rounded px-1.5 py-1 bg-white"
+                       onchange="onTlOptionalInput('${presetName}','${periodKey}','interests_file',this.value)">
+            </div>
+        </div>
+        <div class="text-[10px] text-gray-400 mt-2">
+            <i class="fa-solid fa-lightbulb mr-1"></i>${methodHint}。<code>frequency_file</code> 从 <code>config/custom/keyword/</code> 查找，
+            <code>interests_file</code> 从 <code>config/custom/ai/</code> 查找；留空会删除该字段并恢复继承。
+        </div>
+    </div>`;
+
     return html;
 }
 
@@ -4188,6 +4303,27 @@ window.onTlToggle = function(presetName, periodKey, field, value) {
 
 window.onTlSelect = function(presetName, periodKey, field, value) {
     updateTimelineField(presetName, periodKey, field, value);
+}
+
+window.onTlOptionalInput = function(presetName, periodKey, field, rawValue) {
+    const value = (rawValue || '').trim();
+    if (!value) {
+        removeTimelineField(presetName, periodKey, field);
+        return;
+    }
+    updateTimelineField(presetName, periodKey, field, value);
+}
+
+window.onTlOptionalSelect = function(presetName, periodKey, field, value) {
+    if (!value) {
+        removeTimelineField(presetName, periodKey, field);
+        return;
+    }
+    updateTimelineField(presetName, periodKey, field, value);
+}
+
+window.onTlCustomOverlapPolicy = function(value) {
+    updateTimelineSectionField('custom', 'overlap.policy', value);
 }
 
 /**
@@ -4364,6 +4500,168 @@ function updateTimelineField(presetName, periodKey, field, value) {
     // 延迟重新渲染（避免输入中途刷新）
     clearTimeout(window._tlRenderTimer);
     window._tlRenderTimer = setTimeout(() => syncTimelineToUI(), 300);
+}
+
+function resolveTimelineSection(lines, presetName) {
+    const isCustom = presetName === 'custom';
+    let sectionStart = -1;
+    let sectionIndent = 0;
+
+    if (isCustom) {
+        for (let i = 0; i < lines.length; i++) {
+            if (/^custom:\s*/.test(lines[i])) {
+                sectionStart = i;
+                sectionIndent = 0;
+                break;
+            }
+        }
+    } else {
+        let inPresets = false;
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (/^presets:\s*/.test(line)) {
+                inPresets = true;
+                continue;
+            }
+            if (inPresets && /^\S/.test(line) && !line.startsWith('#')) {
+                break;
+            }
+            if (inPresets) {
+                const m = line.match(/^(\s+)(\S+):\s*/);
+                if (m && m[2] === presetName) {
+                    sectionStart = i;
+                    sectionIndent = m[1].length;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (sectionStart < 0) return null;
+
+    let sectionEnd = lines.length;
+    for (let i = sectionStart + 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.trim() === '' || line.trim().startsWith('#')) continue;
+        const indent = line.search(/\S/);
+        if (indent <= sectionIndent) {
+            sectionEnd = i;
+            break;
+        }
+    }
+
+    return { sectionStart, sectionEnd, sectionIndent };
+}
+
+function resolveTimelineTarget(lines, presetName, periodKey) {
+    const section = resolveTimelineSection(lines, presetName);
+    if (!section) return null;
+
+    const { sectionStart, sectionEnd, sectionIndent } = section;
+    let targetStart = -1;
+
+    if (periodKey === 'default') {
+        targetStart = findChildKey(lines, sectionStart, sectionEnd, sectionIndent, 'default');
+    } else {
+        const periodsLine = findChildKey(lines, sectionStart, sectionEnd, sectionIndent, 'periods');
+        if (periodsLine < 0) return null;
+        const periodsIndent = lines[periodsLine].search(/\S/);
+        const periodsEnd = findBlockEnd(lines, periodsLine, periodsIndent, sectionEnd);
+        targetStart = findChildKey(lines, periodsLine, periodsEnd, periodsIndent, periodKey);
+    }
+
+    if (targetStart < 0) return null;
+
+    const targetIndent = lines[targetStart].search(/\S/);
+    const targetEnd = findBlockEnd(lines, targetStart, targetIndent, sectionEnd);
+
+    return { sectionStart, sectionEnd, sectionIndent, targetStart, targetEnd, targetIndent };
+}
+
+function applyTimelineEditorChanges(editor, lines) {
+    editor.value = lines.join('\n');
+    currentTimeline = editor.value;
+    updateBackdrop('timeline-editor', 'timeline-backdrop');
+    debounceSaveTimeline();
+    clearTimeout(window._tlRenderTimer);
+    window._tlRenderTimer = setTimeout(() => syncTimelineToUI(), 300);
+}
+
+function removeTimelineField(presetName, periodKey, field) {
+    const editor = document.getElementById('timeline-editor');
+    const lines = editor.value.split('\n');
+    const target = resolveTimelineTarget(lines, presetName, periodKey);
+    if (!target) return;
+
+    const { targetStart, targetEnd, targetIndent } = target;
+    const fieldParts = field.split('.');
+
+    if (fieldParts.length === 1) {
+        const lineIdx = findChildKey(lines, targetStart, targetEnd, targetIndent, fieldParts[0]);
+        if (lineIdx < 0) return;
+        const lineIndent = lines[lineIdx].search(/\S/);
+        const lineEnd = findBlockEnd(lines, lineIdx, lineIndent, targetEnd);
+        lines.splice(lineIdx, lineEnd - lineIdx);
+        applyTimelineEditorChanges(editor, lines);
+        return;
+    }
+
+    const parentLine = findChildKey(lines, targetStart, targetEnd, targetIndent, fieldParts[0]);
+    if (parentLine < 0) return;
+    const parentIndent = lines[parentLine].search(/\S/);
+    const parentEnd = findBlockEnd(lines, parentLine, parentIndent, targetEnd);
+    const childLine = findChildKey(lines, parentLine, parentEnd, parentIndent, fieldParts[1]);
+    if (childLine < 0) return;
+
+    const childIndent = lines[childLine].search(/\S/);
+    const childEnd = findBlockEnd(lines, childLine, childIndent, parentEnd);
+    lines.splice(childLine, childEnd - childLine);
+
+    const parentEndAfter = findBlockEnd(lines, parentLine, parentIndent, targetEnd);
+    let hasChild = false;
+    for (let i = parentLine + 1; i < parentEndAfter; i++) {
+        const line = lines[i];
+        if (line.trim() === '' || line.trim().startsWith('#')) continue;
+        if (line.search(/\S/) > parentIndent) {
+            hasChild = true;
+            break;
+        }
+    }
+    if (!hasChild) {
+        lines.splice(parentLine, 1);
+    }
+
+    applyTimelineEditorChanges(editor, lines);
+}
+
+function updateTimelineSectionField(presetName, field, value) {
+    const editor = document.getElementById('timeline-editor');
+    const lines = editor.value.split('\n');
+    const section = resolveTimelineSection(lines, presetName);
+    if (!section) return;
+
+    const { sectionStart, sectionEnd, sectionIndent } = section;
+    const fieldParts = field.split('.');
+    let lineIdx = -1;
+
+    if (fieldParts.length === 1) {
+        lineIdx = findChildKey(lines, sectionStart, sectionEnd, sectionIndent, fieldParts[0]);
+    } else {
+        const parentLine = findChildKey(lines, sectionStart, sectionEnd, sectionIndent, fieldParts[0]);
+        if (parentLine >= 0) {
+            const parentIndent = lines[parentLine].search(/\S/);
+            const parentEnd = findBlockEnd(lines, parentLine, parentIndent, sectionEnd);
+            lineIdx = findChildKey(lines, parentLine, parentEnd, parentIndent, fieldParts[1]);
+        }
+    }
+
+    if (lineIdx < 0) {
+        insertTimelineField(lines, sectionStart, sectionEnd, sectionIndent, field, value, fieldParts);
+    } else {
+        replaceLineValue(lines, lineIdx, value);
+    }
+
+    applyTimelineEditorChanges(editor, lines);
 }
 
 /**
@@ -4569,11 +4867,11 @@ function scrollTimelineEditorToPreset(presetName) {
     editor.setSelectionRange(charCount, charCount + lines[targetLine].length);
     editor.scrollTop = scrollPosition - 50;
 
-    // 高亮闪烁
+    // 高亮闪烁（防止快速点击竞态）
+    clearTimeout(window._tlEditorFlashTimer);
     editor.style.transition = 'background-color 0.3s';
-    const originalBg = editor.style.backgroundColor;
     editor.style.backgroundColor = '#2d4a7c';
-    setTimeout(() => { editor.style.backgroundColor = originalBg; }, 300);
+    window._tlEditorFlashTimer = setTimeout(() => { editor.style.backgroundColor = ''; }, 300);
 }
 
 // ==========================================
@@ -5470,4 +5768,15 @@ function reorderDayPlanPeriods(presetName, planKey, orderedKeys) {
 
     clearTimeout(window._tlRenderTimer);
     window._tlRenderTimer = setTimeout(() => syncTimelineToUI(), 500);
+}
+
+// ==========================================
+// 支持侧栏 折叠/展开
+// ==========================================
+function toggleSupportSidebar() {
+    const wrap = document.querySelector('.support-sidebar-wrap');
+    const btn = document.getElementById('sidebar-toggle-btn');
+    const isCollapsed = wrap.classList.toggle('collapsed');
+    btn.classList.toggle('is-collapsed', isCollapsed);
+    btn.title = isCollapsed ? '展开侧栏' : '收起侧栏';
 }

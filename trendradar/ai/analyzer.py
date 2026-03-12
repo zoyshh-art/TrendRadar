@@ -219,6 +219,17 @@ class AIAnalyzer:
             response = self._call_ai(user_prompt)
             result = self._parse_response(response)
 
+            # JSON 解析失败时的重试兜底（仅重试一次）
+            if result.error and "JSON 解析错误" in result.error:
+                print(f"[AI] JSON 解析失败，尝试让 AI 修复...")
+                retry_result = self._retry_fix_json(response, result.error)
+                if retry_result and retry_result.success and not retry_result.error:
+                    print("[AI] JSON 修复成功")
+                    retry_result.raw_response = response
+                    result = retry_result
+                else:
+                    print("[AI] JSON 修复失败，使用原始文本兜底")
+
             # 如果配置未启用 RSS 分析，强制清空 AI 返回的 RSS 洞察
             if not self.include_rss:
                 result.rss_insights = ""
@@ -376,6 +387,49 @@ class AIAnalyzer:
 
         return self.client.chat(messages)
 
+    def _retry_fix_json(self, original_response: str, error_msg: str) -> Optional[AIAnalysisResult]:
+        """
+        JSON 解析失败时，请求 AI 修复 JSON（仅重试一次）
+
+        使用轻量 prompt，不重复原始分析的 system prompt，节省 token。
+
+        Args:
+            original_response: AI 原始响应（JSON 格式有误）
+            error_msg: JSON 解析的错误信息
+
+        Returns:
+            修复后的分析结果，失败时返回 None
+        """
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "你是一个 JSON 修复助手。用户会提供一段格式有误的 JSON 和错误信息，"
+                    "你需要修复 JSON 格式错误并返回正确的 JSON。\n"
+                    "常见问题：字符串值内的双引号未转义、缺少逗号、字符串未正确闭合等。\n"
+                    "只返回纯 JSON，不要包含 markdown 代码块标记（如 ```json）或任何说明文字。"
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"以下 JSON 解析失败：\n\n"
+                    f"错误：{error_msg}\n\n"
+                    f"原始内容：\n{original_response}\n\n"
+                    f"请修复以上 JSON 中的格式问题（如值中的双引号改用中文引号「」或转义 \\\"、"
+                    f"缺少逗号、不完整的字符串等），保持原始内容语义不变，只修复格式。"
+                    f"直接返回修复后的纯 JSON。"
+                ),
+            },
+        ]
+
+        try:
+            response = self.client.chat(messages)
+            return self._parse_response(response)
+        except Exception as e:
+            print(f"[AI] 重试修复 JSON 异常: {type(e).__name__}: {e}")
+            return None
+
     def _format_time_range(self, first_time: str, last_time: str) -> str:
         """格式化时间范围（简化显示，只保留时分）"""
         def extract_time(time_str: str) -> str:
@@ -511,30 +565,66 @@ class AIAnalyzer:
             result.error = "AI 返回空响应"
             return result
 
+        # 提取 JSON 文本（去掉 markdown 代码块标记）
+        json_str = response
+
+        if "```json" in response:
+            parts = response.split("```json", 1)
+            if len(parts) > 1:
+                code_block = parts[1]
+                end_idx = code_block.find("```")
+                if end_idx != -1:
+                    json_str = code_block[:end_idx]
+                else:
+                    json_str = code_block
+        elif "```" in response:
+            parts = response.split("```", 2)
+            if len(parts) >= 2:
+                json_str = parts[1]
+
+        json_str = json_str.strip()
+        if not json_str:
+            result.error = "提取的 JSON 内容为空"
+            result.core_trends = response[:500] + "..." if len(response) > 500 else response
+            result.success = True
+            return result
+
+        # 第一步：标准 JSON 解析
+        data = None
+        parse_error = None
+
         try:
-            json_str = response
-
-            if "```json" in response:
-                parts = response.split("```json", 1)
-                if len(parts) > 1:
-                    code_block = parts[1]
-                    end_idx = code_block.find("```")
-                    if end_idx != -1:
-                        json_str = code_block[:end_idx]
-                    else:
-                        json_str = code_block
-            elif "```" in response:
-                parts = response.split("```", 2)
-                if len(parts) >= 2:
-                    json_str = parts[1]
-
-            json_str = json_str.strip()
-            if not json_str:
-                raise ValueError("提取的 JSON 内容为空")
-
             data = json.loads(json_str)
+        except json.JSONDecodeError as e:
+            parse_error = e
 
-            # 新版字段解析
+        # 第二步：json_repair 本地修复
+        if data is None:
+            try:
+                from json_repair import repair_json
+                repaired = repair_json(json_str, return_objects=True)
+                if isinstance(repaired, dict):
+                    data = repaired
+                    print("[AI] JSON 本地修复成功（json_repair）")
+            except Exception:
+                pass
+
+        # 两步都失败，记录错误（后续由 analyze 方法的重试机制处理）
+        if data is None:
+            if parse_error:
+                error_context = json_str[max(0, parse_error.pos - 30):parse_error.pos + 30] if json_str and parse_error.pos else ""
+                result.error = f"JSON 解析错误 (位置 {parse_error.pos}): {parse_error.msg}"
+                if error_context:
+                    result.error += f"，上下文: ...{error_context}..."
+            else:
+                result.error = "JSON 解析失败"
+            # 兜底：使用已提取的 json_str（不含 markdown 标记），避免推送中出现 ```json
+            result.core_trends = json_str[:500] + "..." if len(json_str) > 500 else json_str
+            result.success = True
+            return result
+
+        # 解析成功，提取字段
+        try:
             result.core_trends = data.get("core_trends", "")
             result.sentiment_controversy = data.get("sentiment_controversy", "")
             result.signals = data.get("signals", "")
@@ -547,24 +637,11 @@ class AIAnalyzer:
                 result.standalone_summaries = {
                     str(k): str(v) for k, v in summaries.items()
                 }
-            
-            result.success = True
 
-        except json.JSONDecodeError as e:
-            error_context = json_str[max(0, e.pos - 30):e.pos + 30] if json_str and e.pos else ""
-            result.error = f"JSON 解析错误 (位置 {e.pos}): {e.msg}"
-            if error_context:
-                result.error += f"，上下文: ...{error_context}..."
-            # 使用原始响应填充 core_trends，确保有输出
-            result.core_trends = response[:500] + "..." if len(response) > 500 else response
             result.success = True
-        except (IndexError, KeyError, TypeError, ValueError) as e:
-            result.error = f"响应解析错误: {type(e).__name__}: {str(e)}"
-            result.core_trends = response[:500] if len(response) > 500 else response
-            result.success = True
-        except Exception as e:
-            result.error = f"解析时发生未知错误: {type(e).__name__}: {str(e)}"
-            result.core_trends = response[:500] if len(response) > 500 else response
+        except (KeyError, TypeError, AttributeError) as e:
+            result.error = f"字段提取错误: {type(e).__name__}: {e}"
+            result.core_trends = json_str[:500] + "..." if len(json_str) > 500 else json_str
             result.success = True
 
         return result

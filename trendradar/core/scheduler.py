@@ -27,6 +27,9 @@ class ResolvedSchedule:
     ai_mode: str
     once_analyze: bool
     once_push: bool
+    frequency_file: Optional[str] = None  # 频率词文件路径，None=使用默认
+    filter_method: Optional[str] = None   # 筛选策略: "keyword"|"ai"，None=使用全局配置
+    interests_file: Optional[str] = None  # AI 筛选兴趣文件，None=使用默认
 
 
 class Scheduler:
@@ -48,6 +51,7 @@ class Scheduler:
         timeline_data: Dict[str, Any],
         storage_backend: Any,
         get_time_func: Callable[[], datetime],
+        fallback_report_mode: str = "current",
     ):
         """
         初始化调度器
@@ -57,11 +61,13 @@ class Scheduler:
             timeline_data: timeline.yaml 的完整数据
             storage_backend: 存储后端（用于 once 去重记录）
             get_time_func: 获取当前时间的函数（应使用配置的时区）
+            fallback_report_mode: 调度未启用时回退使用的 report_mode（来自 config.yaml 的 report.mode）
         """
         self.schedule_config = schedule_config
         self.storage = storage_backend
         self.get_time = get_time_func
         self.enabled = schedule_config.get("enabled", True)
+        self.fallback_report_mode = fallback_report_mode
 
         # 加载并构建最终 timeline
         self.timeline = self._build_timeline(schedule_config, timeline_data)
@@ -101,7 +107,7 @@ class Scheduler:
             ResolvedSchedule 包含当前应执行的行为
         """
         if not self.enabled:
-            # 调度未启用时返回默认的全功能配置
+            # 调度未启用时返回默认的全功能配置，report_mode 回退使用 config.yaml 的 report.mode
             return ResolvedSchedule(
                 period_key=None,
                 period_name=None,
@@ -109,7 +115,7 @@ class Scheduler:
                 collect=True,
                 analyze=True,
                 push=True,
-                report_mode="current",
+                report_mode=self.fallback_report_mode,
                 ai_mode="follow_report",
                 once_analyze=False,
                 once_push=False,
@@ -162,6 +168,9 @@ class Scheduler:
             ai_mode=self._resolve_ai_mode(merged),
             once_analyze=merged.get("once", {}).get("analyze", False),
             once_push=merged.get("once", {}).get("push", False),
+            frequency_file=merged.get("frequency_file"),
+            filter_method=merged.get("filter_method"),
+            interests_file=merged.get("interests_file"),
         )
 
         # 打印行为摘要
@@ -173,6 +182,8 @@ class Scheduler:
         if resolved.push:
             actions.append(f"推送(模式:{resolved.report_mode})")
         print(f"[调度] 行为: {', '.join(actions) if actions else '无'}")
+        if resolved.frequency_file:
+            print(f"[调度] 频率词文件: {resolved.frequency_file}")
 
         return resolved
 

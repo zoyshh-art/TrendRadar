@@ -15,7 +15,7 @@ from .config import parse_multi_account_config, validate_paired_configs
 from trendradar.utils.time import DEFAULT_TIMEZONE
 
 
-def _get_env_bool(key: str, default: bool = False) -> Optional[bool]:
+def _get_env_bool(key: str) -> Optional[bool]:
     """从环境变量获取布尔值，如果未设置返回 None"""
     value = os.environ.get(key, "").strip().lower()
     if not value:
@@ -306,10 +306,56 @@ def _load_ai_translation_config(config_data: Dict) -> Dict:
 
     enabled_env = _get_env_bool("AI_TRANSLATION_ENABLED")
 
+    scope = trans_config.get("scope", {})
+
     return {
         "ENABLED": enabled_env if enabled_env is not None else trans_config.get("enabled", False),
         "LANGUAGE": _get_env_str("AI_TRANSLATION_LANGUAGE") or trans_config.get("language", "English"),
         "PROMPT_FILE": trans_config.get("prompt_file", "ai_translation_prompt.txt"),
+        "SCOPE": {
+            "HOTLIST": scope.get("hotlist", True),
+            "RSS": scope.get("rss", True),
+            "STANDALONE": scope.get("standalone", True),
+        },
+    }
+
+
+def _load_ai_filter_config(config_data: Dict) -> Dict:
+    """加载 AI 智能筛选配置（由 filter.method 控制是否启用）"""
+    ai_filter = config_data.get("ai_filter", {})
+
+    return {
+        "BATCH_SIZE": ai_filter.get("batch_size", 200),
+        "BATCH_INTERVAL": ai_filter.get("batch_interval", 5),
+        "INTERESTS_FILE": ai_filter.get("interests_file"),  # None = 使用默认 config/ai_interests.txt
+        "PROMPT_FILE": ai_filter.get("prompt_file", "prompt.txt"),
+        "EXTRACT_PROMPT_FILE": ai_filter.get("extract_prompt_file", "extract_prompt.txt"),
+        "UPDATE_TAGS_PROMPT_FILE": ai_filter.get("update_tags_prompt_file", "update_tags_prompt.txt"),
+        "RECLASSIFY_THRESHOLD": ai_filter.get("reclassify_threshold", 0.6),
+        "MIN_SCORE": float(ai_filter.get("min_score", 0)),
+    }
+
+
+def _load_filter_config(config_data: Dict) -> Dict:
+    """加载筛选策略配置"""
+    filter_cfg = config_data.get("filter", {})
+
+    # 环境变量兼容：AI_FILTER_ENABLED=true → method=ai
+    env_ai_filter = _get_env_bool("AI_FILTER_ENABLED")
+
+    method = filter_cfg.get("method", "keyword")
+    if env_ai_filter is True:
+        method = "ai"
+
+    # 兼容旧配置：如果 ai_filter.enabled=true 且未显式设置 filter.method
+    if method == "keyword" and not filter_cfg.get("method"):
+        ai_filter = config_data.get("ai_filter", {})
+        if ai_filter.get("enabled", False):
+            method = "ai"
+
+    return {
+        "METHOD": method,  # "keyword" | "ai"
+        "PRIORITY_SORT_ENABLED": filter_cfg.get("priority_sort_enabled", False),  # AI 模式标签优先级排序开关
     }
 
 
@@ -543,6 +589,12 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
 
     # AI 翻译配置
     config["AI_TRANSLATION"] = _load_ai_translation_config(config_data)
+
+    # AI 智能筛选配置
+    config["AI_FILTER"] = _load_ai_filter_config(config_data)
+
+    # 筛选策略配置
+    config["FILTER"] = _load_filter_config(config_data)
 
     # 推送内容显示配置
     config["DISPLAY"] = _load_display_config(config_data)

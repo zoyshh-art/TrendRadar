@@ -11,7 +11,7 @@ Deploy in <strong>30 seconds</strong> — Say goodbye to endless scrolling, only
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v6.0.0-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v6.5.0-blue.svg)](https://github.com/sansan0/TrendRadar)
 [![MCP](https://img.shields.io/badge/MCP-v4.0.0-green.svg)](https://github.com/sansan0/TrendRadar)
 [![RSS](https://img.shields.io/badge/RSS-Feed_Support-orange.svg?style=flat-square&logo=rss&logoColor=white)](https://github.com/sansan0/TrendRadar)
 [![AI Translation](https://img.shields.io/badge/AI-Multi--Language-purple.svg?style=flat-square)](https://github.com/sansan0/TrendRadar)
@@ -33,6 +33,7 @@ Deploy in <strong>30 seconds</strong> — Say goodbye to endless scrolling, only
 [![Docker](https://img.shields.io/badge/Docker-Deployment-2496ED?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/r/wantcat/trendradar)
 [![MCP Support](https://img.shields.io/badge/MCP-AI_Analysis-FF6B6B?style=flat-square&logo=ai&logoColor=white)](https://modelcontextprotocol.io/)
 [![AI Analysis Push](https://img.shields.io/badge/AI-Analysis_Push-FF6B6B?style=flat-square&logo=openai&logoColor=white)](#)
+[![AI Smart Filter](https://img.shields.io/badge/AI-Smart_News_Filter-9B59B6?style=flat-square&logo=openai&logoColor=white)](#)
 
 </div>
 
@@ -191,6 +192,33 @@ This contributes to the sustainable maintenance of the project and the growth of
 - **Tip**: Check [Changelog] to understand specific [Features]
 
 
+### 2026/03/12 - v6.5.0
+
+- **AI Smart News Filtering**: No more manual keyword setup! Describe your interests in everyday language in `ai_interests.txt` (e.g., "I want AI and renewable energy news"), and AI automatically extracts tags, scores every headline, and only pushes what truly matters to you. If AI filtering encounters issues, it auto-falls back to keyword matching — push delivery never stops
+- **Per-Period Filter Strategy & Interests**: Each time period in Timeline can now independently choose its filtering method and what topics to focus on. For example: mornings use a "tech keyword list" for quick filtering, evenings switch to "finance AI interests" for in-depth AI filtering — same system, different content at different times
+- **AI Analysis Independent from Push Mode**: AI analysis scope can differ from push content. For example: push only delivers new items (avoiding repeated notifications), while AI analyzes the full day's news (capturing complete trends). Each time period can also set its own AI analysis mode
+- **AI Filter Token Savings**: Previously analyzed news won't be re-processed; when you edit your interests, AI auto-evaluates the change magnitude — minor tweaks only update affected tags, major changes trigger full reclassification
+- **Multi-File Config & Tag Isolation**: Custom keyword files go in `config/custom/keyword/`, AI interest files go in `config/custom/ai/` — tags from different files are fully isolated and independent
+- **AI Translation Precision Control**: Independently toggle translation for hotlist, RSS, and standalone sections; regions with display turned off are automatically skipped, saving tokens
+- **Remote Storage Batch Upload**: Multiple write operations are batched and submitted to cloud in one go, reducing API call count
+- **Per-Group Display Limit**: New `max_news_per_keyword` controls max items shown per keyword/tag group, preventing a single hot topic from filling the entire push
+- **Time Period Conflict Detection**: Overlapping time periods are automatically detected — system alerts you to fix the config, preventing unexpected behavior
+- Various bug fixes
+
+
+
+### 2026/02/09 - mcp-v4.0.0
+
+- **🔥 Push any AI message to all channels**: Send AI-generated content to Feishu, DingTalk, Telegram, Email and all 9 channels with one call — Markdown auto-adapts to each platform's native format
+- **New format guide tool**: `get_channel_format_guide` tells AI what each channel supports and its limitations, so generated content looks great everywhere
+- **Smart batch splitting**: Long messages auto-split per channel byte limits (Feishu 30KB, DingTalk 20KB, etc.), reads config from config.yaml
+- **Fixed channel detection**: ntfy no longer falsely reported as "configured" due to default server URL
+- **Code reuse**: Batch utilities now imported from trendradar core instead of duplicated
+
+
+<details>
+<summary>👉 Click to expand: <strong>Historical Updates</strong></summary>
+
 ### 2026/02/09 - v6.0.0
 
 > **Breaking Change**: Config file upgrade (config.yaml 2.0.0), old `push_window` and `analysis_window` configs are no longer compatible, please refer to the new config.yaml for migration
@@ -215,19 +243,6 @@ This contributes to the sustainable maintenance of the project and the growth of
   - Supports both trending platforms and RSS feeds, including rank/time/trajectory data
   - Trajectory analysis linked with `include_rank_timeline`: uses trajectory data for deep trend analysis when enabled, falls back to rank-based summary when disabled
   - New `standalone_summaries` JSON field ("Source Snapshot"), all notification channels adapted for rendering
-
-
-### 2026/02/09 - mcp-v4.0.0
-
-- **🔥 Push any AI message to all channels**: Send AI-generated content to Feishu, DingTalk, Telegram, Email and all 9 channels with one call — Markdown auto-adapts to each platform's native format
-- **New format guide tool**: `get_channel_format_guide` tells AI what each channel supports and its limitations, so generated content looks great everywhere
-- **Smart batch splitting**: Long messages auto-split per channel byte limits (Feishu 30KB, DingTalk 20KB, etc.), reads config from config.yaml
-- **Fixed channel detection**: ntfy no longer falsely reported as "configured" due to default server URL
-- **Code reuse**: Batch utilities now imported from trendradar core instead of duplicated
-
-
-<details>
-<summary>👉 Click to expand: <strong>Historical Updates</strong></summary>
 
 
 ### 2026/01/28 - v5.5.0
@@ -904,6 +919,7 @@ Supports RSS/Atom feed crawling, keyword-based grouping and statistics (consiste
 - **Unified Format**: RSS and trending use the same keyword matching and display format
 - **Simple Config**: Add RSS sources directly in `config.yaml`
 - **Merged Push**: Trending and RSS are merged into a single notification
+- **Freshness Filter**: Automatically filters out articles older than a specified number of days to avoid repeated pushes. Supports both global default and per-feed settings
 
 > 💡 RSS uses the same `frequency_words.txt` for keyword filtering as trending
 
@@ -936,7 +952,7 @@ A web-based graphical configuration interface — no need to manually edit YAML 
 
 | Feature | Description | Default |
 |---------|-------------|---------|
-| **Scheduling System** | Per-day-of-week scheduling: assign different time periods, push modes, and AI analysis strategies to each day (Mon–Sun). 5 built-in presets (always_on / morning_evening / office_hours / night_owl / custom), or define your own. Supports weekday vs weekend differentiation, cross-midnight periods, and per-period once-only dedup (v6.0.0) | morning_evening |
+| **Scheduling System** | Per-day-of-week scheduling: assign different time periods, push modes, and AI analysis strategies to each day (Mon–Sun). **Each period can independently set its filter method (keyword/AI) and interest focus**, enabling different content at different times. 5 built-in presets (always_on / morning_evening / office_hours / night_owl / custom), or define your own. Supports weekday vs weekend differentiation, cross-midnight periods, per-period once-only dedup, and overlap conflict detection (v6.0.0 + v6.5.0) | morning_evening |
 | **Content Order Configuration** | Use `display.region_order` to adjust display order of all regions (hotlist, new items, RSS, standalone, AI analysis); use `display.regions` to toggle each region on/off (v5.2.0) | See config |
 | **Display Mode Switch** | `keyword`=group by keyword, `platform`=group by platform (v4.6.0 new) | keyword |
 
@@ -952,6 +968,28 @@ Set personal keywords (e.g., AI, BYD, Education Policy) to receive only relevant
 >
 > 💡 You can also skip filtering and receive all trending news (leave frequency_words.txt empty)
 
+
+### **AI Smart News Filtering** (v6.5.0 New)
+
+Describe your interests in natural language and let AI automatically classify news — replacing traditional keyword matching
+
+- **Natural Language Interests**: Write your focus areas in everyday language in `ai_interests.txt`, no keyword syntax to learn
+- **Two-Stage Smart Processing**: AI first extracts structured tags from interest descriptions, then batch-classifies and scores news against those tags
+- **Score Threshold Control**: Fine-tune push quality with `ai_filter.min_score` — only highly relevant news gets delivered
+- **Auto Fallback**: Automatically falls back to keyword matching if AI filtering fails, ensuring uninterrupted push delivery
+- **Smart Tag Updates**: When interests change, AI evaluates the change magnitude to decide incremental or full reclassification
+- **Flexible Switching**: `filter.method` supports `keyword` (default) and `ai` modes, Timeline can override per time period
+- **Per-Period Personalization**: Different time periods can use different keyword files or AI interest descriptions. For example: mornings use a "tech keyword list" for quick filtering, evenings switch to "finance interests" for AI deep filtering
+
+```yaml
+# config.yaml quick enable example
+filter:
+  method: ai          # keyword (default) | ai
+ai_filter:
+  min_score: 6         # Minimum push score threshold (1-10)
+```
+
+> 💡 AI filtering shares model config with AI analysis/translation — just configure `ai.api_key` once
 
 ### **Trending Analysis**
 
@@ -973,7 +1011,7 @@ No longer controlled by platform algorithms, TrendRadar reorganizes all trending
 
 ### **Multi-Channel Multi-Account Push**
 
-Supports **WeWork** (+ WeChat push solution), **Feishu**, **DingTalk**, **Telegram**, **Email**, **ntfy**, **Bark**, **Slack** — messages delivered directly to phone and email.
+Supports **WeWork** (+ WeChat push solution), **Feishu**, **DingTalk**, **Telegram**, **Email**, **ntfy**, **Bark**, **Slack**, **Generic Webhook** (connect to Discord, IFTTT, or any platform) — messages delivered directly to phone and email.
 
 > 💡 For detailed configuration, see [Configuration Guide - Multi-Account Push Configuration](#10-multiple-account-push-configuration)
 
@@ -1022,7 +1060,8 @@ ai_translation:
 Use AI models to deeply analyze push content, automatically generate trending insights report
 
 - **Smart Analysis**: Automatically analyze trending topics, keyword popularity, cross-platform correlation, potential impact
-- **Multi Provider**: Supports DeepSeek, OpenAI, Gemini, and OpenAI-compatible APIs
+- **Multi Provider**: Built on LiteLLM unified interface, supports 100+ AI providers (DeepSeek, OpenAI, Gemini, Anthropic, local Ollama, etc.), with automatic fallback model switching
+- **Independent Analysis Mode**: AI analysis scope can differ from push content — push only new items (less noise), while AI analyzes the full day's news (complete trend picture)
 - **Flexible Push**: Choose original content only, AI analysis only, or both
 - **Custom Prompts**: Customize analysis perspective via `config/ai_analysis_prompt.txt`
 
@@ -2558,46 +2597,56 @@ TrendRadar provides two independent Docker images, deploy according to your need
 
 1. **Create Project Directory and Config**:
 
-   **Method 1-A: Using git clone (Recommended, Simplest)**
    ```bash
    # Clone project to local
    git clone https://github.com/sansan0/TrendRadar.git
    cd TrendRadar
    ```
 
-   **Method 1-B: Using wget to download config files**
-   ```bash
-   # Create directory structure
-   mkdir -p trendradar/{config,docker}
-   cd trendradar
-
-   # Download config file templates
-   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/config.yaml -P config/
-   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/frequency_words.txt -P config/
-   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/ai_analysis_prompt.txt -P config/
-
-   # Download docker compose config
-   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/.env -P docker/
-   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker-compose.yml -P docker/
-   ```
-
    > 💡 **Note**: Key directory structure required for Docker deployment:
 ```
 current directory/
 ├── config/
-│   ├── config.yaml
-│   ├── frequency_words.txt
-│   └── ai_analysis_prompt.txt    # AI analysis prompt (v5.0.0 new, optional)
+│   ├── config.yaml                 # Core config (required)
+│   ├── frequency_words.txt         # Keyword config (required)
+│   ├── timeline.yaml               # Timeline config
+│   ├── ai_analysis_prompt.txt      # AI analysis prompt (optional)
+│   ├── ai_translation_prompt.txt   # AI translation prompt (optional)
+│   ├── ai_interests.txt            # AI interest filtering config (optional)
+│   ├── ai_filter/                  # AI filter prompts
+│   │   ├── prompt.txt
+│   │   ├── extract_prompt.txt
+│   │   └── update_tags_prompt.txt
+│   └── custom/                     # User custom config (optional)
+│       ├── ai/                     # Custom AI prompts
+│       └── keyword/                # Custom keyword files
 └── docker/
-    ├── .env
-    └── docker-compose.yml
+    ├── .env                        # Sensitive info + Docker-specific config
+    └── docker-compose.yml          # Docker Compose orchestration file
 ```
 
 2. **Config File Description**:
-   - `config/config.yaml` - Application main config (report mode, push settings, AI analysis, etc.)
-   - `config/frequency_words.txt` - Keyword config (set your interested trending keywords)
-   - `config/ai_analysis_prompt.txt` - AI prompt config (customize AI analysis role and output format, v5.0.0 new)
-   - `.env` - Environment variable config (webhook URLs, API Keys, scheduled tasks)
+
+   **Configuration Division Principles (v4.6.0 optimized)**:
+
+   | File | Purpose | Change Frequency | Description |
+   |------|---------|-----------------|-------------|
+   | `config/config.yaml` | **Core config** | Low | Report mode, push settings, storage format, push window, AI analysis toggle, platform enable/disable, etc. |
+   | `config/frequency_words.txt` | **Keyword config** | High | Set your interested trending keywords, supports groups, regex, aliases, and advanced syntax |
+   | `config/timeline.yaml` | **Timeline config** | Low | Controls news timeline display and filtering rules |
+   | `config/ai_analysis_prompt.txt` | **AI analysis prompt** | Medium | Customize AI analysis role definition and output format (v5.0.0+) |
+   | `config/ai_translation_prompt.txt` | **AI translation prompt** | Low | Customize AI translation prompt template |
+   | `config/ai_interests.txt` | **AI interest filtering** | Medium | Define rules for AI to auto-filter news based on interests |
+   | `config/ai_filter/` | **AI filter prompts** | Low | Internal prompts for AI filter module (usually no need to modify) |
+   | `config/custom/` | **User custom extensions** | As needed | `custom/ai/` for custom AI prompts, `custom/keyword/` for custom keyword files |
+   | `docker/.env` | **Sensitive info + Docker-specific config** | Low | Webhook URLs, API Keys, S3 credentials, scheduled tasks, **not tracked by git** |
+
+   > 💡 **Division Guidelines**:
+   > - **Feature behavior** → Edit `config.yaml` (e.g., enable/disable platforms, adjust push mode)
+   > - **Content of interest** → Edit `frequency_words.txt` (e.g., add new keywords to follow)
+   > - **AI output style** → Edit `ai_analysis_prompt.txt` or `ai_translation_prompt.txt`
+   > - **Keys & credentials** → Edit `docker/.env` (API Keys, Webhook URLs, and other sensitive info go here)
+   > - **Custom extensions** → Use `config/custom/` directory to avoid default configs being overwritten by upgrades
 
    **⚙️ Environment Variable Override Mechanism (v3.0.5+)**
 
@@ -2607,6 +2656,8 @@ current directory/
    |---------------------|---------------------|---------------|-------------|
    | `ENABLE_WEBSERVER` | - | `true` / `false` | Auto-start web server |
    | `WEBSERVER_PORT` | - | `8080` | Web server port |
+   | `WEBSERVER_WATCHDOG` | - | `true` / `false` | Turn on "auto-recover web page service" (restarts it if it crashes) |
+   | `WEBSERVER_WATCHDOG_INTERVAL` | - | `60` | How often to check and auto-recover (seconds) |
    | `FEISHU_WEBHOOK_URL` | `notification.channels.feishu.webhook_url` | `https://...` | Feishu Webhook (multi-account use `;` separator) |
    | `AI_ANALYSIS_ENABLED` | `ai_analysis.enabled` | `true` / `false` | Enable AI analysis (v5.0.0 new) |
    | `AI_API_KEY` | `ai.api_key` | `sk-xxx...` | AI API Key (shared by ai_analysis and ai_translation) |
@@ -2771,6 +2822,9 @@ docker rm trendradar
 > - Access historical reports via directory navigation (e.g., `http://localhost:8080/2025-xx-xx/`)
 > - Port can be configured in `.env` file with `WEBSERVER_PORT` parameter
 > - Auto-start: Set `ENABLE_WEBSERVER=true` in `.env`
+> - Auto-recover: `WEBSERVER_WATCHDOG=true` (default). It checks every `WEBSERVER_WATCHDOG_INTERVAL` seconds and restarts the web page service if needed
+> - `stop_webserver` means you manually turn off the web page service (command: `docker exec -it trendradar python manage.py stop_webserver`)
+> - "Auto restart" means the system turns that web page service back on automatically. If you stopped it manually and want it back, run `docker exec -it trendradar python manage.py start_webserver`
 > - Security: Static files only, limited to output directory, localhost binding only
 
 #### Data Persistence
@@ -2859,20 +2913,9 @@ flowchart TB
 Use docker compose to start both news push and MCP services:
 
 ```bash
-# Method 1: Clone project (Recommended)
+# Clone project (Recommended)
 git clone https://github.com/sansan0/TrendRadar.git
 cd TrendRadar/docker
-docker compose up -d
-
-# Method 2: Download docker-compose.yml separately
-mkdir trendradar && cd trendradar
-wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker-compose.yml
-wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/.env
-mkdir -p config output
-# Download config files
-wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/config.yaml -P config/
-wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/frequency_words.txt -P config/
-# Modify volume paths in docker-compose.yml: ../config -> ./config, ../output -> ./output
 docker compose up -d
 
 # Check running status

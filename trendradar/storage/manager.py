@@ -234,9 +234,9 @@ class StorageManager:
         """保存 TXT 快照"""
         return self.get_backend().save_txt_snapshot(data)
 
-    def save_html_report(self, html_content: str, filename: str, is_summary: bool = False) -> Optional[str]:
+    def save_html_report(self, html_content: str, filename: str) -> Optional[str]:
         """保存 HTML 报告"""
-        return self.get_backend().save_html_report(html_content, filename, is_summary)
+        return self.get_backend().save_html_report(html_content, filename)
 
     def is_first_crawl_today(self, date: Optional[str] = None) -> bool:
         """检查是否是当天第一次抓取"""
@@ -288,6 +288,84 @@ class StorageManager:
     def record_period_execution(self, date_str: str, period_key: str, action: str) -> bool:
         """记录时间段的 action 执行"""
         return self.get_backend().record_period_execution(date_str, period_key, action)
+
+    # === AI 智能筛选存储操作 ===
+
+    def begin_batch(self):
+        """开启批量模式（远程后端延迟上传）"""
+        self.get_backend().begin_batch()
+
+    def end_batch(self):
+        """结束批量模式（统一上传脏数据库）"""
+        self.get_backend().end_batch()
+
+    def get_active_ai_filter_tags(self, date=None, interests_file="ai_interests.txt"):
+        """获取指定兴趣文件的 active 标签"""
+        return self.get_backend().get_active_ai_filter_tags(date, interests_file)
+
+    def get_latest_prompt_hash(self, date=None, interests_file="ai_interests.txt"):
+        """获取指定兴趣文件的最新 prompt_hash"""
+        return self.get_backend().get_latest_prompt_hash(date, interests_file)
+
+    def get_latest_ai_filter_tag_version(self, date=None):
+        """获取最新标签版本号"""
+        return self.get_backend().get_latest_ai_filter_tag_version(date)
+
+    def deprecate_all_ai_filter_tags(self, date=None, interests_file="ai_interests.txt"):
+        """废弃指定兴趣文件的 active 标签和分类结果"""
+        return self.get_backend().deprecate_all_ai_filter_tags(date, interests_file)
+
+    def save_ai_filter_tags(self, tags, version, prompt_hash, date=None, interests_file="ai_interests.txt"):
+        """保存新提取的标签"""
+        return self.get_backend().save_ai_filter_tags(tags, version, prompt_hash, date, interests_file)
+
+    def save_ai_filter_results(self, results, date=None):
+        """保存分类结果"""
+        return self.get_backend().save_ai_filter_results(results, date)
+
+    def get_active_ai_filter_results(self, date=None, interests_file="ai_interests.txt"):
+        """获取指定兴趣文件的 active 分类结果"""
+        return self.get_backend().get_active_ai_filter_results(date, interests_file)
+
+    def deprecate_specific_ai_filter_tags(self, tag_ids, date=None):
+        """废弃指定 ID 的标签及其关联分类结果"""
+        return self.get_backend().deprecate_specific_ai_filter_tags(tag_ids, date)
+
+    def update_ai_filter_tags_hash(self, interests_file, new_hash, date=None):
+        """更新指定兴趣文件所有 active 标签的 prompt_hash"""
+        return self.get_backend().update_ai_filter_tags_hash(interests_file, new_hash, date)
+
+    def update_ai_filter_tag_descriptions(self, tag_updates, date=None, interests_file="ai_interests.txt"):
+        """按 tag 名匹配，更新 active 标签的 description"""
+        return self.get_backend().update_ai_filter_tag_descriptions(tag_updates, date, interests_file)
+
+    def update_ai_filter_tag_priorities(self, tag_priorities, date=None, interests_file="ai_interests.txt"):
+        """按 tag 名匹配，更新 active 标签的 priority"""
+        return self.get_backend().update_ai_filter_tag_priorities(tag_priorities, date, interests_file)
+
+    def save_analyzed_news(self, news_ids, source_type, interests_file, prompt_hash, matched_ids, date=None):
+        """批量记录已分析的新闻（匹配与不匹配都记录）"""
+        return self.get_backend().save_analyzed_news(news_ids, source_type, interests_file, prompt_hash, matched_ids, date)
+
+    def get_analyzed_news_ids(self, source_type="hotlist", date=None, interests_file="ai_interests.txt"):
+        """获取已分析过的新闻 ID 集合"""
+        return self.get_backend().get_analyzed_news_ids(source_type, date, interests_file)
+
+    def clear_analyzed_news(self, date=None, interests_file="ai_interests.txt"):
+        """清除指定兴趣文件的所有已分析记录"""
+        return self.get_backend().clear_analyzed_news(date, interests_file)
+
+    def clear_unmatched_analyzed_news(self, date=None, interests_file="ai_interests.txt"):
+        """清除不匹配的已分析记录"""
+        return self.get_backend().clear_unmatched_analyzed_news(date, interests_file)
+
+    def get_all_news_ids(self, date=None):
+        """获取所有新闻 ID 和标题"""
+        return self.get_backend().get_all_news_ids(date)
+
+    def get_all_rss_ids(self, date=None):
+        """获取所有 RSS ID 和标题"""
+        return self.get_backend().get_all_rss_ids(date)
 
 
 

@@ -8,12 +8,11 @@ RSS 抓取器
 import time
 import random
 from dataclasses import dataclass
-from datetime import datetime
-from typing import List, Dict, Optional, Tuple, Callable
+from typing import List, Dict, Optional, Tuple
 
 import requests
 
-from .parser import RSSParser, ParsedRSSItem
+from .parser import RSSParser
 from trendradar.storage.base import RSSItem, RSSData
 from trendradar.utils.time import get_configured_time, is_within_days, DEFAULT_TIMEZONE
 

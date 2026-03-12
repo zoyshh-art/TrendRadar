@@ -7,7 +7,7 @@ AI 客户端模块
 """
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from litellm import completion
 
@@ -92,7 +92,14 @@ class AIClient:
         response = completion(**params)
 
         # 提取响应内容
-        return response.choices[0].message.content
+        # 某些模型/提供商返回 list（内容块）而非 str，统一转为 str
+        content = response.choices[0].message.content
+        if isinstance(content, list):
+            content = "\n".join(
+                item.get("text", str(item)) if isinstance(item, dict) else str(item)
+                for item in content
+            )
+        return content or ""
 
     def validate_config(self) -> tuple[bool, str]:
         """

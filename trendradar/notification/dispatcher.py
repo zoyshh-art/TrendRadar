@@ -78,6 +78,8 @@ class NotificationDispatcher:
         report_data: Dict,
         rss_items: Optional[List[Dict]] = None,
         rss_new_items: Optional[List[Dict]] = None,
+        standalone_data: Optional[Dict] = None,
+        display_regions: Optional[Dict] = None,
     ) -> tuple:
         """
         翻译推送内容
@@ -86,54 +88,74 @@ class NotificationDispatcher:
             report_data: 报告数据
             rss_items: RSS 统计条目
             rss_new_items: RSS 新增条目
+            standalone_data: 独立展示区数据
+            display_regions: 区域显示配置（不展示的区域跳过翻译）
 
         Returns:
-            tuple: (翻译后的 report_data, rss_items, rss_new_items)
+            tuple: (翻译后的 report_data, rss_items, rss_new_items, standalone_data)
         """
         if not self.translator or not self.translator.enabled:
-            return report_data, rss_items, rss_new_items
+            return report_data, rss_items, rss_new_items, standalone_data
 
         import copy
         print(f"[翻译] 开始翻译内容到 {self.translator.target_language}...")
+
+        scope = self.translator.scope
+        display_regions = display_regions or {}
 
         # 深拷贝避免修改原始数据
         report_data = copy.deepcopy(report_data)
         rss_items = copy.deepcopy(rss_items) if rss_items else None
         rss_new_items = copy.deepcopy(rss_new_items) if rss_new_items else None
+        standalone_data = copy.deepcopy(standalone_data) if standalone_data else None
 
         # 收集所有需要翻译的标题
         titles_to_translate = []
         title_locations = []  # 记录标题位置，用于回填
 
-        # 1. 热榜标题
-        for stat_idx, stat in enumerate(report_data.get("stats", [])):
-            for title_idx, title_data in enumerate(stat.get("titles", [])):
-                titles_to_translate.append(title_data.get("title", ""))
-                title_locations.append(("stats", stat_idx, title_idx))
+        # 1. 热榜标题（scope 开启 且 区域展示）
+        if scope.get("HOTLIST", True) and display_regions.get("HOTLIST", True):
+            for stat_idx, stat in enumerate(report_data.get("stats", [])):
+                for title_idx, title_data in enumerate(stat.get("titles", [])):
+                    titles_to_translate.append(title_data.get("title", ""))
+                    title_locations.append(("stats", stat_idx, title_idx))
 
-        # 2. 新增热点标题
-        for source_idx, source in enumerate(report_data.get("new_titles", [])):
-            for title_idx, title_data in enumerate(source.get("titles", [])):
-                titles_to_translate.append(title_data.get("title", ""))
-                title_locations.append(("new_titles", source_idx, title_idx))
+            # 2. 新增热点标题
+            for source_idx, source in enumerate(report_data.get("new_titles", [])):
+                for title_idx, title_data in enumerate(source.get("titles", [])):
+                    titles_to_translate.append(title_data.get("title", ""))
+                    title_locations.append(("new_titles", source_idx, title_idx))
 
         # 3. RSS 统计标题（结构与 stats 一致：[{word, count, titles: [{title, ...}]}]）
-        if rss_items:
+        if rss_items and scope.get("RSS", True) and display_regions.get("RSS", True):
             for stat_idx, stat in enumerate(rss_items):
                 for title_idx, title_data in enumerate(stat.get("titles", [])):
                     titles_to_translate.append(title_data.get("title", ""))
                     title_locations.append(("rss_items", stat_idx, title_idx))
 
         # 4. RSS 新增标题（结构与 stats 一致）
-        if rss_new_items:
+        if rss_new_items and scope.get("RSS", True) and display_regions.get("RSS", True) and display_regions.get("NEW_ITEMS", True):
             for stat_idx, stat in enumerate(rss_new_items):
                 for title_idx, title_data in enumerate(stat.get("titles", [])):
                     titles_to_translate.append(title_data.get("title", ""))
                     title_locations.append(("rss_new_items", stat_idx, title_idx))
 
+        # 5. 独立展示区 - 热榜平台
+        if standalone_data and scope.get("STANDALONE", True) and display_regions.get("STANDALONE", False):
+            for plat_idx, platform in enumerate(standalone_data.get("platforms", [])):
+                for item_idx, item in enumerate(platform.get("items", [])):
+                    titles_to_translate.append(item.get("title", ""))
+                    title_locations.append(("standalone_platforms", plat_idx, item_idx))
+
+            # 6. 独立展示区 - RSS 源
+            for feed_idx, feed in enumerate(standalone_data.get("rss_feeds", [])):
+                for item_idx, item in enumerate(feed.get("items", [])):
+                    titles_to_translate.append(item.get("title", ""))
+                    title_locations.append(("standalone_rss", feed_idx, item_idx))
+
         if not titles_to_translate:
             print("[翻译] 没有需要翻译的内容")
-            return report_data, rss_items, rss_new_items
+            return report_data, rss_items, rss_new_items, standalone_data
 
         print(f"[翻译] 共 {len(titles_to_translate)} 条标题待翻译")
 
@@ -142,9 +164,35 @@ class NotificationDispatcher:
 
         if result.success_count == 0:
             print(f"[翻译] 翻译失败: {result.results[0].error if result.results else '未知错误'}")
-            return report_data, rss_items, rss_new_items
+            return report_data, rss_items, rss_new_items, standalone_data
 
         print(f"[翻译] 翻译完成: {result.success_count}/{result.total_count} 成功")
+
+        # debug 模式：输出完整 prompt、AI 原始响应、逐条对照
+        if self.config.get("DEBUG", False):
+            if result.prompt:
+                print(f"[翻译][DEBUG] === 发送给 AI 的 Prompt ===")
+                print(result.prompt)
+                print(f"[翻译][DEBUG] === Prompt 结束 ===")
+            if result.raw_response:
+                print(f"[翻译][DEBUG] === AI 原始响应 ===")
+                print(result.raw_response)
+                print(f"[翻译][DEBUG] === 响应结束 ===")
+            # 行数不匹配警告
+            expected = len(titles_to_translate)
+            if result.parsed_count != expected:
+                print(f"[翻译][DEBUG] ⚠️ 行数不匹配：期望 {expected} 条，AI 返回 {result.parsed_count} 条")
+            # 逐条对照
+            unchanged_count = 0
+            for i, res in enumerate(result.results):
+                if not res.success and res.error:
+                    print(f"[翻译][DEBUG] [{i+1}] !! 失败: {res.error}")
+                elif res.original_text == res.translated_text:
+                    unchanged_count += 1
+                else:
+                    print(f"[翻译][DEBUG] [{i+1}] {res.original_text} => {res.translated_text}")
+            if unchanged_count > 0:
+                print(f"[翻译][DEBUG] （另有 {unchanged_count} 条未变化，已省略）")
 
         # 回填翻译结果
         for i, (loc_type, idx1, idx2) in enumerate(title_locations):
@@ -158,8 +206,12 @@ class NotificationDispatcher:
                     rss_items[idx1]["titles"][idx2]["title"] = translated
                 elif loc_type == "rss_new_items" and rss_new_items:
                     rss_new_items[idx1]["titles"][idx2]["title"] = translated
+                elif loc_type == "standalone_platforms" and standalone_data:
+                    standalone_data["platforms"][idx1]["items"][idx2]["title"] = translated
+                elif loc_type == "standalone_rss" and standalone_data:
+                    standalone_data["rss_feeds"][idx1]["items"][idx2]["title"] = translated
 
-        return report_data, rss_items, rss_new_items
+        return report_data, rss_items, rss_new_items, standalone_data
 
     def dispatch_all(
         self,
@@ -179,7 +231,7 @@ class NotificationDispatcher:
 
         Args:
             report_data: 报告数据（由 prepare_report_data 生成）
-            report_type: 报告类型（如 "当日汇总"、"实时增量"）
+            report_type: 报告类型（如 "全天汇总"、"当前榜单"、"增量分析"）
             update_info: 版本更新信息（可选）
             proxy_url: 代理 URL（可选）
             mode: 报告模式 (daily/current/incremental)
@@ -197,9 +249,9 @@ class NotificationDispatcher:
         # 获取区域显示配置
         display_regions = self.config.get("DISPLAY", {}).get("REGIONS", {})
 
-        # 执行翻译（如果启用）
-        report_data, rss_items, rss_new_items = self._translate_content(
-            report_data, rss_items, rss_new_items
+        # 执行翻译（如果启用，根据 display_regions 跳过不展示的区域）
+        report_data, rss_items, rss_new_items, standalone_data = self._translate_content(
+            report_data, rss_items, rss_new_items, standalone_data, display_regions
         )
 
         # 飞书
@@ -317,7 +369,6 @@ class NotificationDispatcher:
     ) -> bool:
         """发送到飞书（多账号，支持热榜+RSS合并+AI分析+独立展示区）"""
         display_regions = display_regions or {}
-        # 根据区域开关决定是否发送对应内容
         if not display_regions.get("HOTLIST", True):
             report_data = {"stats": [], "failed_ids": [], "new_titles": [], "id_to_name": {}}
 
@@ -337,7 +388,7 @@ class NotificationDispatcher:
                 split_content_func=self.split_content_func,
                 get_time_func=self.get_time_func,
                 rss_items=rss_items if display_regions.get("RSS", True) else None,
-                rss_new_items=rss_new_items if display_regions.get("RSS", True) else None,
+                rss_new_items=rss_new_items if (display_regions.get("RSS", True) and display_regions.get("NEW_ITEMS", True)) else None,
                 ai_analysis=ai_analysis if display_regions.get("AI_ANALYSIS", True) else None,
                 display_regions=display_regions,
                 standalone_data=standalone_data if display_regions.get("STANDALONE", False) else None,
@@ -377,7 +428,7 @@ class NotificationDispatcher:
                 batch_interval=self.config.get("BATCH_SEND_INTERVAL", 1.0),
                 split_content_func=self.split_content_func,
                 rss_items=rss_items if display_regions.get("RSS", True) else None,
-                rss_new_items=rss_new_items if display_regions.get("RSS", True) else None,
+                rss_new_items=rss_new_items if (display_regions.get("RSS", True) and display_regions.get("NEW_ITEMS", True)) else None,
                 ai_analysis=ai_analysis if display_regions.get("AI_ANALYSIS", True) else None,
                 display_regions=display_regions,
                 standalone_data=standalone_data if display_regions.get("STANDALONE", False) else None,
@@ -418,7 +469,7 @@ class NotificationDispatcher:
                 msg_type=self.config.get("WEWORK_MSG_TYPE", "markdown"),
                 split_content_func=self.split_content_func,
                 rss_items=rss_items if display_regions.get("RSS", True) else None,
-                rss_new_items=rss_new_items if display_regions.get("RSS", True) else None,
+                rss_new_items=rss_new_items if (display_regions.get("RSS", True) and display_regions.get("NEW_ITEMS", True)) else None,
                 ai_analysis=ai_analysis if display_regions.get("AI_ANALYSIS", True) else None,
                 display_regions=display_regions,
                 standalone_data=standalone_data if display_regions.get("STANDALONE", False) else None,
@@ -449,7 +500,6 @@ class NotificationDispatcher:
         if not telegram_tokens or not telegram_chat_ids:
             return False
 
-        # 验证配对
         valid, count = validate_paired_configs(
             {"bot_token": telegram_tokens, "chat_id": telegram_chat_ids},
             "Telegram",
@@ -458,7 +508,6 @@ class NotificationDispatcher:
         if not valid or count == 0:
             return False
 
-        # 限制账号数量
         telegram_tokens = limit_accounts(telegram_tokens, self.max_accounts, "Telegram")
         telegram_chat_ids = telegram_chat_ids[: len(telegram_tokens)]
 
@@ -481,7 +530,7 @@ class NotificationDispatcher:
                     batch_interval=self.config.get("BATCH_SEND_INTERVAL", 1.0),
                     split_content_func=self.split_content_func,
                     rss_items=rss_items if display_regions.get("RSS", True) else None,
-                    rss_new_items=rss_new_items if display_regions.get("RSS", True) else None,
+                    rss_new_items=rss_new_items if (display_regions.get("RSS", True) and display_regions.get("NEW_ITEMS", True)) else None,
                     ai_analysis=ai_analysis if display_regions.get("AI_ANALYSIS", True) else None,
                     display_regions=display_regions,
                     standalone_data=standalone_data if display_regions.get("STANDALONE", False) else None,
@@ -515,14 +564,12 @@ class NotificationDispatcher:
         if not ntfy_server_url or not ntfy_topics:
             return False
 
-        # 验证 token 和 topic 数量一致（如果配置了 token）
         if ntfy_tokens and len(ntfy_tokens) != len(ntfy_topics):
             print(
                 f"❌ ntfy 配置错误：topic 数量({len(ntfy_topics)})与 token 数量({len(ntfy_tokens)})不一致，跳过 ntfy 推送"
             )
             return False
 
-        # 限制账号数量
         ntfy_topics = limit_accounts(ntfy_topics, self.max_accounts, "ntfy")
         if ntfy_tokens:
             ntfy_tokens = ntfy_tokens[: len(ntfy_topics)]
@@ -545,7 +592,7 @@ class NotificationDispatcher:
                     batch_size=3800,
                     split_content_func=self.split_content_func,
                     rss_items=rss_items if display_regions.get("RSS", True) else None,
-                    rss_new_items=rss_new_items if display_regions.get("RSS", True) else None,
+                    rss_new_items=rss_new_items if (display_regions.get("RSS", True) and display_regions.get("NEW_ITEMS", True)) else None,
                     ai_analysis=ai_analysis if display_regions.get("AI_ANALYSIS", True) else None,
                     display_regions=display_regions,
                     standalone_data=standalone_data if display_regions.get("STANDALONE", False) else None,
@@ -587,7 +634,7 @@ class NotificationDispatcher:
                 batch_interval=self.config.get("BATCH_SEND_INTERVAL", 1.0),
                 split_content_func=self.split_content_func,
                 rss_items=rss_items if display_regions.get("RSS", True) else None,
-                rss_new_items=rss_new_items if display_regions.get("RSS", True) else None,
+                rss_new_items=rss_new_items if (display_regions.get("RSS", True) and display_regions.get("NEW_ITEMS", True)) else None,
                 ai_analysis=ai_analysis if display_regions.get("AI_ANALYSIS", True) else None,
                 display_regions=display_regions,
                 standalone_data=standalone_data if display_regions.get("STANDALONE", False) else None,
@@ -627,7 +674,7 @@ class NotificationDispatcher:
                 batch_interval=self.config.get("BATCH_SEND_INTERVAL", 1.0),
                 split_content_func=self.split_content_func,
                 rss_items=rss_items if display_regions.get("RSS", True) else None,
-                rss_new_items=rss_new_items if display_regions.get("RSS", True) else None,
+                rss_new_items=rss_new_items if (display_regions.get("RSS", True) and display_regions.get("NEW_ITEMS", True)) else None,
                 ai_analysis=ai_analysis if display_regions.get("AI_ANALYSIS", True) else None,
                 display_regions=display_regions,
                 standalone_data=standalone_data if display_regions.get("STANDALONE", False) else None,
@@ -670,7 +717,7 @@ class NotificationDispatcher:
                 if i < len(templates):
                     template = templates[i]
                 elif len(templates) == 1:
-                    template = templates[0] # 共用一个模板
+                    template = templates[0]
 
             account_label = f"账号{i+1}" if len(urls) > 1 else ""
 
@@ -687,7 +734,7 @@ class NotificationDispatcher:
                 batch_interval=self.config.get("BATCH_SEND_INTERVAL", 1.0),
                 split_content_func=self.split_content_func,
                 rss_items=rss_items if display_regions.get("RSS", True) else None,
-                rss_new_items=rss_new_items if display_regions.get("RSS", True) else None,
+                rss_new_items=rss_new_items if (display_regions.get("RSS", True) and display_regions.get("NEW_ITEMS", True)) else None,
                 ai_analysis=ai_analysis if display_regions.get("AI_ANALYSIS", True) else None,
                 display_regions=display_regions,
                 standalone_data=standalone_data if display_regions.get("STANDALONE", False) else None,
@@ -922,7 +969,6 @@ class NotificationDispatcher:
         channel: str,
     ) -> bool:
         """发送 RSS 到 Markdown 兼容渠道（企业微信、Telegram、ntfy、Bark、Slack）"""
-        import requests
 
         content = render_rss_markdown_content(
             rss_items=rss_items,

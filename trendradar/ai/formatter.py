@@ -36,13 +36,14 @@ def _format_list_content(text: str) -> str:
     result = re.sub(r'(\d+)\.([^ \d])', r'\1. \2', text)
 
     # 2. 强制换行：匹配 "数字."，且前面不是换行符
-    result = re.sub(r'(?<=[^\n])\s+(\d+\.)', r'\n\1', result)
+    #    (?!\d) 排除版本号/小数（如 2.0、3.5），避免将其误判为列表序号
+    result = re.sub(r'(?<=[^\n])\s+(\d+\.)(?!\d)', r'\n\1', result)
     
     # 3. 处理 "1.**粗体**" 这种情况（虽然 Prompt 要求不输出 Markdown，但防御性处理）
     result = re.sub(r'(?<=[^\n])(\d+\.\*\*)', r'\n\1', result)
 
-    # 4. 处理中文标点后的换行
-    result = re.sub(r'([：:;,。；，])\s*(\d+\.)', r'\1\n\2', result)
+    # 4. 处理中文标点后的换行（排除版本号/小数）
+    result = re.sub(r'([：:;,。；，])\s*(\d+\.)(?!\d)', r'\1\n\2', result)
 
     # 5. 处理 "XX方面："、"XX领域：" 等子标题换行
     # 只有在中文标点（句号、逗号、分号等）后才触发换行，避免破坏 "1. XX领域：" 格式
@@ -57,9 +58,9 @@ def _format_list_content(text: str) -> str:
     # 用 (?=[^\s:：]) 避免正则回溯将冒号误判为"内容"而拆开 【tag】：
     result = re.sub(r'(【[^】]+】[:：]?)[ \t]*(?=[^\s:：])', r'\1\n', result)
 
-    # 7. 在列表项之间增加视觉空行
+    # 7. 在列表项之间增加视觉空行（排除版本号/小数）
     # 排除 【标签】 行（以】结尾）和子标题行（以冒号结尾）之后的情况，避免标题与首项之间出现空行
-    result = re.sub(r'(?<![:：】])\n(\d+\.)', r'\n\n\1', result)
+    result = re.sub(r'(?<![:：】])\n(\d+\.)(?!\d)', r'\n\n\1', result)
 
     return result
 

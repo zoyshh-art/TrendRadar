@@ -12,7 +12,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v6.0.0-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v6.5.0-blue.svg)](https://github.com/sansan0/TrendRadar)
 [![MCP](https://img.shields.io/badge/MCP-v4.0.0-green.svg)](https://github.com/sansan0/TrendRadar)
 [![RSS](https://img.shields.io/badge/RSS-订阅源支持-orange.svg?style=flat-square&logo=rss&logoColor=white)](https://github.com/sansan0/TrendRadar)
 [![AI翻译](https://img.shields.io/badge/AI-多语言推送-purple.svg?style=flat-square)](https://github.com/sansan0/TrendRadar)
@@ -34,6 +34,7 @@
 [![Docker](https://img.shields.io/badge/Docker-部署-2496ED?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/r/wantcat/trendradar)
 [![MCP Support](https://img.shields.io/badge/MCP-AI分析支持-FF6B6B?style=flat-square&logo=ai&logoColor=white)](https://modelcontextprotocol.io/)
 [![AI分析推送](https://img.shields.io/badge/AI-分析推送-FF6B6B?style=flat-square&logo=openai&logoColor=white)](#)
+[![AI智能筛选](https://img.shields.io/badge/AI-智能筛选新闻-9B59B6?style=flat-square&logo=openai&logoColor=white)](#)
 
 </div>
 
@@ -239,6 +240,32 @@
 - **提示**：建议查看【历史更新】，明确具体的【功能内容】
 
 
+### 2026/03/12 - v6.5.0
+
+- **AI 智能筛选系统**：不用再手动设关键词！在 `ai_interests.txt` 里用日常语言写下你关注的方向（如"我想看 AI 和新能源相关新闻"），AI 会自动提取标签并对每条新闻打分，只推送真正和你相关的内容。万一 AI 筛选出了问题，会自动切回关键词匹配，推送不中断
+- **每个时段支持不同的筛选方式和关注方向**：Timeline 中的每个时间段现在可以独立设置用什么方式筛选、看什么类型的新闻。比如：早上用"科技关键词"快速过滤，晚上换成"金融 AI 兴趣描述"做深度筛选——同一个系统，不同时段看不同内容
+- **AI 分析范围独立于推送**：AI 分析的数据范围可以和推送内容不同。比如推送只发新增消息（避免重复打扰），但 AI 分析当天全部新闻（看完整趋势）。每个时段也能单独设置 AI 分析模式
+- **AI 筛选智能省钱**：已分析过的新闻不会重复消耗 token；兴趣描述修改后，AI 自动判断变化幅度——小改动只更新受影响的标签，大改动才全量重新分类
+- **多文件配置与标签隔离**：自定义关键词文件放 `config/custom/keyword/`，AI 兴趣文件放 `config/custom/ai/`，不同文件产生的标签各自独立、互不干扰
+- **AI 翻译精准控制**：可分别控制热榜、RSS、独立展示区是否翻译，没开启显示的区域自动跳过，不浪费 token
+- **远程存储批量上传**：多次写操作攒在一起统一提交云端，减少 API 调用次数
+- **每组关键词/标签展示数量限制**：通过 `max_news_per_keyword` 控制每个分组最多显示多少条新闻，避免单个热门话题占满整条推送
+- **时段冲突智能检测**：两个时间段如果有时间重叠，系统会自动报错提醒修改，避免配置冲突导致意外行为
+- 修复若干bug
+
+
+### 2026/02/09 - mcp-v4.0.0
+
+- **🔥 AI 消息直推所有渠道**：让 AI 写好的内容一键推送到飞书、钉钉、Telegram、邮件等 9 个渠道，Markdown 自动适配各平台格式，不用操心格式差异
+- **新增格式化策略指南**：新增 `get_channel_format_guide` 工具，告诉 AI 每个渠道支持什么格式、有什么限制，生成的内容排版更好看
+- **智能分批发送**：超长消息自动按各渠道字节限制拆分（飞书 30KB、钉钉 20KB 等），配置读取自 config.yaml
+- **修复渠道误检测**：ntfy 不再因为默认地址被误报为"已配置"
+- **代码复用优化**：批次处理函数直接复用 trendradar 核心模块，不重复造轮子
+
+
+<details>
+<summary>👉 点击展开：<strong>历史更新</strong></summary>
+
 ### 2026/02/09 - v6.0.0
 
 > **Breaking Change**：配置文件升级（config.yaml 2.0.0），旧版 `push_window` 和 `analysis_window` 配置不再兼容，请参考新版 config.yaml 迁移
@@ -263,19 +290,6 @@
   - 支持热榜平台和 RSS 源，含排名/时间/轨迹数据
   - 轨迹分析与 `include_rank_timeline` 联动：开启时利用轨迹数据做深度趋势分析，关闭时基于排名做简要判断
   - 新增 `standalone_summaries` JSON 字段（独立源点速览），所有推送渠道均已适配渲染
-
-
-### 2026/02/09 - mcp-v4.0.0
-
-- **🔥 AI 消息直推所有渠道**：让 AI 写好的内容一键推送到飞书、钉钉、Telegram、邮件等 9 个渠道，Markdown 自动适配各平台格式，不用操心格式差异
-- **新增格式化策略指南**：新增 `get_channel_format_guide` 工具，告诉 AI 每个渠道支持什么格式、有什么限制，生成的内容排版更好看
-- **智能分批发送**：超长消息自动按各渠道字节限制拆分（飞书 30KB、钉钉 20KB 等），配置读取自 config.yaml
-- **修复渠道误检测**：ntfy 不再因为默认地址被误报为"已配置"
-- **代码复用优化**：批次处理函数直接复用 trendradar 核心模块，不重复造轮子
-
-
-<details>
-<summary>👉 点击展开：<strong>历史更新</strong></summary>
 
 
 ### 2026/01/28 - v5.5.0
@@ -960,6 +974,7 @@ frequency_words.txt 文件增加了一个【必须词】功能，使用 + 号
 - **统一格式**：RSS 与热榜使用相同的关键词匹配和显示格式
 - **简单配置**：直接在 `config.yaml` 中添加 RSS 源
 - **合并推送**：热榜和 RSS 合并为一条消息推送
+- **新鲜度过滤**：自动过滤超过指定天数的旧文章，避免重复推送。支持全局默认天数和单源独立设置
 
 > 💡 RSS 使用与热榜相同的 `frequency_words.txt` 进行关键词过滤
 
@@ -992,7 +1007,7 @@ frequency_words.txt 文件增加了一个【必须词】功能，使用 + 号
 
 | 功能 | 说明 | 默认 |
 |------|------|------|
-| **调度系统** | 按周一到周日逐日编排：为每天分配不同时间段、推送模式和 AI 分析策略。内置 5 种预设（always_on / morning_evening / office_hours / night_owl / custom），也可自定义。支持工作日/周末差异化、跨午夜时段、per-period 去重（v6.0.0） | morning_evening |
+| **调度系统** | 按周一到周日逐日编排：为每天分配不同时间段、推送模式和 AI 分析策略。**每个时段可独立设置筛选方式（关键词/AI）和关注方向**，实现不同时间看不同类型新闻。内置 5 种预设（always_on / morning_evening / office_hours / night_owl / custom），也可自定义。支持工作日/周末差异化、跨午夜时段、per-period 去重、时段冲突检测（v6.0.0 + v6.5.0） | morning_evening |
 | **内容顺序配置** | 通过 `display.region_order` 调整各区域（热榜、新增热点、RSS、独立展示区、AI 分析）的显示顺序；通过 `display.regions` 控制各区域是否显示（v5.2.0） | 见配置文件 |
 | **显示模式切换** | `keyword`=按关键词分组，`platform`=按平台分组（v4.6.0 新增） | keyword |
 
@@ -1007,6 +1022,28 @@ frequency_words.txt 文件增加了一个【必须词】功能，使用 + 号
 > 💡 **高级配置教程**：[关键词配置 - 高级配置](#关键词高级配置)
 >
 > 💡 也可以不做筛选，完整推送所有热点（将 frequency_words.txt 留空）
+
+### **AI 智能筛选新闻**（v6.5.0 新增）
+
+用自然语言描述你的兴趣，AI 自动分类新闻，替代传统关键词匹配
+
+- **自然语言兴趣描述**：在 `ai_interests.txt` 中用日常语言写下关注方向，无需学习关键词语法
+- **两阶段智能处理**：AI 先从兴趣描述提取结构化标签，再对新闻按标签批量分类打分
+- **分数阈值控制**：通过 `ai_filter.min_score` 精确控制推送质量，只推送高相关度新闻
+- **自动回退保障**：AI 筛选失败时自动回退到关键词匹配，确保推送不中断
+- **智能标签更新**：兴趣变更时 AI 自动评估变化幅度，决定增量或全量重分类
+- **灵活切换**：`filter.method` 支持 `keyword`（默认）和 `ai` 两种模式，Timeline 可按时段覆盖
+- **分时段个性化**：不同时间段可以使用不同的关键词文件或 AI 兴趣描述。例如早上用"科技词库"快速过滤，晚上换成"金融兴趣"做 AI 深度筛选
+
+```yaml
+# config.yaml 快速启用示例
+filter:
+  method: ai          # keyword（默认）| ai
+ai_filter:
+  min_score: 6         # 推送最低分数阈值（1-10）
+```
+
+> 💡 AI 筛选与 AI 分析/翻译共享模型配置，只需配置一次 `ai.api_key`
 
 ### **热点趋势分析**
 
@@ -1028,7 +1065,7 @@ frequency_words.txt 文件增加了一个【必须词】功能，使用 + 号
 
 ### **多渠道多账号推送**
 
-支持**企业微信**(+ 微信推送方案)、**飞书**、**钉钉**、**Telegram**、**邮件**、**ntfy**、**Bark**、**Slack**，消息直达手机和邮箱
+支持**企业微信**(+ 微信推送方案)、**飞书**、**钉钉**、**Telegram**、**邮件**、**ntfy**、**Bark**、**Slack**、**通用 Webhook**（可对接 Discord、IFTTT 等任意平台），消息直达手机和邮箱
 
 > 💡 详细配置教程见 [推送到多个群/设备](#10-推送到多个群设备)
 
@@ -1077,7 +1114,8 @@ ai_translation:
 使用 AI 大模型对推送内容进行深度分析，自动生成热点洞察报告
 
 - **智能分析**：自动分析热点趋势、关键词热度、跨平台关联、潜在影响
-- **多提供商**：支持 DeepSeek、OpenAI、Gemini 及 OpenAI 兼容接口
+- **多提供商**：基于 LiteLLM 统一接口，支持 100+ AI 提供商（DeepSeek、OpenAI、Gemini、Anthropic、本地 Ollama 等），还支持备用模型自动切换
+- **分析模式独立**：AI 的分析范围可以和推送不同——推送只发新增消息（避免打扰），但 AI 可以分析当天全部新闻（看完整趋势）
 - **灵活推送**：可选仅原始内容、仅 AI 分析、或两者都推送
 - **自定义提示词**：通过 `config/ai_analysis_prompt.txt` 自定义分析角度
 
@@ -2607,48 +2645,56 @@ TrendRadar 提供两个独立的 Docker 镜像，可根据需求选择部署：
 
 1. **创建项目目录和配置**:
 
-   **方式 1-A：使用 git clone（推荐，最简单）**
    ```bash
    # 克隆项目到本地
    git clone https://github.com/sansan0/TrendRadar.git
    cd TrendRadar
    ```
 
-   **方式 1-B：使用 wget 下载配置文件**
-   ```bash
-   # 创建目录结构
-   mkdir -p trendradar/{config,docker}
-   cd trendradar
-
-   # 下载配置文件模板
-   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/config.yaml -P config/
-   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/frequency_words.txt -P config/
-   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/config/ai_analysis_prompt.txt -P config/
-
-   # 下载 docker compose 配置
-   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/.env  -P docker/
-   wget https://raw.githubusercontent.com/sansan0/TrendRadar/master/docker/docker-compose.yml  -P docker/
-   ```
-
    > 💡 **说明**：Docker 部署需要的关键目录结构如下：
 ```
 当前目录/
 ├── config/
-│   ├── config.yaml
-│   ├── frequency_words.txt
-│   └── ai_analysis_prompt.txt    # AI 分析提示词（v5.0.0 新增，可选）
+│   ├── config.yaml                 # 核心功能配置（必需）
+│   ├── frequency_words.txt         # 关键词配置（必需）
+│   ├── timeline.yaml               # 时间线配置
+│   ├── ai_analysis_prompt.txt      # AI 分析提示词（可选）
+│   ├── ai_translation_prompt.txt   # AI 翻译提示词（可选）
+│   ├── ai_interests.txt            # AI 兴趣过滤配置（可选）
+│   ├── ai_filter/                  # AI 过滤相关提示词
+│   │   ├── prompt.txt
+│   │   ├── extract_prompt.txt
+│   │   └── update_tags_prompt.txt
+│   └── custom/                     # 用户自定义配置（可选）
+│       ├── ai/                     # 自定义 AI 提示词
+│       └── keyword/                # 自定义关键词文件
 └── docker/
-    ├── .env
-    └── docker-compose.yml
+    ├── .env                        # 敏感信息 + Docker 特有配置
+    └── docker-compose.yml          # Docker Compose 编排文件
 ```
 
 2. **配置文件说明**:
 
    **配置分工原则（v4.6.0 优化）**：
-   - `config/config.yaml` - **功能配置**（报告模式、推送设置、存储格式、推送窗口、AI 分析等）
-   - `config/frequency_words.txt` - **关键词配置**（设置你关心的热点词汇）
-   - `config/ai_analysis_prompt.txt` - **AI 提示词配置**（自定义 AI 分析角色和输出格式，v5.0.0 新增）
-   - `docker/.env` - **敏感信息 + Docker 特有配置**（webhook URLs、API Key、S3 密钥、定时任务）
+
+   | 文件 | 用途 | 修改频率 | 说明 |
+   |------|------|---------|------|
+   | `config/config.yaml` | **核心功能配置** | 低 | 报告模式、推送设置、存储格式、推送窗口、AI 分析开关、平台启用等全局行为控制 |
+   | `config/frequency_words.txt` | **关键词配置** | 高 | 设置你关心的热点词汇，支持分组、正则、别名等高级语法 |
+   | `config/timeline.yaml` | **时间线配置** | 低 | 控制新闻时间线的展示和过滤规则 |
+   | `config/ai_analysis_prompt.txt` | **AI 分析提示词** | 中 | 自定义 AI 分析的角色定义和输出格式（v5.0.0+） |
+   | `config/ai_translation_prompt.txt` | **AI 翻译提示词** | 低 | 自定义 AI 翻译的提示词模板 |
+   | `config/ai_interests.txt` | **AI 兴趣过滤** | 中 | 定义 AI 基于兴趣自动过滤新闻的规则 |
+   | `config/ai_filter/` | **AI 过滤提示词** | 低 | AI 过滤模块的内部提示词（一般无需修改） |
+   | `config/custom/` | **用户自定义扩展** | 按需 | `custom/ai/` 放自定义 AI 提示词，`custom/keyword/` 放自定义关键词文件 |
+   | `docker/.env` | **敏感信息 + Docker 特有配置** | 低 | webhook URLs、API Key、S3 密钥、定时任务等，**不会被 git 追踪** |
+
+   > 💡 **分工要点**：
+   > - **功能行为** → 改 `config.yaml`（如开启/关闭某个平台、调整推送模式）
+   > - **关注内容** → 改 `frequency_words.txt`（如添加新的关注关键词）
+   > - **AI 输出风格** → 改 `ai_analysis_prompt.txt` 或 `ai_translation_prompt.txt`
+   > - **密钥与凭证** → 改 `docker/.env`（API Key、Webhook URL 等敏感信息统一放这里）
+   > - **个性化扩展** → 使用 `config/custom/` 目录，避免直接修改默认配置被升级覆盖
 
    > 💡 **配置修改生效**：修改 `config.yaml` 后，执行 `docker compose up -d` 重启容器即可生效
 
@@ -2660,6 +2706,8 @@ TrendRadar 提供两个独立的 Docker 镜像，可根据需求选择部署：
    |---------|---------|-------|------|
    | `ENABLE_WEBSERVER` | - | `true` / `false` | 是否自动启动 Web 服务器 |
    | `WEBSERVER_PORT` | - | `8080` | Web 服务器端口 |
+   | `WEBSERVER_WATCHDOG` | - | `true` / `false` | 是否开启“网页服务自动恢复”（服务异常时自动重开） |
+   | `WEBSERVER_WATCHDOG_INTERVAL` | - | `60` | 自动恢复检查间隔（秒） |
    | `FEISHU_WEBHOOK_URL` | `notification.channels.feishu.webhook_url` | `https://...` | 飞书 Webhook（多账号用 `;` 分隔） |
    | `AI_ANALYSIS_ENABLED` | `ai_analysis.enabled` | `true` / `false` | 是否启用 AI 分析（v5.0.0 新增） |
    | `AI_API_KEY` | `ai.api_key` | `sk-xxx...` | AI API Key（ai_analysis 和 ai_translation 共享） |
@@ -2824,6 +2872,9 @@ docker rm trendradar
 > - 通过目录导航访问历史报告（如：`http://localhost:8080/2025-xx-xx/`）
 > - 端口可在 `.env` 文件中配置 `WEBSERVER_PORT` 参数
 > - 自动启动：在 `.env` 中设置 `ENABLE_WEBSERVER=true`
+> - 自动恢复：`WEBSERVER_WATCHDOG=true`（默认开启），每隔 `WEBSERVER_WATCHDOG_INTERVAL` 秒检查一次，异常会自动重开网页服务
+> - `stop_webserver` 的意思是“你主动手动关闭网页服务”（命令：`docker exec -it trendradar python manage.py stop_webserver`）
+> - “自动拉起”就是“系统自动把网页服务重新打开”；若你手动关闭后想恢复，请执行 `docker exec -it trendradar python manage.py start_webserver`
 > - 安全提示：仅提供静态文件访问，限制在 output 目录，只绑定本地访问
 
 #### 数据持久化

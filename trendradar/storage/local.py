@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from trendradar.storage.base import StorageBackend, NewsItem, NewsData, RSSItem, RSSData
+from trendradar.storage.base import StorageBackend, NewsData, RSSItem, RSSData
 from trendradar.storage.sqlite_mixin import SQLiteStorageMixin
 from trendradar.utils.time import (
     DEFAULT_TIMEZONE,
@@ -228,6 +228,61 @@ class LocalStorageBackend(SQLiteStorageMixin, StorageBackend):
         return self._get_latest_rss_data_impl(date)
 
     # ========================================
+    # AI 智能筛选
+    # ========================================
+
+    def get_active_ai_filter_tags(self, date=None, interests_file="ai_interests.txt"):
+        return self._get_active_tags_impl(date, interests_file)
+
+    def get_latest_prompt_hash(self, date=None, interests_file="ai_interests.txt"):
+        return self._get_latest_prompt_hash_impl(date, interests_file)
+
+    def get_latest_ai_filter_tag_version(self, date=None):
+        return self._get_latest_tag_version_impl(date)
+
+    def deprecate_all_ai_filter_tags(self, date=None, interests_file="ai_interests.txt"):
+        return self._deprecate_all_tags_impl(date, interests_file)
+
+    def save_ai_filter_tags(self, tags, version, prompt_hash, date=None, interests_file="ai_interests.txt"):
+        return self._save_tags_impl(date, tags, version, prompt_hash, interests_file)
+
+    def save_ai_filter_results(self, results, date=None):
+        return self._save_filter_results_impl(date, results)
+
+    def get_active_ai_filter_results(self, date=None, interests_file="ai_interests.txt"):
+        return self._get_active_filter_results_impl(date, interests_file)
+
+    def deprecate_specific_ai_filter_tags(self, tag_ids, date=None):
+        return self._deprecate_specific_tags_impl(date, tag_ids)
+
+    def update_ai_filter_tags_hash(self, interests_file, new_hash, date=None):
+        return self._update_tags_hash_impl(date, interests_file, new_hash)
+
+    def update_ai_filter_tag_descriptions(self, tag_updates, date=None, interests_file="ai_interests.txt"):
+        return self._update_tag_descriptions_impl(date, tag_updates, interests_file)
+
+    def update_ai_filter_tag_priorities(self, tag_priorities, date=None, interests_file="ai_interests.txt"):
+        return self._update_tag_priorities_impl(date, tag_priorities, interests_file)
+
+    def save_analyzed_news(self, news_ids, source_type, interests_file, prompt_hash, matched_ids, date=None):
+        return self._save_analyzed_news_impl(date, news_ids, source_type, interests_file, prompt_hash, matched_ids)
+
+    def get_analyzed_news_ids(self, source_type="hotlist", date=None, interests_file="ai_interests.txt"):
+        return self._get_analyzed_news_ids_impl(date, source_type, interests_file)
+
+    def clear_analyzed_news(self, date=None, interests_file="ai_interests.txt"):
+        return self._clear_analyzed_news_impl(date, interests_file)
+
+    def clear_unmatched_analyzed_news(self, date=None, interests_file="ai_interests.txt"):
+        return self._clear_unmatched_analyzed_news_impl(date, interests_file)
+
+    def get_all_news_ids(self, date=None):
+        return self._get_all_news_ids_impl(date)
+
+    def get_all_rss_ids(self, date=None):
+        return self._get_all_rss_ids_impl(date)
+
+    # ========================================
     # 本地特有功能：TXT/HTML 快照
     # ========================================
 
@@ -289,7 +344,7 @@ class LocalStorageBackend(SQLiteStorageMixin, StorageBackend):
             print(f"[本地存储] 保存 TXT 快照失败: {e}")
             return None
 
-    def save_html_report(self, html_content: str, filename: str, is_summary: bool = False) -> Optional[str]:
+    def save_html_report(self, html_content: str, filename: str) -> Optional[str]:
         """
         保存 HTML 报告
 
@@ -298,7 +353,6 @@ class LocalStorageBackend(SQLiteStorageMixin, StorageBackend):
         Args:
             html_content: HTML 内容
             filename: 文件名
-            is_summary: 是否为汇总报告
 
         Returns:
             保存的文件路径

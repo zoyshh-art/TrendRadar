@@ -7,7 +7,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Set
 
 
 @dataclass
@@ -372,14 +372,13 @@ class StorageBackend(ABC):
         pass
 
     @abstractmethod
-    def save_html_report(self, html_content: str, filename: str, is_summary: bool = False) -> Optional[str]:
+    def save_html_report(self, html_content: str, filename: str) -> Optional[str]:
         """
         保存 HTML 报告
 
         Args:
             html_content: HTML 内容
             filename: 文件名
-            is_summary: 是否为汇总报告
 
         Returns:
             保存的文件路径
@@ -464,6 +463,67 @@ class StorageBackend(ABC):
             是否记录成功
         """
         return False
+
+    # === AI 智能筛选（默认实现，子类通过 mixin 覆盖） ===
+
+    def begin_batch(self) -> None:
+        """开启批量模式（远程后端延迟上传，本地后端无操作）"""
+        pass
+
+    def end_batch(self) -> None:
+        """结束批量模式"""
+        pass
+
+    def get_active_ai_filter_tags(self, date: Optional[str] = None, interests_file: str = "ai_interests.txt") -> List[Dict]:
+        return []
+
+    def get_latest_prompt_hash(self, date: Optional[str] = None, interests_file: str = "ai_interests.txt") -> Optional[str]:
+        return None
+
+    def get_latest_ai_filter_tag_version(self, date: Optional[str] = None) -> int:
+        return 0
+
+    def deprecate_all_ai_filter_tags(self, date: Optional[str] = None, interests_file: str = "ai_interests.txt") -> int:
+        return 0
+
+    def save_ai_filter_tags(self, tags: List[Dict], version: int, prompt_hash: str, date: Optional[str] = None, interests_file: str = "ai_interests.txt") -> int:
+        return 0
+
+    def save_ai_filter_results(self, results: List[Dict], date: Optional[str] = None) -> int:
+        return 0
+
+    def get_active_ai_filter_results(self, date: Optional[str] = None, interests_file: str = "ai_interests.txt") -> List[Dict]:
+        return []
+
+    def deprecate_specific_ai_filter_tags(self, tag_ids: List[int], date: Optional[str] = None) -> int:
+        return 0
+
+    def update_ai_filter_tags_hash(self, interests_file: str, new_hash: str, date: Optional[str] = None) -> int:
+        return 0
+
+    def update_ai_filter_tag_descriptions(self, tag_updates: List[Dict], date: Optional[str] = None, interests_file: str = "ai_interests.txt") -> int:
+        return 0
+
+    def update_ai_filter_tag_priorities(self, tag_priorities: List[Dict], date: Optional[str] = None, interests_file: str = "ai_interests.txt") -> int:
+        return 0
+
+    def save_analyzed_news(self, news_ids: List[str], source_type: str, interests_file: str, prompt_hash: str, matched_ids: Set[str], date: Optional[str] = None) -> int:
+        return 0
+
+    def get_analyzed_news_ids(self, source_type: str = "hotlist", date: Optional[str] = None, interests_file: str = "ai_interests.txt") -> Set[str]:
+        return set()
+
+    def clear_analyzed_news(self, date: Optional[str] = None, interests_file: str = "ai_interests.txt") -> int:
+        return 0
+
+    def clear_unmatched_analyzed_news(self, date: Optional[str] = None, interests_file: str = "ai_interests.txt") -> int:
+        return 0
+
+    def get_all_news_ids(self, date: Optional[str] = None) -> List[Dict]:
+        return []
+
+    def get_all_rss_ids(self, date: Optional[str] = None) -> List[Dict]:
+        return []
 
 
 def convert_crawl_results_to_news_data(
