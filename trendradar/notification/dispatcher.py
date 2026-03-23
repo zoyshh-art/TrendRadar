@@ -73,13 +73,14 @@ class NotificationDispatcher:
         self.max_accounts = config.get("MAX_ACCOUNTS_PER_CHANNEL", 3)
         self.translator = translator
 
-    def _translate_content(
+    def translate_content(
         self,
         report_data: Dict,
         rss_items: Optional[List[Dict]] = None,
         rss_new_items: Optional[List[Dict]] = None,
         standalone_data: Optional[Dict] = None,
         display_regions: Optional[Dict] = None,
+        skip_rss: bool = False,
     ) -> tuple:
         """
         翻译推送内容
@@ -90,6 +91,7 @@ class NotificationDispatcher:
             rss_new_items: RSS 新增条目
             standalone_data: 独立展示区数据
             display_regions: 区域显示配置（不展示的区域跳过翻译）
+            skip_rss: 跳过 RSS 和独立展示区翻译（当数据已在上游翻译过时使用）
 
         Returns:
             tuple: (翻译后的 report_data, rss_items, rss_new_items, standalone_data)
@@ -127,14 +129,14 @@ class NotificationDispatcher:
                     title_locations.append(("new_titles", source_idx, title_idx))
 
         # 3. RSS 统计标题（结构与 stats 一致：[{word, count, titles: [{title, ...}]}]）
-        if rss_items and scope.get("RSS", True) and display_regions.get("RSS", True):
+        if not skip_rss and rss_items and scope.get("RSS", True) and display_regions.get("RSS", True):
             for stat_idx, stat in enumerate(rss_items):
                 for title_idx, title_data in enumerate(stat.get("titles", [])):
                     titles_to_translate.append(title_data.get("title", ""))
                     title_locations.append(("rss_items", stat_idx, title_idx))
 
         # 4. RSS 新增标题（结构与 stats 一致）
-        if rss_new_items and scope.get("RSS", True) and display_regions.get("RSS", True) and display_regions.get("NEW_ITEMS", True):
+        if not skip_rss and rss_new_items and scope.get("RSS", True) and display_regions.get("RSS", True) and display_regions.get("NEW_ITEMS", True):
             for stat_idx, stat in enumerate(rss_new_items):
                 for title_idx, title_data in enumerate(stat.get("titles", [])):
                     titles_to_translate.append(title_data.get("title", ""))
@@ -147,11 +149,12 @@ class NotificationDispatcher:
                     titles_to_translate.append(item.get("title", ""))
                     title_locations.append(("standalone_platforms", plat_idx, item_idx))
 
-            # 6. 独立展示区 - RSS 源
-            for feed_idx, feed in enumerate(standalone_data.get("rss_feeds", [])):
-                for item_idx, item in enumerate(feed.get("items", [])):
-                    titles_to_translate.append(item.get("title", ""))
-                    title_locations.append(("standalone_rss", feed_idx, item_idx))
+            # 6. 独立展示区 - RSS 源（跳过已翻译的）
+            if not skip_rss:
+                for feed_idx, feed in enumerate(standalone_data.get("rss_feeds", [])):
+                    for item_idx, item in enumerate(feed.get("items", [])):
+                        titles_to_translate.append(item.get("title", ""))
+                        title_locations.append(("standalone_rss", feed_idx, item_idx))
 
         if not titles_to_translate:
             print("[翻译] 没有需要翻译的内容")
@@ -225,6 +228,7 @@ class NotificationDispatcher:
         rss_new_items: Optional[List[Dict]] = None,
         ai_analysis: Optional[AIAnalysisResult] = None,
         standalone_data: Optional[Dict] = None,
+        skip_translation: bool = False,
     ) -> Dict[str, bool]:
         """
         分发通知到所有已配置的渠道（支持热榜+RSS合并推送+AI分析+独立展示区）
@@ -240,6 +244,7 @@ class NotificationDispatcher:
             rss_new_items: RSS 新增条目列表（用于 RSS 新增区块）
             ai_analysis: AI 分析结果（可选）
             standalone_data: 独立展示区数据（可选）
+            skip_translation: 跳过翻译（当数据已在上游翻译过时使用）
 
         Returns:
             Dict[str, bool]: 每个渠道的发送结果，key 为渠道名，value 为是否成功
@@ -250,9 +255,17 @@ class NotificationDispatcher:
         display_regions = self.config.get("DISPLAY", {}).get("REGIONS", {})
 
         # 执行翻译（如果启用，根据 display_regions 跳过不展示的区域）
-        report_data, rss_items, rss_new_items, standalone_data = self._translate_content(
-            report_data, rss_items, rss_new_items, standalone_data, display_regions
-        )
+        # skip_translation=True 时，RSS 已在上游翻译过，跳过 RSS 重复翻译
+        if not skip_translation:
+            report_data, rss_items, rss_new_items, standalone_data = self.translate_content(
+                report_data, rss_items, rss_new_items, standalone_data, display_regions
+            )
+        else:
+            # RSS 已翻译，仅翻译热榜 report_data 和独立展示区热榜部分
+            report_data, _, _, standalone_data = self.translate_content(
+                report_data, standalone_data=standalone_data, display_regions=display_regions,
+                skip_rss=True,
+            )
 
         # 飞书
         if self.config.get("FEISHU_WEBHOOK_URL"):
