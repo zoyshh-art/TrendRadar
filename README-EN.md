@@ -172,6 +172,7 @@ This contributes to the sustainable maintenance of the project and the growth of
 
 * **GitHub Issues**: Best for specific technical issues. Please provide complete information (screenshots, error logs, etc.) to help locate the problem quickly.
 * **WeChat Official Account**: It is recommended to leave comments under relevant articles. If you need to ask questions in the background, **liking/recommending** the article first is the best "icebreaker," and I can feel your appreciation (´▽`ʃ♡ƪ).
+* **QQ Group**: Follow the WeChat Official Account and reply "**交流群**" to join. Whether you're an AI beginner or a seasoned developer, looking for help or sharing ideas, you're welcome here. The group is all about mutual help and brainstorming — please read the group announcement first; describe your issue clearly with screenshots, and fellow members will help when available. Community wisdom is often faster and more comprehensive than any single person 🤝
 
 > **Friendly Reminder**:
 > This project is for open-source sharing, not a commercial product. Treat the author as a friend, not customer service, for better communication efficiency!

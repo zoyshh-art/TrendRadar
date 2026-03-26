@@ -219,10 +219,11 @@
 ### 💬 交流与反馈
 
 - **GitHub Issues**：适合具体的技术问题。提问时请提供完整信息（截图、错误日志等），有助于快速定位。
-- **公众号交流**：建议优先在相关文章下的留言区交流。若需后台提问，**先点赞/推荐**文章是最好的“敲门砖”，我在后台都能感受到这份心意哟 (´▽`ʃ♡ƪ)。
+- **公众号交流**：建议优先在相关文章下的留言区交流。若需后台提问，**先点赞/推荐**文章是最好的"敲门砖"，我在后台都能感受到这份心意哟 (´▽`ʃ♡ƪ)。
+- **QQ 群交流**：关注公众号，回复「**交流群**」即可加入。无论你是 AI 小白还是硬核开发者，想求助技术问题还是分享折腾心得，这里都欢迎你。群里主打互助交流和灵感碰撞，入群请先看群公告；提问时描述清楚问题、附上截图，群友有空就会帮忙，大家的实战经验往往比我一个人更快更全面 🤝
 
-> **友情提示**：        
-> 本项目为开源分享，非商业产品。把作者当朋友而非客服，沟通效率会更高哦！     
+> **友情提示**：
+> 本项目为开源分享，非商业产品。把作者当朋友而非客服，沟通效率会更高哦！
 
 <div align="center">
 
@@ -2706,7 +2707,7 @@ TrendRadar 提供两个独立的 Docker 镜像，可根据需求选择部署：
    |---------|---------|-------|------|
    | `ENABLE_WEBSERVER` | - | `true` / `false` | 是否自动启动 Web 服务器 |
    | `WEBSERVER_PORT` | - | `8080` | Web 服务器端口 |
-   | `WEBSERVER_WATCHDOG` | - | `true` / `false` | 是否开启“网页服务自动恢复”（服务异常时自动重开） |
+   | `WEBSERVER_WATCHDOG` | - | `true` / `false` | 是否开启"网页服务自动恢复"（服务异常时自动重开） |
    | `WEBSERVER_WATCHDOG_INTERVAL` | - | `60` | 自动恢复检查间隔（秒） |
    | `FEISHU_WEBHOOK_URL` | `notification.channels.feishu.webhook_url` | `https://...` | 飞书 Webhook（多账号用 `;` 分隔） |
    | `AI_ANALYSIS_ENABLED` | `ai_analysis.enabled` | `true` / `false` | 是否启用 AI 分析（v5.0.0 新增） |
@@ -2873,8 +2874,8 @@ docker rm trendradar
 > - 端口可在 `.env` 文件中配置 `WEBSERVER_PORT` 参数
 > - 自动启动：在 `.env` 中设置 `ENABLE_WEBSERVER=true`
 > - 自动恢复：`WEBSERVER_WATCHDOG=true`（默认开启），每隔 `WEBSERVER_WATCHDOG_INTERVAL` 秒检查一次，异常会自动重开网页服务
-> - `stop_webserver` 的意思是“你主动手动关闭网页服务”（命令：`docker exec -it trendradar python manage.py stop_webserver`）
-> - “自动拉起”就是“系统自动把网页服务重新打开”；若你手动关闭后想恢复，请执行 `docker exec -it trendradar python manage.py start_webserver`
+> - `stop_webserver` 的意思是"你主动手动关闭网页服务"（命令：`docker exec -it trendradar python manage.py stop_webserver`）
+> - "自动拉起"就是"系统自动把网页服务重新打开"；若你手动关闭后想恢复，请执行 `docker exec -it trendradar python manage.py start_webserver`
 > - 安全提示：仅提供静态文件访问，限制在 output 目录，只绑定本地访问
 
 #### 数据持久化
