@@ -37,7 +37,7 @@ def _parse_version(version_str: str) -> Tuple[int, int, int]:
         if len(parts) >= 3:
             return int(parts[0]), int(parts[1]), int(parts[2])
         return 0, 0, 0
-    except:
+    except (ValueError, AttributeError, TypeError):
         return 0, 0, 0
 
 

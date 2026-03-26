@@ -166,13 +166,27 @@ def send_to_feishu(
             f"发送{log_prefix}第 {i}/{len(batches)} 批次，大小：{content_size} 字节 [{report_type}]"
         )
 
-        # 飞书 webhook 只显示 content.text，所有信息都整合到 text 中
-        payload = {
-            "msg_type": "interactive",
-            "content": {
-                "text": batch_content,
-            },
-        }
+        # 根据 webhook 域名选择 payload 格式
+        # www.feishu.cn 使用纯文本格式，其他域名（open.feishu.cn/open.larksuite.com）使用卡片 2.0
+        if "www.feishu.cn" in webhook_url:
+            payload = {
+                "msg_type": "text",
+                "content": {
+                    "text": batch_content,
+                },
+            }
+        else:
+            payload = {
+                "msg_type": "interactive",
+                "card": {
+                    "schema": "2.0",
+                    "body": {
+                        "elements": [
+                            {"tag": "markdown", "content": batch_content}
+                        ]
+                    },
+                },
+            }
 
         try:
             response = requests.post(

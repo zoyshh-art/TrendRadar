@@ -50,8 +50,10 @@ RUN set -ex && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml uv.lock ./
+RUN pip install --no-cache-dir uv && \
+    uv pip install --system --frozen --no-cache && \
+    pip uninstall -y uv
 
 COPY docker/manage.py .
 COPY trendradar/ ./trendradar/

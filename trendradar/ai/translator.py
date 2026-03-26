@@ -7,10 +7,10 @@ AI 翻译器模块
 """
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, Dict, List
 
 from trendradar.ai.client import AIClient
+from trendradar.ai.prompt_loader import load_prompt_template
 
 
 @dataclass
@@ -57,38 +57,10 @@ class AITranslator:
         self.client = AIClient(ai_config)
 
         # 加载提示词模板
-        self.system_prompt, self.user_prompt_template = self._load_prompt_template(
-            translation_config.get("PROMPT_FILE", "ai_translation_prompt.txt")
+        self.system_prompt, self.user_prompt_template = load_prompt_template(
+            translation_config.get("PROMPT_FILE", "ai_translation_prompt.txt"),
+            label="翻译",
         )
-
-    def _load_prompt_template(self, prompt_file: str) -> tuple:
-        """加载提示词模板"""
-        config_dir = Path(__file__).parent.parent.parent / "config"
-        prompt_path = config_dir / prompt_file
-
-        if not prompt_path.exists():
-            print(f"[翻译] 提示词文件不存在: {prompt_path}")
-            return "", ""
-
-        content = prompt_path.read_text(encoding="utf-8")
-
-        # 解析 [system] 和 [user] 部分
-        system_prompt = ""
-        user_prompt = ""
-
-        if "[system]" in content and "[user]" in content:
-            parts = content.split("[user]")
-            system_part = parts[0]
-            user_part = parts[1] if len(parts) > 1 else ""
-
-            if "[system]" in system_part:
-                system_prompt = system_part.split("[system]")[1].strip()
-
-            user_prompt = user_part.strip()
-        else:
-            user_prompt = content
-
-        return system_prompt, user_prompt
 
     def translate(self, text: str) -> TranslationResult:
         """

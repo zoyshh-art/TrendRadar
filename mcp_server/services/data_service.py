@@ -600,7 +600,7 @@ class DataService:
             try:
                 with open(version_file, "r") as f:
                     version = f.read().strip()
-            except:
+            except (OSError, ValueError):
                 pass
 
         return {

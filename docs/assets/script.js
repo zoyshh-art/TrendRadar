@@ -3,6 +3,9 @@
  * 特点：确保原始 YAML 的注释和格式 100% 保留
  */
 
+// 编辑器常量
+const EDITOR_LINE_HEIGHT = 19.5;  // 编辑器行高（px），用于滚动定位计算
+
 // ==========================================
 // 0. 注释高亮功能
 // ==========================================
@@ -384,46 +387,30 @@ function handleFileDrop(e, type) {
 // 2.2 LocalStorage 保存与恢复
 // ==========================================
 
-// 保存 config.yaml
+// 通用 LocalStorage 保存函数
+function _saveToStorage(content, storageKey, timeKey, label) {
+    try {
+        if (content && content.trim().length > 10) {
+            const now = new Date().toISOString();
+            localStorage.setItem(storageKey, content);
+            localStorage.setItem(timeKey, now);
+            updateSaveTimeDisplay();
+        }
+    } catch (e) {
+        console.warn(`LocalStorage 保存 ${label} 失败:`, e);
+    }
+}
+
 function saveConfigToLocalStorage() {
-    try {
-        if (currentYaml && currentYaml.trim().length > 10) {
-            const now = new Date().toISOString();
-            localStorage.setItem(STORAGE_KEY_CONFIG, currentYaml);
-            localStorage.setItem(STORAGE_KEY_CONFIG_TIME, now);
-            updateSaveTimeDisplay();
-        }
-    } catch (e) {
-        console.warn('LocalStorage 保存 config 失败:', e);
-    }
+    _saveToStorage(currentYaml, STORAGE_KEY_CONFIG, STORAGE_KEY_CONFIG_TIME, 'config');
 }
 
-// 保存 frequency_words.txt
 function saveFrequencyToLocalStorage() {
-    try {
-        if (currentFrequency && currentFrequency.trim().length > 10) {
-            const now = new Date().toISOString();
-            localStorage.setItem(STORAGE_KEY_FREQUENCY, currentFrequency);
-            localStorage.setItem(STORAGE_KEY_FREQUENCY_TIME, now);
-            updateSaveTimeDisplay();
-        }
-    } catch (e) {
-        console.warn('LocalStorage 保存 frequency 失败:', e);
-    }
+    _saveToStorage(currentFrequency, STORAGE_KEY_FREQUENCY, STORAGE_KEY_FREQUENCY_TIME, 'frequency');
 }
 
-// 保存 timeline.yaml
 function saveTimelineToLocalStorage() {
-    try {
-        if (currentTimeline && currentTimeline.trim().length > 10) {
-            const now = new Date().toISOString();
-            localStorage.setItem(STORAGE_KEY_TIMELINE, currentTimeline);
-            localStorage.setItem(STORAGE_KEY_TIMELINE_TIME, now);
-            updateSaveTimeDisplay();
-        }
-    } catch (e) {
-        console.warn('LocalStorage 保存 timeline 失败:', e);
-    }
+    _saveToStorage(currentTimeline, STORAGE_KEY_TIMELINE, STORAGE_KEY_TIMELINE_TIME, 'timeline');
 }
 
 // 保存全部（页面关闭时调用）
@@ -768,7 +755,7 @@ window.scrollToWordGroupInEditor = function(groupIndex) {
     if (targetLineIndex === undefined || targetLineIndex === -1) return;
 
     const lines = editor.value.split('\n');
-    const lineHeight = 19.5;
+    const lineHeight = EDITOR_LINE_HEIGHT;
     const scrollPosition = targetLineIndex * lineHeight;
 
     // 设置光标选区
@@ -827,7 +814,7 @@ window.scrollToModuleInEditor = function(modKey) {
     if (targetLineIndex === -1) return;
 
     // 计算目标位置并滚动
-    const lineHeight = 19.5;
+    const lineHeight = EDITOR_LINE_HEIGHT;
     const scrollPosition = targetLineIndex * lineHeight;
 
     // 设置光标位置
@@ -1226,13 +1213,26 @@ window.copyResult = function() {
     const timelineEditor = document.getElementById('timeline-editor');
     const editor = currentTab === 'config' ? yamlEditor : currentTab === 'timeline' ? timelineEditor : frequencyEditor;
 
-    editor.select();
-    document.execCommand('copy');
-
+    const text = editor.value;
     const btn = document.querySelector('button[onclick="copyResult()"]');
     const original = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-check mr-1.5"></i>已复制!';
-    setTimeout(() => btn.innerHTML = original, 2000);
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            btn.innerHTML = '<i class="fa-solid fa-check mr-1.5"></i>已复制!';
+            setTimeout(() => btn.innerHTML = original, 2000);
+        }).catch(() => {
+            editor.select();
+            document.execCommand('copy');
+            btn.innerHTML = '<i class="fa-solid fa-check mr-1.5"></i>已复制!';
+            setTimeout(() => btn.innerHTML = original, 2000);
+        });
+    } else {
+        editor.select();
+        document.execCommand('copy');
+        btn.innerHTML = '<i class="fa-solid fa-check mr-1.5"></i>已复制!';
+        setTimeout(() => btn.innerHTML = original, 2000);
+    }
 }
 
 window.resetToDefault = function() {
@@ -4854,7 +4854,7 @@ function scrollTimelineEditorToPreset(presetName) {
 
     if (targetLine < 0) return;
 
-    const lineHeight = 19.5;
+    const lineHeight = EDITOR_LINE_HEIGHT;
     const scrollPosition = targetLine * lineHeight;
 
     // 设置光标位置
