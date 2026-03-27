@@ -29,7 +29,7 @@ ENV PYTHONUNBUFFERED=1 \
 EXPOSE 3333
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:3333/sse')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:3333/mcp')" || exit 1
 
 # 启动 MCP 服务器（HTTP 模式）
 CMD ["python", "-m", "mcp_server.server", "--transport", "http", "--host", "0.0.0.0", "--port", "3333"]
