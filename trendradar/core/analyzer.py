@@ -44,7 +44,8 @@ def calculate_news_weight(
         if rank <= rank_threshold:
             high_rank_count += 1
 
-    rank_weight = rank_score_sum / len(ranks)
+    # 归一化到 0~100（与 frequency_weight、hotness_weight 量纲对齐）
+    rank_weight = (rank_score_sum / len(ranks)) * 10
 
     # 频次权重：min(出现次数, 10) × 10
     frequency_weight = min(count, 10) * 10
@@ -132,9 +133,9 @@ def count_word_frequency(
     # 默认权重配置
     if weight_config is None:
         weight_config = {
-            "RANK_WEIGHT": 0.4,
+            "RANK_WEIGHT": 0.6,
             "FREQUENCY_WEIGHT": 0.3,
-            "HOTNESS_WEIGHT": 0.3,
+            "HOTNESS_WEIGHT": 0.1,
         }
 
     # 默认时间转换函数
