@@ -12,7 +12,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v6.5.5-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v6.6.0-blue.svg)](https://github.com/sansan0/TrendRadar)
 [![MCP](https://img.shields.io/badge/MCP-v4.0.2-green.svg)](https://github.com/sansan0/TrendRadar)
 [![RSS](https://img.shields.io/badge/RSS-订阅源支持-orange.svg?style=flat-square&logo=rss&logoColor=white)](https://github.com/sansan0/TrendRadar)
 [![AI翻译](https://img.shields.io/badge/AI-多语言推送-purple.svg?style=flat-square)](https://github.com/sansan0/TrendRadar)
@@ -241,19 +241,14 @@
 - **提示**：建议查看【历史更新】，明确具体的【功能内容】
 
 
-### 2026/03/12 - v6.5.0
+### 2026/03/28 - v6.6.0
 
-- **AI 智能筛选系统**：不用再手动设关键词！在 `ai_interests.txt` 里用日常语言写下你关注的方向（如"我想看 AI 和新能源相关新闻"），AI 会自动提取标签并对每条新闻打分，只推送真正和你相关的内容。万一 AI 筛选出了问题，会自动切回关键词匹配，推送不中断
-- **每个时段支持不同的筛选方式和关注方向**：Timeline 中的每个时间段现在可以独立设置用什么方式筛选、看什么类型的新闻。比如：早上用"科技关键词"快速过滤，晚上换成"金融 AI 兴趣描述"做深度筛选——同一个系统，不同时段看不同内容
-- **AI 分析范围独立于推送**：AI 分析的数据范围可以和推送内容不同。比如推送只发新增消息（避免重复打扰），但 AI 分析当天全部新闻（看完整趋势）。每个时段也能单独设置 AI 分析模式
-- **AI 筛选智能省钱**：已分析过的新闻不会重复消耗 token；兴趣描述修改后，AI 自动判断变化幅度——小改动只更新受影响的标签，大改动才全量重新分类
-- **多文件配置与标签隔离**：自定义关键词文件放 `config/custom/keyword/`，AI 兴趣文件放 `config/custom/ai/`，不同文件产生的标签各自独立、互不干扰
-- **AI 翻译精准控制**：可分别控制热榜、RSS、独立展示区是否翻译，没开启显示的区域自动跳过，不浪费 token
-- **远程存储批量上传**：多次写操作攒在一起统一提交云端，减少 API 调用次数
-- **每组关键词/标签展示数量限制**：通过 `max_news_per_keyword` 控制每个分组最多显示多少条新闻，避免单个热门话题占满整条推送
-- **时段冲突智能检测**：两个时间段如果有时间重叠，系统会自动报错提醒修改，避免配置冲突导致意外行为
-- 修复若干bug
-
+- **HTML 报告浏览器增强**：在浏览器中打开报告可自动切换宽屏布局，关键词分组和独立展区均支持 Tab 快速切换，搜索框实时过滤新闻标题，邮件客户端仍显示原始窄屏布局，零回归
+- **暗色模式**：一键切换深色主题，自动记住偏好，适合夜间阅读
+- **一键复制新闻**：鼠标悬停新闻序号即可复制标题和链接，方便快速分享
+- **导出优化**：整页截图和分段截图合并为下拉式导出按钮，截图时自动还原干净布局
+- **快捷键系统**：支持 `W` 宽屏切换、`D` 暗色模式、`/` 搜索、`?` 查看快捷键提示
+- **阅读进度条**：页面顶部实时显示阅读进度
 
 ### 2026/02/09 - mcp-v4.0.0
 
@@ -266,6 +261,19 @@
 
 <details>
 <summary>👉 点击展开：<strong>历史更新</strong></summary>
+
+### 2026/03/12 - v6.5.0
+
+- **AI 智能筛选系统**：不用再手动设关键词！在 `ai_interests.txt` 里用日常语言写下你关注的方向（如"我想看 AI 和新能源相关新闻"），AI 会自动提取标签并对每条新闻打分，只推送真正和你相关的内容。万一 AI 筛选出了问题，会自动切回关键词匹配，推送不中断
+- **每个时段支持不同的筛选方式和关注方向**：Timeline 中的每个时间段现在可以独立设置用什么方式筛选、看什么类型的新闻。比如：早上用"科技关键词"快速过滤，晚上换成"金融 AI 兴趣描述"做深度筛选——同一个系统，不同时段看不同内容
+- **AI 分析范围独立于推送**：AI 分析的数据范围可以和推送内容不同。比如推送只发新增消息（避免重复打扰），但 AI 分析当天全部新闻（看完整趋势）。每个时段也能单独设置 AI 分析模式
+- **AI 筛选智能省钱**：已分析过的新闻不会重复消耗 token；兴趣描述修改后，AI 自动判断变化幅度——小改动只更新受影响的标签，大改动才全量重新分类
+- **多文件配置与标签隔离**：自定义关键词文件放 `config/custom/keyword/`，AI 兴趣文件放 `config/custom/ai/`，不同文件产生的标签各自独立、互不干扰
+- **AI 翻译精准控制**：可分别控制热榜、RSS、独立展示区是否翻译，没开启显示的区域自动跳过，不浪费 token
+- **远程存储批量上传**：多次写操作攒在一起统一提交云端，减少 API 调用次数
+- **每组关键词/标签展示数量限制**：通过 `max_news_per_keyword` 控制每个分组最多显示多少条新闻，避免单个热门话题占满整条推送
+- **时段冲突智能检测**：两个时间段如果有时间重叠，系统会自动报错提醒修改，避免配置冲突导致意外行为
+- 修复若干bug
 
 ### 2026/02/09 - v6.0.0
 
@@ -1094,6 +1102,19 @@ ai_translation:
 - [awesome-rss-feeds](https://github.com/plenaryapp/awesome-rss-feeds) - 世界各国主流新闻媒体 RSS 合集
 
 > ⚠️ 部分海外媒体内容可能涉及敏感话题，AI 模型可能拒绝翻译，建议根据实际需求筛选订阅源
+
+### **HTML 报告浏览器增强**（v6.6.0 新增）
+
+在浏览器中打开推送的 HTML 报告，自动解锁增强体验（邮件客户端不受影响）：
+
+- **宽屏模式**：桌面端自动切换 1200px 宽屏布局，充分利用屏幕空间
+- **Tab 快速切换**：关键词分组和独立展区均支持 Tab 导航，告别长页面翻滚
+- **暗色模式**：一键切换深色主题，自动记住偏好
+- **实时搜索**：按 `/` 唤起搜索框，即时过滤新闻标题
+- **一键复制**：悬停新闻序号即可复制标题和链接
+- **快捷键**：`W` 宽屏、`D` 暗色、`/` 搜索、`?` 查看所有快捷键
+
+> 💡 所有增强功能基于渐进增强，邮件客户端仍显示原始 600px 布局，零回归
 
 ### **灵活存储架构**（v4.0.0 重大更新）
 

@@ -564,6 +564,8 @@ class NewsAnalyzer:
                     scheduler = self.ctx.create_scheduler()
                     date_str = self.ctx.format_date()
                     scheduler.record_execution(schedule.period_key, "analyze", date_str)
+            elif result.skipped:
+                print(f"[AI] {result.error}")
             else:
                 print(f"[AI] 分析失败: {result.error}")
 

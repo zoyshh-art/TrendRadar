@@ -79,6 +79,8 @@ def _format_standalone_summaries(summaries: dict) -> str:
 def render_ai_analysis_markdown(result: AIAnalysisResult) -> str:
     """渲染为通用 Markdown 格式（Telegram、企业微信、ntfy、Bark、Slack）"""
     if not result.success:
+        if result.skipped:
+            return f"ℹ️ {result.error}"
         return f"⚠️ AI 分析失败: {result.error}"
 
     lines = ["**✨ AI 热点分析**", ""]
@@ -115,6 +117,8 @@ def render_ai_analysis_markdown(result: AIAnalysisResult) -> str:
 def render_ai_analysis_feishu(result: AIAnalysisResult) -> str:
     """渲染为飞书卡片 Markdown 格式"""
     if not result.success:
+        if result.skipped:
+            return f"ℹ️ {result.error}"
         return f"⚠️ AI 分析失败: {result.error}"
 
     lines = ["**✨ AI 热点分析**", ""]
@@ -151,6 +155,8 @@ def render_ai_analysis_feishu(result: AIAnalysisResult) -> str:
 def render_ai_analysis_dingtalk(result: AIAnalysisResult) -> str:
     """渲染为钉钉 Markdown 格式"""
     if not result.success:
+        if result.skipped:
+            return f"ℹ️ {result.error}"
         return f"⚠️ AI 分析失败: {result.error}"
 
     lines = ["### ✨ AI 热点分析", ""]
@@ -193,6 +199,8 @@ def render_ai_analysis_dingtalk(result: AIAnalysisResult) -> str:
 def render_ai_analysis_html(result: AIAnalysisResult) -> str:
     """渲染为 HTML 格式（邮件）"""
     if not result.success:
+        if result.skipped:
+            return f'<div class="ai-info">ℹ️ {_escape_html(result.error)}</div>'
         return (
             f'<div class="ai-error">⚠️ AI 分析失败: {_escape_html(result.error)}</div>'
         )
@@ -279,6 +287,8 @@ def render_ai_analysis_html(result: AIAnalysisResult) -> str:
 def render_ai_analysis_plain(result: AIAnalysisResult) -> str:
     """渲染为纯文本格式"""
     if not result.success:
+        if result.skipped:
+            return result.error
         return f"AI 分析失败: {result.error}"
 
     lines = ["【✨ AI 热点分析】", ""]
@@ -316,6 +326,8 @@ def render_ai_analysis_telegram(result: AIAnalysisResult) -> str:
     换行直接使用 \\n，不支持 <br>, <div>, <h1>-<h6> 等标签。
     """
     if not result.success:
+        if result.skipped:
+            return f"ℹ️ {_escape_html(result.error)}"
         return f"⚠️ AI 分析失败: {_escape_html(result.error)}"
 
     lines = ["<b>✨ AI 热点分析</b>", ""]
@@ -365,6 +377,11 @@ def render_ai_analysis_html_rich(result: AIAnalysisResult) -> str:
 
     # 检查是否成功
     if not result.success:
+        if result.skipped:
+            return f"""
+                <div class="ai-section">
+                    <div class="ai-info">ℹ️ {_escape_html(str(result.error))}</div>
+                </div>"""
         error_msg = result.error or "未知错误"
         return f"""
                 <div class="ai-section">
@@ -376,7 +393,8 @@ def render_ai_analysis_html_rich(result: AIAnalysisResult) -> str:
                     <div class="ai-section-header">
                         <div class="ai-section-title">✨ AI 热点分析</div>
                         <span class="ai-section-badge">AI</span>
-                    </div>"""
+                    </div>
+                    <div class="ai-blocks-grid">"""
 
     if result.core_trends:
         content = _format_list_content(result.core_trends)
@@ -434,5 +452,6 @@ def render_ai_analysis_html_rich(result: AIAnalysisResult) -> str:
                     </div>"""
 
     ai_html += """
+                    </div>
                 </div>"""
     return ai_html

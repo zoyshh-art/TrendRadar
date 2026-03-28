@@ -28,6 +28,7 @@ class AIAnalysisResult:
     # 基础元数据
     raw_response: str = ""               # 原始响应
     success: bool = False                # 是否成功
+    skipped: bool = False                # 是否因无内容跳过（非失败）
     error: str = ""                      # 错误信息
 
     # 新闻数量统计
@@ -139,7 +140,8 @@ class AIAnalyzer:
         if not news_content and not rss_content:
             return AIAnalysisResult(
                 success=False,
-                error="没有可分析的新闻内容",
+                skipped=True,
+                error="本轮无新增热点内容，跳过 AI 分析",
                 total_news=total_news,
                 hotlist_count=hotlist_total,
                 rss_count=rss_total,

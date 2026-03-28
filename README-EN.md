@@ -11,7 +11,7 @@ Deploy in <strong>30 seconds</strong> — Say goodbye to endless scrolling, only
 [![GitHub Stars](https://img.shields.io/github/stars/sansan0/TrendRadar?style=flat-square&logo=github&color=yellow)](https://github.com/sansan0/TrendRadar/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/sansan0/TrendRadar?style=flat-square&logo=github&color=blue)](https://github.com/sansan0/TrendRadar/network/members)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-v6.5.5-blue.svg)](https://github.com/sansan0/TrendRadar)
+[![Version](https://img.shields.io/badge/version-v6.6.0-blue.svg)](https://github.com/sansan0/TrendRadar)
 [![MCP](https://img.shields.io/badge/MCP-v4.0.2-green.svg)](https://github.com/sansan0/TrendRadar)
 [![RSS](https://img.shields.io/badge/RSS-Feed_Support-orange.svg?style=flat-square&logo=rss&logoColor=white)](https://github.com/sansan0/TrendRadar)
 [![AI Translation](https://img.shields.io/badge/AI-Multi--Language-purple.svg?style=flat-square)](https://github.com/sansan0/TrendRadar)
@@ -193,20 +193,14 @@ This contributes to the sustainable maintenance of the project and the growth of
 - **Tip**: Check [Changelog] to understand specific [Features]
 
 
-### 2026/03/12 - v6.5.0
+### 2026/03/28 - v6.6.0
 
-- **AI Smart News Filtering**: No more manual keyword setup! Describe your interests in everyday language in `ai_interests.txt` (e.g., "I want AI and renewable energy news"), and AI automatically extracts tags, scores every headline, and only pushes what truly matters to you. If AI filtering encounters issues, it auto-falls back to keyword matching — push delivery never stops
-- **Per-Period Filter Strategy & Interests**: Each time period in Timeline can now independently choose its filtering method and what topics to focus on. For example: mornings use a "tech keyword list" for quick filtering, evenings switch to "finance AI interests" for in-depth AI filtering — same system, different content at different times
-- **AI Analysis Independent from Push Mode**: AI analysis scope can differ from push content. For example: push only delivers new items (avoiding repeated notifications), while AI analyzes the full day's news (capturing complete trends). Each time period can also set its own AI analysis mode
-- **AI Filter Token Savings**: Previously analyzed news won't be re-processed; when you edit your interests, AI auto-evaluates the change magnitude — minor tweaks only update affected tags, major changes trigger full reclassification
-- **Multi-File Config & Tag Isolation**: Custom keyword files go in `config/custom/keyword/`, AI interest files go in `config/custom/ai/` — tags from different files are fully isolated and independent
-- **AI Translation Precision Control**: Independently toggle translation for hotlist, RSS, and standalone sections; regions with display turned off are automatically skipped, saving tokens
-- **Remote Storage Batch Upload**: Multiple write operations are batched and submitted to cloud in one go, reducing API call count
-- **Per-Group Display Limit**: New `max_news_per_keyword` controls max items shown per keyword/tag group, preventing a single hot topic from filling the entire push
-- **Time Period Conflict Detection**: Overlapping time periods are automatically detected — system alerts you to fix the config, preventing unexpected behavior
-- Various bug fixes
-
-
+- **HTML Report Browser Enhancement**: Open the HTML report in a browser to unlock widescreen layout, Tab navigation for keyword groups and standalone sections, real-time title search, and more — email clients still show the original narrow layout with zero regression
+- **Dark Mode**: One-click toggle for dark theme with automatic preference persistence, ideal for nighttime reading
+- **One-Click Copy**: Hover over a news number to copy the title and link instantly for quick sharing
+- **Export Optimization**: Full-page and segmented screenshots merged into a dropdown export button; screenshots auto-revert to clean layout
+- **Keyboard Shortcuts**: `W` widescreen toggle, `D` dark mode, `/` search, `?` view all shortcuts
+- **Reading Progress Bar**: Real-time reading progress displayed at the top of the page
 
 ### 2026/02/09 - mcp-v4.0.0
 
@@ -219,6 +213,19 @@ This contributes to the sustainable maintenance of the project and the growth of
 
 <details>
 <summary>👉 Click to expand: <strong>Historical Updates</strong></summary>
+
+### 2026/03/12 - v6.5.0
+
+- **AI Smart News Filtering**: No more manual keyword setup! Describe your interests in everyday language in `ai_interests.txt` (e.g., "I want AI and renewable energy news"), and AI automatically extracts tags, scores every headline, and only pushes what truly matters to you. If AI filtering encounters issues, it auto-falls back to keyword matching — push delivery never stops
+- **Per-Period Filter Strategy & Interests**: Each time period in Timeline can now independently choose its filtering method and what topics to focus on. For example: mornings use a "tech keyword list" for quick filtering, evenings switch to "finance AI interests" for in-depth AI filtering — same system, different content at different times
+- **AI Analysis Independent from Push Mode**: AI analysis scope can differ from push content. For example: push only delivers new items (avoiding repeated notifications), while AI analyzes the full day's news (capturing complete trends). Each time period can also set its own AI analysis mode
+- **AI Filter Token Savings**: Previously analyzed news won't be re-processed; when you edit your interests, AI auto-evaluates the change magnitude — minor tweaks only update affected tags, major changes trigger full reclassification
+- **Multi-File Config & Tag Isolation**: Custom keyword files go in `config/custom/keyword/`, AI interest files go in `config/custom/ai/` — tags from different files are fully isolated and independent
+- **AI Translation Precision Control**: Independently toggle translation for hotlist, RSS, and standalone sections; regions with display turned off are automatically skipped, saving tokens
+- **Remote Storage Batch Upload**: Multiple write operations are batched and submitted to cloud in one go, reducing API call count
+- **Per-Group Display Limit**: New `max_news_per_keyword` controls max items shown per keyword/tag group, preventing a single hot topic from filling the entire push
+- **Time Period Conflict Detection**: Overlapping time periods are automatically detected — system alerts you to fix the config, preventing unexpected behavior
+- Various bug fixes
 
 ### 2026/02/09 - v6.0.0
 
@@ -1040,6 +1047,19 @@ ai_translation:
 - [awesome-rss-feeds](https://github.com/plenaryapp/awesome-rss-feeds) - Mainstream news media RSS from countries worldwide
 
 > ⚠️ Some international media content may involve sensitive topics that AI models might refuse to translate. Please filter subscription sources based on your actual needs
+
+### **HTML Report Browser Enhancement** (v6.6.0 New)
+
+Open the pushed HTML report in a browser to unlock an enhanced experience (email clients are unaffected):
+
+- **Widescreen Mode**: Auto-switches to 1200px wide layout on desktop, making full use of screen space
+- **Tab Navigation**: Both keyword groups and standalone sections support Tab switching — no more endless scrolling
+- **Dark Mode**: One-click dark theme toggle with automatic preference persistence
+- **Live Search**: Press `/` to open the search box and instantly filter news titles
+- **One-Click Copy**: Hover over a news number to copy the title and link
+- **Keyboard Shortcuts**: `W` widescreen, `D` dark mode, `/` search, `?` view all shortcuts
+
+> 💡 All enhancements are built on progressive enhancement — email clients still show the original 600px layout with zero regression
 
 ### **Flexible Storage Architecture (v4.0.0 Major Update)**
 
