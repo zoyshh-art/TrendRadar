@@ -192,9 +192,9 @@
 
 <div align="center">
 
-> 一站畅享 **字节跳动自研的豆包大模型** 与主流开源 SOTA 模型的 **满血版本**，全面覆盖文本、视觉理解（VLM）、图像生成等 **多模态能力**。Seed-2.1、Seedream 5.0、GLM-5.2、DeepSeek 等热门模型一站配齐，不止 **高效编程**，更能胜任 **复杂的长程 Agent 任务**。
-
-<a href="https://www.volcengine.com/activity/ai618?utm_campaign=hw&amp;utm_content=hw&amp;utm_medium=devrel_tool_web&amp;utm_source=OWO&amp;utm_term=TrendRadar"><img src="_image/banner-volcengine-doubao-ai618.webp" alt="火山引擎豆包大模型 AI 普惠季" width="100%"></a>
+> **虚位以待**
+>
+> [有意赞助？点击查看赞助与合作详情](https://trendradar.sandev.cc/zh/sponsors/)
 
 </div>
 
@@ -3881,7 +3881,9 @@ MCP Inspector 是官方调试工具，用于测试 MCP 连接：
 - https://github.com/sansan0/bilibili-comment-analyzer
 
 
-[![Star History Chart](https://api.star-history.com/svg?repos=sansan0/TrendRadar&type=Date)](https://www.star-history.com/#sansan0/TrendRadar&Date)
+## Star History
+
+[![Star History Chart](https://star-history.dera.page/svg?repos=sansan0/TrendRadar)](https://star-history.dera.page/#sansan0/TrendRadar)
 
 <br>
 

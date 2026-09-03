@@ -144,9 +144,9 @@ After communication, the author indicated no concerns about server pressure, but
 
 <div align="center">
 
-> Access **ByteDance's in-house Doubao models** alongside **full-strength versions** of leading open-source SOTA models, with comprehensive support for text, visual understanding (VLM), image generation, and other **multimodal capabilities**. Seed-2.1, Seedream 5.0, GLM-5.2, DeepSeek, and more are all available in one place—not only for **efficient coding**, but also for **complex, long-horizon Agent tasks**.
-
-<a href="https://www.volcengine.com/activity/ai618?utm_campaign=hw&amp;utm_content=hw&amp;utm_medium=devrel_tool_web&amp;utm_source=OWO&amp;utm_term=TrendRadar"><img src="_image/banner-volcengine-doubao-ai618.webp" alt="Volcengine Doubao AI Special Offer" width="100%"></a>
+> **Sponsorship Open**
+>
+> [Interested in sponsoring? View sponsorship and partnership details](https://trendradar.sandev.cc/en/sponsors/)
 
 </div>
 
@@ -3879,7 +3879,9 @@ Any client supporting Model Context Protocol can connect to TrendRadar:
 - https://github.com/sansan0/bilibili-comment-analyzer
 
 
-[![Star History Chart](https://api.star-history.com/svg?repos=sansan0/TrendRadar&type=Date)](https://www.star-history.com/#sansan0/TrendRadar&Date)
+## Star History
+
+[![Star History Chart](https://star-history.dera.page/svg?repos=sansan0/TrendRadar)](https://star-history.dera.page/#sansan0/TrendRadar)
 
 <br>
 
