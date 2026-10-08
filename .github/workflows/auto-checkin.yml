@@ -1,0 +1,26 @@
+name: Auto Check In
+
+# 每周自动签到（对应作者的 "Check In" 手动签到机制）：
+# 1. 调度执行 "Check In"（clean-crawler.yml）删除运行记录，重置 7 天试用期
+# 2. 若 crawler.yml 已因试用到期被停用，重新启用它
+# 原作者设计是每周手动点一次，自动签到避免推送静默中断。
+on:
+  schedule:
+    - cron: "0 18 * * 5"    # 每周五 UTC 18:00（北京周六 02:00）
+  workflow_dispatch:
+
+jobs:
+  checkin:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Dispatch Check In
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run clean-crawler.yml --ref "${{ github.ref_name }}"
+          sleep 15
+          gh workflow enable crawler.yml || true
+          echo "Trial renewed."
