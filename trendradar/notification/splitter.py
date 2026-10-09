@@ -15,6 +15,33 @@ from trendradar.utils.time import DEFAULT_TIMEZONE, format_iso_time_friendly, co
 from trendradar.notification.batch import truncate_at_line_boundary
 
 
+def _build_rss_item_block(index: int, title_data: Dict) -> str:
+    """构建纯文本友好的 RSS 条目块
+
+    针对 PushPlus txt / ClawBot 等不渲染 Markdown 的渠道优化：
+    - 标题行：仅序号 + 标题（不带来源前缀、排名、时间等噪音）
+    - 摘要段：正文中文概括（独立段落，保证视觉分隔）
+    - 链接段：URL 独立成段，方便点击
+
+    Args:
+        index: 序号（从 1 开始）
+        title_data: 条目数据（title/summary/url 等）
+
+    Returns:
+        格式化后的条目块字符串（以换行结尾）
+    """
+    title = (title_data.get("title") or "").strip()
+    summary = _format_rss_item_summary(title_data, title)
+    link = title_data.get("mobile_url") or title_data.get("url") or ""
+
+    block = f"  {index}. {title}\n"
+    if summary:
+        block += f"\n     {summary}\n"
+    if link:
+        block += f"\n     {link}\n"
+    return block
+
+
 # === 分批安全辅助函数 ===
 
 def _split_content_by_lines(
@@ -240,14 +267,15 @@ def split_content_into_batches(
     total_new = new_count + rss_new_count
     total_news_line = f"{b_s}总新闻：{b_e} {total_titles} 条"
     if total_new > 0:
-        total_news_line += f"（新增 {new_count} + {rss_new_count}）"
+        total_news_line += f"（新增 {total_new}）"
     base_header += f"{total_news_line}\n"
 
-    # 2. 热榜
-    hotlist_info = f"{b_s}热榜：{b_e} {total_hotlist_count}/{hotlist_total}"
-    if platform_total > 0:
-        hotlist_info += f"（平台 {platform_success}/{platform_total}）"
-    base_header += f"{hotlist_info}\n"
+    # 2. 热榜（无热榜数据时不显示该行）
+    if total_hotlist_count > 0 or platform_total > 0:
+        hotlist_info = f"{b_s}热榜：{b_e} {total_hotlist_count}/{hotlist_total}"
+        if platform_total > 0:
+            hotlist_info += f"（平台 {platform_success}/{platform_total}）"
+        base_header += f"{hotlist_info}\n"
 
     # 3. RSS
     if rss_source_total > 0:
@@ -293,8 +321,7 @@ def split_content_into_batches(
     base_header += "\n"
 
     # === 下半部分：元信息 ===
-    base_header += f"{b_s}类型：{b_e} {report_type}\n"
-    base_header += f"{b_s}时间：{b_e} {now.strftime('%Y-%m-%d %H:%M:%S')}\n"
+    base_header += f"{b_s}类型：{b_e} {report_type} · {now.strftime('%Y-%m-%d %H:%M:%S')}\n"
 
     top_words = report_data.get("stats", [])[:3]
     if top_words:
@@ -1037,29 +1064,29 @@ def _process_rss_stats_section(
     if add_separator and current_batch_has_content:
         # 需要添加分割线
         if format_type == "feishu":
-            rss_header = f"\n{feishu_separator}\n\n📰 **RSS 订阅统计** (共 {total_items} 条)\n\n"
+            rss_header = f"\n{feishu_separator}\n\n📰 **资讯速递** (共 {total_items} 条)\n\n"
         elif format_type == "dingtalk":
-            rss_header = f"\n---\n\n📰 **RSS 订阅统计** (共 {total_items} 条)\n\n"
+            rss_header = f"\n---\n\n📰 **资讯速递** (共 {total_items} 条)\n\n"
         elif format_type in ("wework", "bark"):
-            rss_header = f"\n\n\n\n📰 **RSS 订阅统计** (共 {total_items} 条)\n\n"
+            rss_header = f"\n\n\n\n📰 **资讯速递** (共 {total_items} 条)\n\n"
         elif format_type == "telegram":
-            rss_header = f"\n\n📰 RSS 订阅统计 (共 {total_items} 条)\n\n"
+            rss_header = f"\n\n📰 资讯速递 (共 {total_items} 条)\n\n"
         elif format_type == "slack":
             rss_header = f"\n\n📰 *RSS 订阅统计* (共 {total_items} 条)\n\n"
         else:
-            rss_header = f"\n\n📰 **RSS 订阅统计** (共 {total_items} 条)\n\n"
+            rss_header = f"\n\n📰 **资讯速递** (共 {total_items} 条)\n\n"
     else:
         # 不需要分割线（第一个区域）
         if format_type == "feishu":
-            rss_header = f"📰 **RSS 订阅统计** (共 {total_items} 条)\n\n"
+            rss_header = f"📰 **资讯速递** (共 {total_items} 条)\n\n"
         elif format_type == "dingtalk":
-            rss_header = f"📰 **RSS 订阅统计** (共 {total_items} 条)\n\n"
+            rss_header = f"📰 **资讯速递** (共 {total_items} 条)\n\n"
         elif format_type == "telegram":
-            rss_header = f"📰 RSS 订阅统计 (共 {total_items} 条)\n\n"
+            rss_header = f"📰 资讯速递 (共 {total_items} 条)\n\n"
         elif format_type == "slack":
             rss_header = f"📰 *RSS 订阅统计* (共 {total_items} 条)\n\n"
         else:
-            rss_header = f"📰 **RSS 订阅统计** (共 {total_items} 条)\n\n"
+            rss_header = f"📰 **资讯速递** (共 {total_items} 条)\n\n"
 
     # 添加 RSS 标题
     test_content = current_batch + rss_header
@@ -1083,12 +1110,7 @@ def _process_rss_stats_section(
         # 构建关键词标题（与热榜格式一致）
         word_header = ""
         if format_type in ("wework", "bark"):
-            if count >= 10:
-                word_header = f"🔥 {sequence_display} **{word}** : **{count}** 条\n\n"
-            elif count >= 5:
-                word_header = f"📈 {sequence_display} **{word}** : **{count}** 条\n\n"
-            else:
-                word_header = f"📌 {sequence_display} **{word}** : {count} 条\n\n"
+            word_header = f"**{word}**（{count} 条）\n\n"
         elif format_type == "telegram":
             if count >= 10:
                 word_header = f"🔥 {sequence_display} {word} : {count} 条\n\n"
@@ -1130,28 +1152,32 @@ def _process_rss_stats_section(
         if stat["titles"]:
             first_title_data = stat["titles"][0]
             if format_type in ("wework", "bark"):
-                formatted_title = format_title_for_platform("wework", first_title_data, show_source=True)
-            elif format_type == "telegram":
-                formatted_title = format_title_for_platform("telegram", first_title_data, show_source=True)
-            elif format_type == "ntfy":
-                formatted_title = format_title_for_platform("ntfy", first_title_data, show_source=True)
-            elif format_type == "feishu":
-                formatted_title = format_title_for_platform("feishu", first_title_data, show_source=True)
-            elif format_type == "dingtalk":
-                formatted_title = format_title_for_platform("dingtalk", first_title_data, show_source=True)
-            elif format_type == "slack":
-                formatted_title = format_title_for_platform("slack", first_title_data, show_source=True)
+                # 纯文本渠道：序号+标题 / 摘要 / 链接 分段显示
+                first_news_line = _build_rss_item_block(1, first_title_data)
+                if len(stat["titles"]) > 1:
+                    first_news_line += "\n"
             else:
-                formatted_title = f"{first_title_data['title']}"
+                if format_type == "telegram":
+                    formatted_title = format_title_for_platform("telegram", first_title_data, show_source=True)
+                elif format_type == "ntfy":
+                    formatted_title = format_title_for_platform("ntfy", first_title_data, show_source=True)
+                elif format_type == "feishu":
+                    formatted_title = format_title_for_platform("feishu", first_title_data, show_source=True)
+                elif format_type == "dingtalk":
+                    formatted_title = format_title_for_platform("dingtalk", first_title_data, show_source=True)
+                elif format_type == "slack":
+                    formatted_title = format_title_for_platform("slack", first_title_data, show_source=True)
+                else:
+                    formatted_title = f"{first_title_data['title']}"
 
-            first_news_line = f"  1. {formatted_title}\n"
-            first_summary = _format_rss_item_summary(
-                first_title_data, first_title_data.get("title", "")
-            )
-            if first_summary:
-                first_news_line += f"      {first_summary}\n"
-            if len(stat["titles"]) > 1:
-                first_news_line += "\n"
+                first_news_line = f"  1. {formatted_title}\n"
+                first_summary = _format_rss_item_summary(
+                    first_title_data, first_title_data.get("title", "")
+                )
+                if first_summary:
+                    first_news_line += f"      {first_summary}\n"
+                if len(stat["titles"]) > 1:
+                    first_news_line += "\n"
 
         # 原子性检查：关键词标题 + 第一条新闻必须一起处理
         word_with_first_news = word_header + first_news_line
@@ -1175,26 +1201,30 @@ def _process_rss_stats_section(
         for j in range(start_index, len(stat["titles"])):
             title_data = stat["titles"][j]
             if format_type in ("wework", "bark"):
-                formatted_title = format_title_for_platform("wework", title_data, show_source=True)
-            elif format_type == "telegram":
-                formatted_title = format_title_for_platform("telegram", title_data, show_source=True)
-            elif format_type == "ntfy":
-                formatted_title = format_title_for_platform("ntfy", title_data, show_source=True)
-            elif format_type == "feishu":
-                formatted_title = format_title_for_platform("feishu", title_data, show_source=True)
-            elif format_type == "dingtalk":
-                formatted_title = format_title_for_platform("dingtalk", title_data, show_source=True)
-            elif format_type == "slack":
-                formatted_title = format_title_for_platform("slack", title_data, show_source=True)
+                # 纯文本渠道：序号+标题 / 摘要 / 链接 分段显示
+                news_line = _build_rss_item_block(j + 1, title_data)
+                if j < len(stat["titles"]) - 1:
+                    news_line += "\n"
             else:
-                formatted_title = f"{title_data['title']}"
+                if format_type == "telegram":
+                    formatted_title = format_title_for_platform("telegram", title_data, show_source=True)
+                elif format_type == "ntfy":
+                    formatted_title = format_title_for_platform("ntfy", title_data, show_source=True)
+                elif format_type == "feishu":
+                    formatted_title = format_title_for_platform("feishu", title_data, show_source=True)
+                elif format_type == "dingtalk":
+                    formatted_title = format_title_for_platform("dingtalk", title_data, show_source=True)
+                elif format_type == "slack":
+                    formatted_title = format_title_for_platform("slack", title_data, show_source=True)
+                else:
+                    formatted_title = f"{title_data['title']}"
 
-            news_line = f"  {j + 1}. {formatted_title}\n"
-            item_summary = _format_rss_item_summary(title_data, title_data.get("title", ""))
-            if item_summary:
-                news_line += f"      {item_summary}\n"
-            if j < len(stat["titles"]) - 1:
-                news_line += "\n"
+                news_line = f"  {j + 1}. {formatted_title}\n"
+                item_summary = _format_rss_item_summary(title_data, title_data.get("title", ""))
+                if item_summary:
+                    news_line += f"      {item_summary}\n"
+                if j < len(stat["titles"]) - 1:
+                    news_line += "\n"
 
             test_content = current_batch + news_line
             if len(test_content.encode("utf-8")) + len(base_footer.encode("utf-8")) >= max_bytes:

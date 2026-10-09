@@ -8,10 +8,33 @@
 - count_word_frequency: 统计词频
 """
 
+import re
+from difflib import SequenceMatcher
 from typing import Dict, List, Tuple, Optional, Callable
 
 from trendradar.core.frequency import matches_word_groups, _word_matches
 from trendradar.utils.time import DEFAULT_TIMEZONE
+
+
+def _normalize_rss_title(title: str) -> str:
+    """标题归一化：转小写，仅保留中文/字母/数字，用于跨来源内容去重"""
+    return re.sub(r"[^0-9a-z\u4e00-\u9fff]+", "", (title or "").lower())
+
+
+def _rss_title_similar(a: str, b: str) -> bool:
+    """判断两条归一化标题是否为同一新闻（完全相同或高度相似）
+
+    要求标题足够长且长度接近，避免误杀不同的短新闻。
+    """
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    if min(len(a), len(b)) < 12:
+        return False
+    if abs(len(a) - len(b)) > max(len(a), len(b)) * 0.4:
+        return False
+    return SequenceMatcher(None, a, b).ratio() >= 0.72
 
 
 def calculate_news_weight(
@@ -577,6 +600,10 @@ def count_rss_frequency(
     total_items = len(rss_items)
     processed_urls = set()  # 用于去重
 
+    # 跨来源内容去重：标题相同或高度相似的新闻只保留首次出现的一条
+    kept_norm_titles: List[str] = []
+    dedup_removed = 0
+
     # 为每个条目分配一个基于发布时间的"排名"
     # 按发布时间排序，最新的排在前面
     sorted_items = sorted(
@@ -595,6 +622,14 @@ def count_rss_frequency(
             continue
         if url:
             processed_urls.add(url)
+
+        # 跨来源内容去重：不同源转载的同一条新闻只保留一条
+        norm_title = _normalize_rss_title(title)
+        if norm_title:
+            if any(_rss_title_similar(norm_title, kept) for kept in kept_norm_titles):
+                dedup_removed += 1
+                continue
+            kept_norm_titles.append(norm_title)
 
         # 使用统一的匹配逻辑
         if not matches_word_groups(title, word_groups, filter_words, global_filters):
@@ -719,6 +754,8 @@ def count_rss_frequency(
     matched_count = sum(stat["count"] for stat in stats)
     if not quiet:
         print(f"[RSS] 关键词分组统计：{matched_count}/{total_items} 条匹配")
+        if dedup_removed:
+            print(f"[RSS] 跨源内容去重：过滤 {dedup_removed} 条重复新闻")
 
     return stats, total_items
 
