@@ -805,6 +805,7 @@ class NotificationDispatcher:
                 ai_analysis=ai_analysis,
                 display_regions=display_regions,
                 standalone_data=standalone_data,
+                plain_text=self.config.get("GENERIC_WEBHOOK_PLAIN", False),
             )
             results.append(result)
 

@@ -436,6 +436,7 @@ def _load_webhook_config(config_data: Dict) -> Dict:
         # 通用 Webhook
         "GENERIC_WEBHOOK_URL": _get_env_str("GENERIC_WEBHOOK_URL") or generic.get("webhook_url", ""),
         "GENERIC_WEBHOOK_TEMPLATE": _get_env_str("GENERIC_WEBHOOK_TEMPLATE") or generic.get("payload_template", ""),
+        "GENERIC_WEBHOOK_PLAIN": _get_env_bool("GENERIC_WEBHOOK_PLAIN") if _get_env_bool("GENERIC_WEBHOOK_PLAIN") is not None else generic.get("plain_text", False),
     }
 
 

@@ -1055,30 +1055,48 @@ class SQLiteStorageMixin:
             新增的 RSS 条目 {feed_id: [RSSItem, ...]}
         """
         try:
-            # 获取历史数据
-            historical_data = self._get_rss_data_impl(current_data.date)
-
-            if not historical_data:
-                # 没有历史数据，所有都是新的
-                return current_data.items.copy()
-
-            # 获取当前批次时间
+            # 获取历史数据：当天 + 前两天
+            # （跨天定时运行去重：避免早班把昨晚已推送、但仍处于新鲜期(24h)内的新闻重复推送）
             current_time = current_data.crawl_time
-
-            # 收集历史 URL（first_time < current_time 的条目）
             historical_urls: Dict[str, set] = {}
-            for feed_id, rss_list in historical_data.items.items():
-                historical_urls[feed_id] = set()
-                for item in rss_list:
-                    first_time = item.first_time or item.crawl_time
-                    if first_time < current_time:
-                        if item.url:
-                            historical_urls[feed_id].add(item.url)
 
-            # 检查是否有早于当前批次的历史数据
+            date_candidates = [current_data.date]
+            try:
+                from datetime import datetime as _dt, timedelta as _td
+                base_date = _dt.strptime(str(current_data.date)[:10], "%Y-%m-%d")
+                for delta in (1, 2):
+                    date_candidates.append((base_date - _td(days=delta)).strftime("%Y-%m-%d"))
+            except Exception:
+                pass
+
+            for idx, cand_date in enumerate(date_candidates):
+                try:
+                    # 只读已存在的日期库，避免检查时凭空创建空 DB 文件
+                    if not self._get_db_path(cand_date, db_type="rss").exists():
+                        continue
+                except Exception:
+                    continue
+
+                historical_data = self._get_rss_data_impl(cand_date)
+                if not historical_data:
+                    continue
+
+                is_current_day = idx == 0
+                for feed_id, rss_list in historical_data.items.items():
+                    bucket = historical_urls.setdefault(feed_id, set())
+                    for item in rss_list:
+                        if is_current_day:
+                            # 当天历史：只收集早于当前批次的条目
+                            first_time = item.first_time or item.crawl_time
+                            if not first_time or first_time >= current_time:
+                                continue
+                        if item.url:
+                            bucket.add(item.url)
+
+            # 检查是否有任何历史数据
             has_historical_data = any(len(urls) > 0 for urls in historical_urls.values())
             if not has_historical_data:
-                # 当天第一次抓取，所有条目都是新增
+                # 无历史数据，所有条目都是新增
                 return current_data.items.copy()
 
             # 检测新增

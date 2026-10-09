@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Callable
 
 from trendradar.report.formatter import format_title_for_platform
 from trendradar.report.helpers import format_rank_display
+from trendradar.notification.renderer import _format_rss_item_summary
 from trendradar.utils.time import DEFAULT_TIMEZONE, format_iso_time_friendly, convert_time_for_display
 from trendradar.notification.batch import truncate_at_line_boundary
 
@@ -1144,6 +1145,11 @@ def _process_rss_stats_section(
                 formatted_title = f"{first_title_data['title']}"
 
             first_news_line = f"  1. {formatted_title}\n"
+            first_summary = _format_rss_item_summary(
+                first_title_data, first_title_data.get("title", "")
+            )
+            if first_summary:
+                first_news_line += f"      {first_summary}\n"
             if len(stat["titles"]) > 1:
                 first_news_line += "\n"
 
@@ -1184,6 +1190,9 @@ def _process_rss_stats_section(
                 formatted_title = f"{title_data['title']}"
 
             news_line = f"  {j + 1}. {formatted_title}\n"
+            item_summary = _format_rss_item_summary(title_data, title_data.get("title", ""))
+            if item_summary:
+                news_line += f"      {item_summary}\n"
             if j < len(stat["titles"]) - 1:
                 news_line += "\n"
 

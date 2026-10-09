@@ -45,7 +45,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write                       # 需要回写增量去重状态（output/ 下的 SQLite）
   actions: write
 
 jobs:
@@ -169,6 +169,24 @@ jobs:
           S3_REGION: ${{ secrets.S3_REGION }}
           GITHUB_ACTIONS: true
         run: uv run python -m trendradar
+
+      # --------------------------------------------------------------------------------
+      # 💾 回写增量状态（output/ 下的 SQLite 去重库）
+      #     没有这一步，每次运行都是"全新一天"，会把 24 小时内的新闻重复推送
+      # --------------------------------------------------------------------------------
+      - name: Commit incremental state
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add output
+          if git diff --cached --quiet; then
+            echo "✅ No state changes to commit"
+          else
+            git commit -m "chore(state): update dedup database [skip ci]"
+            git push
+            echo "✅ State committed"
+          fi
 
       # --------------------------------------------------------------------------------
       # ☁️ CLOUDFLARE PAGES DEPLOY / 部署到 Cloudflare Pages（可选）

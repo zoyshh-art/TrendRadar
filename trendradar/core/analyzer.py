@@ -552,11 +552,13 @@ def count_rss_frequency(
     if not rss_items:
         return [], 0
 
-    # 如果没有配置词组，创建一个包含所有条目的虚拟词组
+    # 如果没有配置词组，按 RSS 源（feed_name，即分类）分组显示所有条目
+    by_feed_mode = False
     if not word_groups:
         if not quiet:
-            print("[RSS] 频率词配置为空，将显示所有 RSS 条目")
-        word_groups = [{"required": [], "normal": [], "group_key": "全部 RSS"}]
+            print("[RSS] 频率词配置为空，按 RSS 源分组显示所有条目")
+        by_feed_mode = True
+        word_groups = [{"required": [], "normal": [], "group_key": "__by_feed__"}]
         filter_words = []
 
     # 创建新增条目的 URL 集合，用于快速查找
@@ -606,7 +608,7 @@ def count_rss_frequency(
             group_key = group["group_key"]
 
             # "全部 RSS" 模式：所有条目都匹配
-            if len(word_groups) == 1 and word_groups[0]["group_key"] == "全部 RSS":
+            if len(word_groups) == 1 and word_groups[0]["group_key"] in ("全部 RSS", "__by_feed__"):
                 matched = True
             else:
                 # 检查必须词（支持正则语法）
@@ -630,6 +632,15 @@ def count_rss_frequency(
                 matched = True
 
             if matched:
+                if by_feed_mode:
+                    # 按 RSS 源分组：组名 = feed_name（分类），按首次出现顺序排列
+                    group_key = item.get("feed_name") or item.get("feed_id") or "RSS"
+                    if group_key not in word_stats:
+                        word_stats[group_key] = {
+                            "count": 0,
+                            "titles": [],
+                            "feed_position": len(word_stats),
+                        }
                 word_stats[group_key]["count"] += 1
 
                 # 格式化时间显示
@@ -644,6 +655,7 @@ def count_rss_frequency(
 
                 title_data = {
                     "title": title,
+                    "summary": item.get("summary", "") or "",
                     "source_name": item.get("feed_name", item.get("feed_id", "RSS")),
                     "time_display": time_display,
                     "count": 1,  # RSS 条目通常只出现一次
@@ -691,13 +703,15 @@ def count_rss_frequency(
         stats.append({
             "word": display_word,
             "count": data["count"],
-            "position": group_key_to_position.get(group_key, 999),
+            "position": group_key_to_position.get(group_key, data.get("feed_position", 999)),
             "titles": sorted_titles,
             "percentage": round(data["count"] / total_items * 100, 2) if total_items > 0 else 0,
         })
 
-    # 排序
-    if sort_by_position_first:
+    # 排序（按源分组模式：固定按 RSS 源配置顺序显示）
+    if by_feed_mode:
+        stats.sort(key=lambda x: x["position"])
+    elif sort_by_position_first:
         stats.sort(key=lambda x: (x["position"], -x["count"]))
     else:
         stats.sort(key=lambda x: (-x["count"], x["position"]))

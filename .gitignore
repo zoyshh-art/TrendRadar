@@ -1,0 +1,12 @@
+# 依赖与缓存
+.venv/
+__pycache__/
+*.pyc
+uv.lock.bak
+
+# 本地运行日志
+*.log
+
+# 忽略文本快照（SQLite 状态需要回写，见 .github/workflows/crawler.yml）
+output/txt/
+output/html/

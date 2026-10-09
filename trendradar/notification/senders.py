@@ -1221,6 +1221,7 @@ def send_to_generic_webhook(
     ai_analysis: Any = None,
     display_regions: Optional[Dict] = None,
     standalone_data: Optional[Dict] = None,
+    plain_text: Any = False,
 ) -> bool:
     """
     发送到通用 Webhook（支持分批发送，支持自定义 JSON 模板，支持热榜+RSS合并+独立展示区）
@@ -1239,6 +1240,7 @@ def send_to_generic_webhook(
         split_content_func: 内容分批函数
         rss_items: RSS 统计条目列表（可选，用于合并推送）
         rss_new_items: RSS 新增条目列表（可选，用于新增区块）
+        plain_text: 发送前将 Markdown 转纯文本（PushPlus txt / ClawBot 等不渲染 Markdown 的渠道）
 
     Returns:
         bool: 发送是否成功
@@ -1274,6 +1276,14 @@ def send_to_generic_webhook(
 
     # 统一添加批次头部
     batches = add_batch_headers(batches, "wework", batch_size)
+
+    # 按配置将 Markdown 转成纯文本（PushPlus txt 模板 / ClawBot 不渲染 Markdown）
+    if isinstance(plain_text, str):
+        plain_enabled = plain_text.strip().lower() not in ("", "false", "0", "no", "off")
+    else:
+        plain_enabled = bool(plain_text)
+    if plain_enabled:
+        batches = [strip_markdown(batch_content) for batch_content in batches]
 
     print(f"{log_prefix}消息分为 {len(batches)} 批次发送 [{report_type}]")
 
