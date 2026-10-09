@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # 回写好价去重历史 output/phone_deal_history.json
+  contents: write   # 回写好价状态 output/phone_deal_state.json（同价3次/30分钟节流账本）
 
 concurrency:
   group: phone-deal-${{ github.ref_name }}
@@ -39,15 +39,15 @@ jobs:
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
         run: python scripts/phone_deal.py
 
-      - name: Commit deal history
+      - name: Commit deal state
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add output/phone_deal_history.json
+          git add output/phone_deal_state.json
           if git diff --cached --quiet; then
-            echo "no history changes"
+            echo "no state changes"
           else
-            git commit -m "chore(deal): 更新手机好价去重历史"
+            git commit -m "chore(deal): 更新手机好价节流状态"
             for i in 1 2 3; do
               git pull --rebase origin "${{ github.ref_name }}" && git push && break
               echo "push retry $i"
