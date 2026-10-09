@@ -34,11 +34,12 @@ def _build_rss_item_block(index: int, title_data: Dict) -> str:
     summary = _format_rss_item_summary(title_data, title)
     link = title_data.get("mobile_url") or title_data.get("url") or ""
 
-    block = f"  {index}. {title}\n"
+    # 标题用 ▸ 标注，摘要/链接用全角缩进与标题拉开层次
+    block = f"▸ {index}. {title}\n"
     if summary:
-        block += f"\n     {summary}\n"
+        block += f"\n　　{summary}\n"
     if link:
-        block += f"\n     {link}\n"
+        block += f"\n　　{link}\n"
     return block
 
 
@@ -239,6 +240,10 @@ def split_content_into_batches(
 
     # 构建头部信息
     base_header = ""
+    # 纯文本渠道（PushPlus txt / ClawBot）：用横幅分隔线做视觉标注
+    wework_rule = "━" * 20
+    if format_type in ("wework", "bark"):
+        base_header += f"{wework_rule}\n"
 
     # 格式化粗体标记
     if format_type == "slack":
@@ -318,7 +323,8 @@ def split_content_into_batches(
         base_header += f"{b_s}AI 分析：{b_e} {ai_display}{mode_suffix}\n"
 
     # === 空行分隔 ===
-    base_header += "\n"
+    if format_type not in ("wework", "bark"):
+        base_header += "\n"
 
     # === 下半部分：元信息 ===
     base_header += f"{b_s}类型：{b_e} {report_type} · {now.strftime('%Y-%m-%d %H:%M:%S')}\n"
@@ -328,6 +334,8 @@ def split_content_into_batches(
         topics = " | ".join(f"{s['word']}({s['count']})" for s in top_words)
         base_header += f"{b_s}最热话题：{b_e} {topics}\n"
 
+    if format_type in ("wework", "bark"):
+        base_header += f"{wework_rule}\n"
     if format_type in ("feishu", "dingtalk"):
         base_header += "\n---\n\n"
     else:
@@ -1110,7 +1118,8 @@ def _process_rss_stats_section(
         # 构建关键词标题（与热榜格式一致）
         word_header = ""
         if format_type in ("wework", "bark"):
-            word_header = f"**{word}**（{count} 条）\n\n"
+            # 纯文本渠道：分隔线 + 分组标题做层级标注
+            word_header = f"{'━' * 16}\n**{word}** · {count} 条\n\n"
         elif format_type == "telegram":
             if count >= 10:
                 word_header = f"🔥 {sequence_display} {word} : {count} 条\n\n"
