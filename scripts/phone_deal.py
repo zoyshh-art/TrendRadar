@@ -40,7 +40,14 @@ import re
 import sys
 import time
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+CN_TZ = timezone(timedelta(hours=8))  # 状态/展示统一北京时间：Actions 跑在 UTC、本地在北京，混写会打乱 30 分钟轮转
+
+
+def now_cn() -> datetime:
+    """当前北京时间（naive），state 的 last/updated 与消息展示全部用它"""
+    return datetime.now(CN_TZ).replace(tzinfo=None)
 from pathlib import Path
 
 import requests
@@ -186,7 +193,7 @@ CONFIG_RE = re.compile(r"(12|16|24)\s*(?:GB)?\s*[+＋\-—×xX]\s*(256|512|128|1
 
 
 def log(msg: str) -> None:
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
+    print(f"[{now_cn().strftime('%H:%M:%S')}] {msg}", flush=True)
 
 
 def full_model_id(text: str) -> str:
@@ -515,14 +522,14 @@ def load_state() -> dict:
 
 def save_state(entries: dict) -> None:
     # 修剪：超期 + 超量
-    cutoff = (datetime.now() - timedelta(days=STATE_MAX_AGE_DAYS)).isoformat(timespec="seconds")
+    cutoff = (now_cn() - timedelta(days=STATE_MAX_AGE_DAYS)).isoformat(timespec="seconds")
     kept = {k: v for k, v in entries.items() if v.get("last", "") >= cutoff}
     if len(kept) > STATE_KEEP:
         for k in sorted(kept, key=lambda x: kept[x].get("last", ""))[: len(kept) - STATE_KEEP]:
             del kept[k]
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     STATE_PATH.write_text(
-        json.dumps({"entries": kept, "updated": datetime.now().isoformat(timespec="seconds")},
+        json.dumps({"entries": kept, "updated": now_cn().isoformat(timespec="seconds")},
                    ensure_ascii=False, indent=1),
         encoding="utf-8",
     )
@@ -530,7 +537,7 @@ def save_state(entries: dict) -> None:
 
 def gate(items: list[dict], entries: dict) -> list[dict]:
     """按规则筛出本批可推送条目；准入即刻写入内存状态（防同批重复）"""
-    now = datetime.now()
+    now = now_cn()
     fresh = []
     for it in items:
         e = entries.get(it["key"])
@@ -554,7 +561,7 @@ def gate(items: list[dict], entries: dict) -> list[dict]:
 # ──────────────────────── 消息组装与推送 ────────────────────────
 
 def build_text(deals: list[dict], news: list[dict], batch_info: str = "") -> str:
-    now = datetime.now().strftime("%m-%d %H:%M")
+    now = now_cn().strftime("%m-%d %H:%M")
     total = len(deals) + len(news)
     lines = [
         "━━━━━━━━━━━━━━━━━━",
@@ -688,12 +695,12 @@ def main() -> int:
         news = [x for x in combo if x["kind"] == "news"]
         for it in combo:   # 测试也记账，避免后续重复推
             entries[it["key"]] = {"count": 1,
-                                  "last": datetime.now().isoformat(timespec="seconds")}
+                                  "last": now_cn().isoformat(timespec="seconds")}
         log(f"TEST 模式：推送最新 {len(combo)} 条")
     elif first_run and not dry:
         for it in deals + news:
             entries[it["key"]] = {"count": 1,
-                                  "last": datetime.now().isoformat(timespec="seconds")}
+                                  "last": now_cn().isoformat(timespec="seconds")}
         save_state(entries)
         if LEGACY_PATH.exists():
             LEGACY_PATH.unlink()   # 清掉旧格式文件
