@@ -418,11 +418,14 @@ def build_text(deals: list[dict], news: list[dict]) -> str:
 
 def push(token: str, title: str, content: str) -> None:
     """按渠道逐个发送。好价默认只走 clawbot（微信ClawBot），不发微信服务号；
-    需要临时改渠道用环境变量 PUSHPLUS_CHANNELS（如 "wechat,clawbot"）。
+    若配置的渠道全部失败，自动回退微信服务号（wechat）保证消息不丢。
+    临时改渠道用环境变量 PUSHPLUS_CHANNELS（如 "wechat,clawbot"）。
     逐渠道独立成败，某渠道未绑定不影响其它渠道。"""
-    channels = os.environ.get("PUSHPLUS_CHANNELS", "clawbot")
-    results = []
-    for ch in [c.strip() for c in channels.split(",") if c.strip()]:
+    channels = [c.strip()
+                for c in os.environ.get("PUSHPLUS_CHANNELS", "clawbot").split(",")
+                if c.strip()]
+
+    def send(ch: str) -> tuple:
         try:
             r = requests.post(
                 PUSH_URL,
@@ -433,15 +436,20 @@ def push(token: str, title: str, content: str) -> None:
             r.raise_for_status()
             body = r.json()
             if body.get("code") == 200:
-                results.append((ch, True, f"messageid={body.get('data')}"))
-            else:
-                results.append((ch, False, f"code={body.get('code')} {body.get('msg')}"))
+                return (ch, True, f"messageid={body.get('data')}")
+            return (ch, False, f"code={body.get('code')} {body.get('msg')}")
         except (requests.RequestException, ValueError) as e:
-            results.append((ch, False, f"{type(e).__name__}: {e}"))
+            return (ch, False, f"{type(e).__name__}: {e}")
+
+    results = [send(ch) for ch in channels]
+    # 回退：配置渠道全部失败且未显式包含服务号 → 自动补发服务号
+    if not any(ok for _, ok, _ in results) and "wechat" not in channels:
+        log("配置渠道全部失败，回退微信服务号")
+        results.append(send("wechat"))
     for ch, ok, detail in results:
         log(f"推送[{ch}] {'成功' if ok else '失败'} {detail}")
     if not any(ok for _, ok, _ in results):
-        raise RuntimeError("所有渠道推送失败: " + str(results))
+        raise RuntimeError("所有渠道推送失败（含服务号回退）: " + str(results))
 
 
 # ──────────────────────────── 主流程 ────────────────────────────
