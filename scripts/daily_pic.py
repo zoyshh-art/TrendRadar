@@ -21,11 +21,13 @@
   PUSHPLUS_TOKEN=xxx python scripts/daily_pic.py [--dry-run]
 """
 
+import html as htmllib
 import json
 import os
 import random
 import re
 import sys
+import time
 import urllib.parse
 from datetime import date, datetime
 from pathlib import Path
@@ -46,6 +48,14 @@ PEXELS_QUERIES = [
     "beauty portrait studio",
     "asian model photoshoot",
     "summer fashion model",
+]
+
+# 必应图片关键词池
+BING_QUERIES = [
+    "美女写真 摄影",
+    "性感写真 模特",
+    "人像写真 少女",
+    "比基尼 写真 女生",
 ]
 
 # 百度图片关键词池（按日期轮换）
@@ -202,31 +212,121 @@ def pool_baidu(session: requests.Session, rng: random.Random, need: int) -> list
     return pool
 
 
+# ──────────────────────── 图源三：必应图片 ────────────────────────
+
+def bing_fetch(session: requests.Session, query: str) -> list[dict]:
+    """拉取必应图片搜索结果，解析 iusc.m 属性拿自家缓存缩略图 turl"""
+    w = urllib.parse.quote(query)
+    r = session.get(
+        "https://www.bing.com/images/async",
+        params={"q": query, "first": "0", "count": "35", "relp": "35",
+                "mmasync": "1", "scenario": "ImageBasicHover",
+                "datsrc": "N_I", "layout": "RowBased"},
+        headers={"Referer": f"https://www.bing.com/images/search?q={w}"},
+        timeout=20,
+    )
+    if r.status_code != 200 or len(r.text) < 5000:
+        raise requests.RequestException(f"bing 返回异常 status={r.status_code} len={len(r.text)}")
+    out = []
+    for ma in re.findall(r'm="(\{[^"]+\})"', r.text):
+        try:
+            j = json.loads(htmllib.unescape(ma))
+        except ValueError:
+            continue
+        turl = j.get("turl") or ""
+        mw, mh = j.get("mw") or 0, j.get("mh") or 0
+        if not turl.startswith("https://"):
+            continue
+        if mw and mh and mh <= mw:        # 有尺寸信息时先过滤非竖图
+            continue
+        out.append({"thumbURL": turl, "width": mw, "height": mh,
+                    "fromPageTitleEnc": j.get("t") or query,
+                    "source": "必应图片",
+                    "_aspect": (mh / mw) if (mw and mh) else 0})
+    return out
+
+
+def pool_bing(session: requests.Session, rng: random.Random, need: int) -> list[dict]:
+    queries = BING_QUERIES[:]
+    rng.shuffle(queries)
+    pool, seen = [], set()
+    for q in queries[:3]:
+        for attempt in range(3):
+            try:
+                items = bing_fetch(session, q)
+                break
+            except requests.RequestException as e:
+                log(f"  必应搜索失败 {q} 第{attempt + 1}次: {e}")
+                items = []
+                time.sleep(2 + attempt * 3)
+        for it in items:
+            if it["thumbURL"] in seen:
+                continue
+            aspect = it.pop("_aspect", 0)
+            if aspect:
+                # 必应缓存图按原始比例放大（turl 本身是小图）
+                it["thumbURL"] += ("&" if "?" in it["thumbURL"] else "?") + \
+                    f"w=768&h={round(768 * aspect)}&rs=1&pid=ImgDetMain"
+            seen.add(it["thumbURL"])
+            pool.append(it)
+        if len(pool) >= need * 4:
+            break
+    log(f"[必应图片] 候选 {len(pool)} 张")
+    return pool
+
+
 # ──────────────────────── 选图与验证 ────────────────────────
 
-def verify_image(url: str, timeout: int = 12) -> bool:
-    """模拟微信 <img> 加载：无 Referer 直连，确认是可渲染的图片"""
+def _image_size(data: bytes) -> tuple | None:
+    """解析 JPEG/PNG 头拿尺寸（免依赖）"""
+    if len(data) < 24:
+        return None
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")
+    if data[:2] == b"\xff\xd8":  # JPEG：扫 SOF 段
+        i = 2
+        while i + 9 < len(data):
+            if data[i] != 0xFF:
+                i += 1
+                continue
+            marker = data[i + 1]
+            if marker in (0xD8, 0x01) or 0xD0 <= marker <= 0xD7:
+                i += 2
+                continue
+            seglen = int.from_bytes(data[i + 2:i + 4], "big")
+            if seglen < 2:
+                return None
+            # SOF0-SOF15 中去掉 DHT/JPG/DAC
+            if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+                h = int.from_bytes(data[i + 5:i + 7], "big")
+                w = int.from_bytes(data[i + 7:i + 9], "big")
+                return w, h
+            i += 2 + seglen
+    return None
+
+
+def verify_image(url: str, timeout: int = 20) -> tuple[bool, tuple | None]:
+    """模拟微信 <img> 加载：下载整图确认可用，并解析尺寸"""
     try:
-        r = requests.get(url, headers=MOBILE_UA, timeout=timeout, stream=True)
+        r = requests.get(url, headers=MOBILE_UA, timeout=timeout)
         ct = r.headers.get("Content-Type", "")
-        first = next(r.iter_content(2048), b"")
-        r.close()
-        return r.status_code == 200 and "image" in ct and len(first) > 500
+        if r.status_code != 200 or "image" not in ct or len(r.content) < 1000:
+            return False, None
+        return True, _image_size(r.content)
     except requests.RequestException:
-        return False
+        return False, None
 
 
 def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
     """按日轮换主图源，主源不足时次源补满，逐一验证"""
     day_idx = date.today().toordinal()
-    pexels_primary = day_idx % 2 == 0
-    builders = (
-        [("Pexels", lambda: pool_pexels(rng, NUM_IMAGES)),
-         ("百度", lambda: pool_baidu(session, rng, NUM_IMAGES))]
-        if pexels_primary else
-        [("百度", lambda: pool_baidu(session, rng, NUM_IMAGES)),
-         ("Pexels", lambda: pool_pexels(rng, NUM_IMAGES))]
-    )
+    builders_all = [
+        ("Pexels", lambda: pool_pexels(rng, NUM_IMAGES)),
+        ("百度", lambda: pool_baidu(session, rng, NUM_IMAGES)),
+        ("必应", lambda: pool_bing(session, rng, NUM_IMAGES)),
+    ]
+    rot = day_idx % len(builders_all)
+    builders = builders_all[rot:] + builders_all[:rot]
     log(f"今日主图源: {builders[0][0]}")
 
     history = load_history()
@@ -244,10 +344,26 @@ def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
                 break
             if any(c["thumbURL"] == it["thumbURL"] for c in chosen):
                 continue
-            if verify_image(it["thumbURL"]):
-                chosen.append(it)
-                log(f"  选定 [{it.get('source')}] {it.get('width')}x{it.get('height')} "
-                    f"{it['thumbURL'][:75]}")
+            ok, dims = verify_image(it["thumbURL"])
+            if not ok:
+                continue
+            if it.get("source") == "必应图片" and not it.get("width"):
+                # 必应无尺寸元数据：实测尺寸把关竖图，并换成放大版 URL
+                if dims is None or dims[1] <= dims[0]:
+                    continue
+                it["width"], it["height"] = dims
+                if dims[0] < 768:
+                    base = it["thumbURL"]
+                    big = base + ("&" if "?" in base else "?") + \
+                        f"w=768&h={round(768 * dims[1] / dims[0])}&rs=1&pid=ImgDetMain"
+                    ok2, dims2 = verify_image(big)
+                    if ok2:
+                        it["thumbURL"] = big
+                        if dims2 and dims2[1] > dims2[0]:
+                            it["width"], it["height"] = dims2
+            chosen.append(it)
+            log(f"  选定 [{it.get('source')}] {it.get('width')}x{it.get('height')} "
+                f"{it['thumbURL'][:75]}")
     return chosen
 
 
@@ -257,6 +373,10 @@ def clean_title(raw: str) -> str:
     t = re.sub(r"<.*?>", "", raw or "")
     t = t.replace("&nbsp;", " ").replace("&amp;", "&").replace("&quot;", '"')
     t = re.sub(r"#\S+", "", t).strip()  # 去话题标签
+    # 截掉网站后缀：标题_网站 / 标题 | 栏目 / 标题-网站
+    for sep in ("_", "|"):
+        if sep in t:
+            t = t.split(sep)[0].strip()
     if len(t) > 40:
         t = t[:40] + "…"
     return t
@@ -334,8 +454,9 @@ def main() -> int:
     session.headers.update(UA)
     try:
         session.get("https://image.baidu.com/", timeout=15)  # 拿 BAIDUID cookie
+        session.get("https://www.bing.com/", timeout=15)      # 拿必应会话 cookie
     except requests.RequestException as e:
-        log(f"百度 cookie 预热失败（继续尝试）: {e}")
+        log(f"搜索站 cookie 预热失败（继续尝试）: {e}")
 
     # 同一天固定种子：workflow 重跑结果一致，配合历史去重
     rng = random.Random(date.today().isoformat())
