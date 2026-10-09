@@ -14,14 +14,18 @@
 - 同一「型号 + 价格」的消息最多推送 3 次，两次间隔至少 30 分钟
   （同款反复被爆料时：首见即推，30 分钟后若还在则第 2 次，60 分钟后第 3 次，之后不再推）
 - 降价产生新价格 = 新消息，正常推送
-- 资讯（IT之家）按链接去重，只推一次；资讯无价格不做过滤
+- 资讯（IT之家/快科技）按链接去重 + 跨来源标题归一化去重，只推一次；资讯无价格不做过滤
 - 首次运行仅记录基线不推送
 
-信息源：
+信息源（8 个）：
 1. 什么值得买 · 手机分类好价 https://www.smzdm.com/fenlei/shouji/
 2. 什么值得买 · 移动站好价榜 https://m.smzdm.com/top/shouji/（SSR，与 1 高度互补）
-3. IT之家 RSS https://www.ithome.com/rss/
-4. OPPO 官方商城盯价 https://www.opposhop.cn（7 款目标机型直降第一手）
+3. 什么值得买 · 官方 API 手机分类流 api.smzdm.com/v1/list?category_id=165/389/4953
+4. 什么值得买 · 官方 API 关键词搜索 api.smzdm.com/v1/list?keyword=（跨频道兜底）
+5. 中关村在线 · 手机报价列表 detail.zol.com.cn（SSR 参考价，3 页约 140+ 款）
+6. 快科技 https://news.mydrivers.com/（机型促销资讯）
+7. IT之家 RSS https://www.ithome.com/rss/（机型促销资讯）
+8. OPPO 官方商城盯价 https://www.opposhop.cn（7 款目标机型直降第一手）
 
 环境变量：PUSHPLUS_TOKEN（必填）
           PUSHPLUS_CHANNELS（默认 clawbot，即微信ClawBot；好价不推服务号）
@@ -32,6 +36,7 @@ import json
 import os
 import re
 import sys
+import time
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -92,6 +97,24 @@ TOP_ROW_RE = re.compile(
     r'.*?article_digital_price:("?[0-9.]+"?|[A-Za-z]\w*)',
     re.S,
 )
+
+# 源三/四：smzdm 官方 JSON API（无签名，带 Referer 即可；JSON 结构化 + 可翻页）
+# 2026-10 实测：category_id 为精确分类（165 手机通讯 / 389 手机 / 4953 安卓手机，条目集不同需全抓）
+# keyword 为站内全文搜索（search.smzdm.com 网页版 202 反爬，此 API 不拦）
+SMZDM_API = "https://api.smzdm.com/v1/list"
+SMZDM_API_H = {**UA, "Referer": "https://www.smzdm.com/"}
+SMZDM_API_CATS = {"手机通讯": 165, "手机": 389, "安卓手机": 4953}
+SMZDM_API_KEYWORDS = ["Find X9", "Find X10", "vivo X300", "vivo X500"]
+
+# 源五：中关村在线手机报价列表（SSR：alt=机型(配置) / b.price-type=参考价）
+ZOL_URLS = [
+    "https://detail.zol.com.cn/cell_phone/",
+    "https://detail.zol.com.cn/cell_phone_index/subcate57_list_2.html",
+    "https://detail.zol.com.cn/cell_phone_index/subcate57_list_3.html",
+]
+
+# 源六：快科技列表页（响应头无 charset，页内 meta 为 utf-8）
+MYDRIVERS_URL = "https://news.mydrivers.com/"
 
 # 源三：OPPO 官方商城（opposhop.cn）目标机型商品页 —— 官方直降第一手
 # 价格字段 buyPrice（页内内联 JS），价格一变即视为新消息
@@ -235,7 +258,7 @@ def fetch_smzdm() -> list[dict]:
     return out
 
 
-# ──────────────── 源三：OPPO 官方商城直降（第一手） ────────────────
+# ──────────────── 源八：OPPO 官方商城直降（第一手） ────────────────
 
 def fetch_oppo_official() -> list[dict]:
     items = []
@@ -273,7 +296,7 @@ def fetch_oppo_official() -> list[dict]:
     return items
 
 
-# ──────────────── 源四：smzdm 移动站好价榜 ────────────────
+# ──────────────── 源二：smzdm 移动站好价榜 ────────────────
 
 def fetch_smzdm_top() -> list[dict]:
     items: dict[str, dict] = {}
@@ -314,7 +337,113 @@ def fetch_smzdm_top() -> list[dict]:
     return out
 
 
-# ──────────────────────── 源二：IT之家 RSS ────────────────────────
+# ──────────────── 源三/四：smzdm 官方 JSON API ────────────────
+
+def _smzdm_api_rows(params: dict) -> list[dict]:
+    """调 smzdm 官方列表 API，返回 rows；失败返回 []"""
+    query = {"limit": 20, "offset": 0, "type": "youhui", "order": "time", **params}
+    try:
+        r = requests.get(SMZDM_API, params=query, headers=SMZDM_API_H, timeout=25)
+        r.raise_for_status()
+        data = r.json()
+    except (requests.RequestException, ValueError) as e:
+        log(f"[smzdmAPI] {params} 失败: {type(e).__name__}")
+        return []
+    if str(data.get("error_code")) != "0":
+        log(f"[smzdmAPI] {params} error_code={data.get('error_code')}")
+        return []
+    return data.get("data", {}).get("rows") or []
+
+
+def _api_rows_to_items(rows: list[dict], src: str) -> dict[str, dict]:
+    items: dict[str, dict] = {}
+    for it in rows:
+        pid = str(it.get("article_id") or "")
+        title = re.sub(r"\s+", " ", str(it.get("article_title") or "")).strip()
+        if not pid or not title or pid in items:
+            continue
+        mm = MODEL_RE.search(title)
+        if not mm:
+            continue
+        # article_price 形如 "3920元（需用券）" → 取首个数字；0/极小值视为无价
+        pm = re.search(r"\d+(?:\.\d+)?", str(it.get("article_price") or ""))
+        price = pm.group(0) if pm and float(pm.group(0)) >= 100 else ""
+        mk = model_key(mm.group(0))
+        url = f"https://www.smzdm.com/p/{pid}/"
+        items[pid] = {
+            "url": url, "title": title, "price": price,
+            "src": src, "kind": "deal",
+            "key": f"{mk}|{price}" if price else f"{mk}|{url}",
+            "model": mk,
+        }
+    return items
+
+
+def fetch_smzdm_api_cat() -> list[dict]:
+    out: dict[str, dict] = {}
+    for name, cid in SMZDM_API_CATS.items():
+        items = _api_rows_to_items(_smzdm_api_rows({"category_id": cid}), "smzdm_cat")
+        for pid, it in items.items():
+            out.setdefault(pid, it)
+        time.sleep(0.4)
+    log(f"[smzdm分类API] 命中机型好价 {len(out)} 条（分类 {list(SMZDM_API_CATS)}）")
+    return list(out.values())
+
+
+def fetch_smzdm_api_kw() -> list[dict]:
+    out: dict[str, dict] = {}
+    for kw in SMZDM_API_KEYWORDS:
+        items = _api_rows_to_items(_smzdm_api_rows({"keyword": kw}), "smzdm_kw")
+        for pid, it in items.items():
+            out.setdefault(pid, it)
+        time.sleep(0.4)
+    log(f"[smzdm搜索API] 命中机型好价 {len(out)} 条（关键词 {len(SMZDM_API_KEYWORDS)} 组）")
+    return list(out.values())
+
+
+# ──────────────── 源五：中关村在线手机报价（行情参考价） ────────────────
+
+def fetch_zol() -> list[dict]:
+    items: dict[str, dict] = {}
+    for page_url in ZOL_URLS:
+        try:
+            r = requests.get(page_url, headers=UA, timeout=25)
+            r.raise_for_status()
+            page = r.text
+        except requests.RequestException as e:
+            log(f"[ZOL] {page_url} 抓取失败: {type(e).__name__}")
+            continue
+        for block in page.split('data-follow-id="p')[1:]:
+            pid_m = re.match(r"(\d+)", block)
+            tm = re.search(r'alt="([^"]+)"', block)
+            pm = re.search(r'<b class="price-type">([\d.]+)</b>', block)
+            if not (pid_m and tm and pm):
+                continue
+            # ZOL 配置写法 "12GB/256GB" → "12GB+256GB"，对齐配置解析
+            title = re.sub(r"(\d+)\s*GB\s*/\s*(\d+(?:TB|GB))", r"\1GB+\2",
+                           tm.group(1), flags=re.I)
+            mm = MODEL_RE.search(title)
+            if not mm:
+                continue
+            pid = pid_m.group(1)
+            if pid in items:
+                continue
+            href = re.search(r'href="(/cell_phone/index\d+\.shtml)"', block)
+            item_url = ("https://detail.zol.com.cn" + href.group(1)) if href else page_url
+            price = pm.group(1)
+            mk = model_key(mm.group(0))
+            items[pid] = {
+                "url": item_url, "title": title, "price": price,
+                "src": "zol", "kind": "deal",
+                "key": f"{mk}|{price}",
+                "model": mk,
+            }
+    out = list(items.values())
+    log(f"[ZOL] 命中机型报价 {len(out)} 条")
+    return out
+
+
+# ──────────────────────── 源七：IT之家 RSS ────────────────────────
 
 def fetch_ithome() -> list[dict]:
     r = requests.get(ITHOME_RSS, headers=UA, timeout=25)
@@ -331,6 +460,32 @@ def fetch_ithome() -> list[dict]:
         out.append({"url": link, "title": title, "price": "",
                     "src": "ithome", "kind": "news", "key": f"n|{link}", "model": ""})
     log(f"[ithome] 命中机型促销资讯 {len(out)} 条")
+    return out
+
+
+# ──────────────── 源六：快科技（机型促销资讯） ────────────────
+
+def fetch_mydrivers() -> list[dict]:
+    r = requests.get(MYDRIVERS_URL, headers=UA, timeout=25)
+    r.raise_for_status()
+    # 响应头无 charset、按 latin1 解码会毁掉中文（DEAL_WORD_RE 需要），页内 meta 为 utf-8
+    text = r.content.decode("utf-8", errors="ignore")
+    pairs = re.findall(
+        r'<a[^>]+href="(https://news\.mydrivers\.com/\d+/\d+/\d+\.htm)"[^>]*>\s*'
+        r"([^<]{6,100}?)\s*</a>",
+        text,
+    )
+    out, seen = [], set()
+    for url, title in pairs:
+        if url in seen:
+            continue
+        seen.add(url)
+        title = re.sub(r"\s+", " ", title).strip()
+        if not (MODEL_RE.search(title) and DEAL_WORD_RE.search(title)):
+            continue
+        out.append({"url": url, "title": title, "price": "",
+                    "src": "mydrivers", "kind": "news", "key": f"n|{url}", "model": ""})
+    log(f"[快科技] 命中机型促销资讯 {len(out)} 条")
     return out
 
 
@@ -453,6 +608,19 @@ def push(token: str, title: str, content: str) -> None:
         raise RuntimeError("所有渠道推送失败（含服务号回退）: " + str(results))
 
 
+def dedup_news(news: list[dict]) -> list[dict]:
+    """跨来源同新闻只播一条：标题去来源前缀/标点取前 14 字，任一互含视为同一新闻"""
+    cores, out = [], []
+    for n in news:
+        core = re.sub(r"^(IT之家|快科技|讯|消息|【|\[)+", "", n["title"])
+        core = re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]+", "", core)[:14]
+        if core and any(core in s or s in core for s in cores):
+            continue
+        cores.append(core)
+        out.append(n)
+    return out
+
+
 # ──────────────────────────── 主流程 ────────────────────────────
 
 def main() -> int:
@@ -464,12 +632,19 @@ def main() -> int:
     deals, news = [], []
     for name, fn, bucket in (("smzdm", fetch_smzdm, deals),
                              ("smzdm榜", fetch_smzdm_top, deals),
+                             ("smzdm分类API", fetch_smzdm_api_cat, deals),
+                             ("smzdm搜索API", fetch_smzdm_api_kw, deals),
+                             ("ZOL", fetch_zol, deals),
                              ("ithome", fetch_ithome, news),
+                             ("快科技", fetch_mydrivers, news),
                              ("oppo官方", fetch_oppo_official, deals)):
         try:
             bucket.extend(fn())
         except (requests.RequestException, ET.ParseError) as e:
             log(f"源 {name} 抓取失败: {type(e).__name__} {e}")
+
+    if len(news) > 1:
+        news = dedup_news(news)
 
     # ── 好价判断：低于发行价 10% 才保留，达不到静默淘汰 ──
     if deals:
