@@ -13,6 +13,8 @@
   达不到直接静默淘汰——官方发行价原价冒充的"好价"一律不推
 - 同一「型号 + 价格」的消息最多推送 3 次，两次间隔至少 30 分钟
   （同款反复被爆料时：首见即推，30 分钟后若还在则第 2 次，60 分钟后第 3 次，之后不再推）
+- 单条消息最多 10 条，超出自动拆成多条消息依次推送（间隔 5 秒、单轮最多 4 条）；
+  单轮发不完的自动留到下一轮巡检续推——全部推到微信，不需要去别处查看
 - 降价产生新价格 = 新消息，正常推送
 - 资讯（IT之家/快科技）按链接去重 + 跨来源标题归一化去重，只推一次；资讯无价格不做过滤
 - 首次运行仅记录基线不推送
@@ -43,9 +45,18 @@ from pathlib import Path
 
 import requests
 
+# Windows 控制台默认 GBK，日志含 ¥ 等字符会 UnicodeEncodeError → 强制 UTF-8
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 # ──────────────────────────── 配置 ────────────────────────────
 
-MAX_PUSH = 10                 # 单次消息最多条目数
+MAX_PUSH = 10                 # 单条消息最多条目数（超出自动拆成多条消息）
+MAX_MSGS_PER_RUN = 4          # 单轮最多推送消息数（分批发完，余量下轮续推）
+MSG_GAP_SEC = 5               # 分批消息间隔秒（PushPlus 微信渠道限 1 分钟 5 次）
 MAX_SAME_PUSH = 3             # 同一「型号+价格」最多推送次数
 SAME_PUSH_GAP_MIN = 30        # 同款两次推送最小间隔（分钟）
 STATE_KEEP = 800              # 状态保留条数
@@ -542,12 +553,12 @@ def gate(items: list[dict], entries: dict) -> list[dict]:
 
 # ──────────────────────── 消息组装与推送 ────────────────────────
 
-def build_text(deals: list[dict], news: list[dict]) -> str:
+def build_text(deals: list[dict], news: list[dict], batch_info: str = "") -> str:
     now = datetime.now().strftime("%m-%d %H:%M")
     total = len(deals) + len(news)
     lines = [
         "━━━━━━━━━━━━━━━━━━",
-        f"📱 机型好价速报 · {now} · 新 {total} 条",
+        f"📱 机型好价速报 · {now} · 新 {total} 条{batch_info}",
         "━━━━━━━━━━━━━━━━━━",
     ]
     if deals:
@@ -557,8 +568,6 @@ def build_text(deals: list[dict], news: list[dict]) -> str:
             if d["price"]:
                 head += f"　¥{d['price']}"
             lines += [head, f"　　{d['url']}", ""]
-        if len(deals) > MAX_PUSH:
-            lines.append(f"（另有 {len(deals) - MAX_PUSH} 条见 smzdm 手机频道）")
     if news:
         lines += ["", f"━━ 促销资讯 · {len(news)} 条 ━━"]
         for i, n in enumerate(news, 1):
@@ -619,6 +628,13 @@ def dedup_news(news: list[dict]) -> list[dict]:
         cores.append(core)
         out.append(n)
     return out
+
+
+def plan_batches(deals: list[dict], news: list[dict]) -> tuple[list[list[dict]], list[dict]]:
+    """分批：单条消息 ≤MAX_PUSH 条；单轮最多 MAX_MSGS_PER_RUN 批，余量返回给下轮续推"""
+    combined = deals + news
+    chunks = [combined[i:i + MAX_PUSH] for i in range(0, len(combined), MAX_PUSH)]
+    return chunks[:MAX_MSGS_PER_RUN], chunks[MAX_MSGS_PER_RUN:]
 
 
 # ──────────────────────────── 主流程 ────────────────────────────
@@ -694,21 +710,50 @@ def main() -> int:
         save_state(entries)   # 记录间隔时钟
         return 0
 
-    title = f"📱 机型好价 · 新 {len(deals) + len(news)} 条"
-    content = build_text(deals, news)
+    # ── 分批发货：每条 ≤10 条，单轮 ≤4 条消息；余量撤销记账，下轮巡检自动续推 ──
+    batches, overflow = plan_batches(deals, news)
+    for it in [x for c in overflow for x in c]:
+        entries.pop(it["key"], None)
 
     if dry:
-        print("──── DRY RUN ────")
-        print(title)
-        print(content)
+        print(f"──── DRY RUN · 共 {len(batches)} 批"
+              f"（单批≤{MAX_PUSH}条，单轮≤{MAX_MSGS_PER_RUN}批）────")
+        for idx, batch in enumerate(batches, 1):
+            d = [x for x in batch if x["kind"] == "deal"]
+            n = [x for x in batch if x["kind"] == "news"]
+            bi = f" · 批 {idx}/{len(batches)}" if len(batches) > 1 else ""
+            print(f"──── 批次 {idx}/{len(batches)} ────")
+            print(build_text(d, n, bi))
+        if overflow:
+            print(f"（余 {sum(len(c) for c in overflow)} 条留下一轮巡检续推）")
         return 0
 
     if not token:
         log("缺少 PUSHPLUS_TOKEN")
         return 1
-    push(token, title, content)
+
+    sent, failed = 0, 0
+    for idx, batch in enumerate(batches, 1):
+        d = [x for x in batch if x["kind"] == "deal"]
+        n = [x for x in batch if x["kind"] == "news"]
+        bi = f" · 批 {idx}/{len(batches)}" if len(batches) > 1 else ""
+        title = f"📱 机型好价 · 新 {len(batch)} 条{bi}"
+        try:
+            push(token, title, build_text(d, n, bi))
+            sent += 1
+        except RuntimeError as e:
+            failed += 1
+            log(f"批 {idx}/{len(batches)} 推送失败，该批撤销记账下轮重试: {e}")
+            for it in batch:
+                entries.pop(it["key"], None)
+        if idx < len(batches):
+            time.sleep(MSG_GAP_SEC)
+    if sent == 0 and failed:
+        raise RuntimeError(f"全部 {failed} 批推送失败")
+    if overflow:
+        log(f"余 {sum(len(c) for c in overflow)} 条留下一轮巡检续推")
     save_state(entries)
-    log(f"状态 {len(entries)} 条")
+    log(f"推送 {sent}/{len(batches)} 批 · 状态 {len(entries)} 条")
     return 0
 
 
