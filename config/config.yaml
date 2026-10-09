@@ -100,17 +100,27 @@ rss:
     - id: "cns-world"
       name: "🌍 国际时事"
       url: "https://www.chinanews.com.cn/rss/world.xml"
-      max_items: 10
+      max_items: 20
 
     - id: "dw-world"
       name: "🌏 国际·外媒视角"
       url: "https://rss.dw.com/rdf/rss-chi-all"
       max_items: 6
 
+    - id: "yna-cn"
+      name: "🌐 国际·韩联社中文"
+      url: "https://cn.yna.co.kr/RSS/news.xml"
+      max_items: 8
+
+    - id: "sputnik-cn"
+      name: "🌐 国际·卫星社中文"
+      url: "https://sputniknews.cn/export/rss2/archive/index.xml"
+      max_items: 6
+
     - id: "cns-finance"
       name: "💰 财经"
       url: "https://www.chinanews.com.cn/rss/finance.xml"
-      max_items: 6
+      max_items: 10
 
     - id: "solidot"
       name: "🔬 科技·科学"
@@ -120,7 +130,7 @@ rss:
     - id: "cns-sports"
       name: "⚽ 体育"
       url: "https://www.chinanews.com.cn/rss/sports.xml"
-      max_items: 5
+      max_items: 8
 
     - id: "cns-health"
       name: "🏥 健康"
@@ -130,7 +140,7 @@ rss:
     - id: "cns-culture"
       name: "🎭 文化·娱乐"
       url: "https://www.chinanews.com.cn/rss/culture.xml"
-      max_items: 5
+      max_items: 8
 
     # 备选源（探测验证过可用，按需取消注释）
     # - id: "ithome"
