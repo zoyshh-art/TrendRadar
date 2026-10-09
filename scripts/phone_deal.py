@@ -69,6 +69,18 @@ UA = {
 SMZDM_URL = "https://www.smzdm.com/fenlei/shouji/"
 ITHOME_RSS = "https://www.ithome.com/rss/"
 
+# 源三：OPPO 官方商城（opposhop.cn）目标机型商品页 —— 官方直降第一手
+# 价格字段 buyPrice（页内内联 JS），价格一变即视为新消息
+OPPO_OFFICIAL_SKUS = {
+    "36848": "OPPO Find X9",
+    "36878": "OPPO Find X9 Pro",
+    "39805": "OPPO Find X9s Pro",
+    "39829": "OPPO Find X9 Ultra",
+    "45215": "OPPO Find X10",
+    "45203": "OPPO Find X10 Pro Max",
+    "45222": "OPPO Find X10 E",
+}
+
 
 def log(msg: str) -> None:
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
@@ -109,6 +121,44 @@ def fetch_smzdm() -> list[dict]:
     out = list(items.values())
     log(f"[smzdm] 命中机型好价 {len(out)} 条")
     return out
+
+
+# ──────────────── 源三：OPPO 官方商城直降（第一手） ────────────────
+
+def fetch_oppo_official() -> list[dict]:
+    items = []
+    for sid, name in OPPO_OFFICIAL_SKUS.items():
+        try:
+            r = requests.get(f"https://www.opposhop.cn/cn/web/products/{sid}.html",
+                             headers=UA, timeout=20)
+            r.raise_for_status()
+            page = r.text
+        except requests.RequestException as e:
+            log(f"[oppo官方] {name} 抓取失败: {type(e).__name__}")
+            continue
+        # 页面价格字段不统一：部分页是 buyPrice，部分页是 price（末位=本机价）
+        pm = re.search(r'buyPrice\s*:\s*"([0-9]{4,6}(?:\.\d+)?)"', page)
+        if pm:
+            price = pm.group(1)
+        else:
+            found = re.findall(r'price\s*:\s*"([0-9]{4,6}(?:\.\d+)?)"', page)
+            price = found[-1] if found else ""
+        if not price:
+            log(f"[oppo官方] {name} 未取到价格字段")
+            continue
+        tm = (re.search(r'<h1 class="tit"[^>]*>([^<]+)</h1>', page)
+              or re.search(r'<title>([^<]+)</title>', page))
+        detail = re.sub(r"\s+", " ", tm.group(1)).strip() if tm else name
+        items.append({
+            "url": f"https://www.opposhop.cn/cn/m/product/index?skuId={sid}",
+            "title": f"OPPO官方 · {detail}",
+            "price": price,
+            "src": "oppo", "kind": "deal",
+            "key": f"off|{sid}|{price}",
+            "model": f"off{sid}",
+        })
+    log(f"[oppo官方] 盯价 {len(items)}/{len(OPPO_OFFICIAL_SKUS)} 款")
+    return items
 
 
 # ──────────────────────── 源二：IT之家 RSS ────────────────────────
@@ -207,24 +257,37 @@ def build_text(deals: list[dict], news: list[dict]) -> str:
             lines += [f"▸ {i}. {n['title']}", f"　　{n['url']}", ""]
     lines += [
         "━━━━━━━━━━━━━━━━━━",
-        "监测：Find X9/X10 · vivo X300/X500 全系列",
+        "监测：Find X9/X10 · vivo X300/X500 全系列 + OPPO官方直降盯价",
         "同款同价最多 3 次，间隔 30 分钟 · 每 5 分钟巡检",
     ]
     return "\n".join(lines)
 
 
 def push(token: str, title: str, content: str) -> None:
-    r = requests.post(
-        PUSH_URL,
-        json={"token": token, "title": title, "content": content,
-              "template": "txt", "channel": "wechat"},
-        timeout=30,
-    )
-    r.raise_for_status()
-    body = r.json()
-    if body.get("code") != 200:
-        raise RuntimeError(f"PushPlus 返回失败: {body}")
-    log(f"推送成功 messageid={body.get('data')}")
+    """按渠道逐个发送：微信服务号 + 微信ClawBot(clawbot)。
+    逐渠道独立成败，某渠道未绑定不影响其它渠道。"""
+    channels = os.environ.get("PUSHPLUS_CHANNELS", "wechat,clawbot")
+    results = []
+    for ch in [c.strip() for c in channels.split(",") if c.strip()]:
+        try:
+            r = requests.post(
+                PUSH_URL,
+                json={"token": token, "title": title, "content": content,
+                      "template": "txt", "channel": ch},
+                timeout=30,
+            )
+            r.raise_for_status()
+            body = r.json()
+            if body.get("code") == 200:
+                results.append((ch, True, f"messageid={body.get('data')}"))
+            else:
+                results.append((ch, False, f"code={body.get('code')} {body.get('msg')}"))
+        except (requests.RequestException, ValueError) as e:
+            results.append((ch, False, f"{type(e).__name__}: {e}"))
+    for ch, ok, detail in results:
+        log(f"推送[{ch}] {'成功' if ok else '失败'} {detail}")
+    if not any(ok for _, ok, _ in results):
+        raise RuntimeError("所有渠道推送失败: " + str(results))
 
 
 # ──────────────────────────── 主流程 ────────────────────────────
@@ -236,7 +299,9 @@ def main() -> int:
     token = os.environ.get("PUSHPLUS_TOKEN", "").strip()
 
     deals, news = [], []
-    for name, fn, bucket in (("smzdm", fetch_smzdm, deals), ("ithome", fetch_ithome, news)):
+    for name, fn, bucket in (("smzdm", fetch_smzdm, deals),
+                             ("ithome", fetch_ithome, news),
+                             ("oppo官方", fetch_oppo_official, deals)):
         try:
             bucket.extend(fn())
         except (requests.RequestException, ET.ParseError) as e:
