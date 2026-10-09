@@ -1,25 +1,29 @@
 # coding=utf-8
-"""手机好价监控：指定机型优惠 → PushPlus 微信服务号
+"""手机好价监控：指定机型优惠 → PushPlus（微信ClawBot，不发服务号）
 
 监测范围（型号白名单）：
-- OPPO Find X9 系列：Find X9 / X9 Pro / (未来变体全含)
+- OPPO Find X9 系列：Find X9 / X9 Pro / X9s Pro / X9 Ultra
 - OPPO Find X10 系列：Find X10 / X10 Pro Max / X10 E / (未来 Ultra)
-- vivo X300 系列：X300 / X300 Pro / X300s / X300 Ultra / X300 E / X300 FE
+- vivo X300 系列：X300 / X300 Pro / X300s / X300 Ultra / X300 E
 - vivo X500 系列：X500 / X500 Pro / X500 Pro Max
 （前缀匹配，未来新增后缀自动覆盖）
 
 推送规则：
+- 好价判断：售价须低于官方【发行价】10% 以上才算好价（RRP_TABLE 发行价表），
+  达不到直接静默淘汰——官方发行价原价冒充的"好价"一律不推
 - 同一「型号 + 价格」的消息最多推送 3 次，两次间隔至少 30 分钟
   （同款反复被爆料时：首见即推，30 分钟后若还在则第 2 次，60 分钟后第 3 次，之后不再推）
 - 降价产生新价格 = 新消息，正常推送
-- 资讯（IT之家）按链接去重，只推一次
+- 资讯（IT之家）按链接去重，只推一次；资讯无价格不做过滤
 - 首次运行仅记录基线不推送
 
 信息源：
 1. 什么值得买 · 手机分类好价 https://www.smzdm.com/fenlei/shouji/
 2. IT之家 RSS https://www.ithome.com/rss/
+3. OPPO 官方商城盯价 https://www.opposhop.cn（7 款目标机型直降第一手）
 
 环境变量：PUSHPLUS_TOKEN（必填）
+          PUSHPLUS_CHANNELS（默认 clawbot，即微信ClawBot；好价不推服务号）
 用法：python scripts/phone_deal.py [--test | --dry-run]
 """
 
@@ -81,9 +85,97 @@ OPPO_OFFICIAL_SKUS = {
     "45222": "OPPO Find X10 E",
 }
 
+# ── 好价阈值：低于发行价 10% 才算好价 ──
+GOOD_DEAL_DISCOUNT = 0.10
+
+# ── 发行价表（发布会首发官方价，配置 → 价格） ──
+RRP_TABLE = {
+    # OPPO Find X9 系列（2025-10-16 发布）
+    "x9": {"12+256": 4399, "16+256": 4699, "12+512": 4999, "16+512": 5299, "16+1tb": 5799},
+    "x9pro": {"12+256": 5299, "12+512": 5699, "16+512": 5999, "16+1tb": 6699},
+    "x9spro": {"12+256": 5299, "12+512": 5699, "16+512": 5999, "16+1tb": 6999},
+    "x9ultra": {"12+256": 7499, "12+512": 7999, "16+512": 8499,
+                "16+1tb": 9299, "16+1tb卫星": 9499},
+    # OPPO Find X10 系列（2026-09-22 发布）
+    "x10": {"12+256": 5499, "12+512": 5999, "16+512": 6499, "16+1tb": 7499},
+    "x10promax": {"12+256": 6799, "12+512": 7499, "16+512": 7999, "16+1tb": 8999},
+    "x10e": {"12+256": 4999, "16+512": 5499},
+    # vivo X300 系列（2025-10-13 / X300s·Ultra 2026-03-30 / X300E 2026-07-27）
+    "x300": {"12+256": 4399, "16+256": 4699, "12+512": 4999, "16+512": 5299, "16+1tb": 5799},
+    "x300pro": {"12+256": 5299, "16+512": 5999, "16+1tb": 6699, "16+1tb卫星": 8299},
+    "x300s": {"12+256": 4999, "12+512": 5499, "16+512": 5999, "16+1tb": 6999},
+    "x300ultra": {"12+256": 6999, "12+512": 7499, "16+512": 7999,
+                  "16+1tb": 8999, "16+1tb卫星": 8999},
+    "x300e": {"12+256": 4799, "12+512": 5299},
+    # vivo X500 系列（2026-09-21 发布）
+    "x500": {"12+256": 5499, "12+512": 5999, "12+1tb": 6999},
+    "x500pro": {"12+256": 6499, "12+512": 7499, "16+512": 7999, "12+1tb": 8499, "16+1tb": 8999},
+    "x500promax": {"12+256": 6999, "12+512": 7999, "16+512": 8499,
+                   "12+1tb": 8999, "16+1tb": 9499, "16+1tb卫星": 9499},
+}
+
+# 完整型号提取（变体顺序：长后缀优先），返回如 x9 / x9spro / x10promax / x300ultra
+_FULL_MODEL_RES = [
+    re.compile(
+        r"(?:OPPO\s+)?Find\s*X\s*"
+        r"(9s\s*pro|9\s*pro|9\s*ultra|9s(?!\d)|9(?!\d)"
+        r"|10\s*pro\s*max|10\s*pro|10\s*ultra|10\s*e|10s(?!\d)|10(?!\d))", re.I),
+    re.compile(
+        r"OPPO\s+X\s*(9s\s*pro|9\s*pro|9\s*ultra|9s(?!\d)|9(?!\d)"
+        r"|10\s*pro\s*max|10\s*e|10(?!\d))", re.I),
+    re.compile(
+        r"vivo\s*X\s*(500\s*pro\s*max|500\s*pro|500\s*ultra|500(?!\d)"
+        r"|300\s*pro|300\s*ultra|300\s*s|300\s*e|300(?!\d))", re.I),
+]
+
+CONFIG_RE = re.compile(r"(12|16|24)\s*(?:GB)?\s*[+＋\-—×xX]\s*(256|512|128|1\s*[Tt][Bb]?)(?!\d)", re.I)
+
 
 def log(msg: str) -> None:
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
+
+
+def full_model_id(text: str) -> str:
+    """标题 → 完整型号键：'OPPO Find X9s Pro 乘风青' → 'x9spro'；识别不出返回 ''"""
+    for pat in _FULL_MODEL_RES:
+        m = pat.search(text)
+        if m:
+            return "x" + re.sub(r"[\s_]+", "", m.group(1).lower())
+    return ""
+
+
+def config_key(text: str) -> str:
+    """标题 → 配置键：'16GB+512GB' → '16+512'；'16+1TB' → '16+1tb'"""
+    m = CONFIG_RE.search(text)
+    if not m:
+        return ""
+    ram = m.group(1)
+    rom = m.group(2).lower().replace(" ", "")
+    rom = "1tb" if rom in ("1t", "1tb") else rom
+    return f"{ram}+{rom}"
+
+
+def is_good_deal(item: dict) -> tuple[bool, str]:
+    """好价判断：售价 ≤ 发行价×(1-10%) 才算好价。返回 (通过?, 说明)"""
+    title = item["title"]
+    try:
+        price = float(item["price"])
+    except (TypeError, ValueError):
+        return False, "无价格"
+    mid = full_model_id(title)
+    if not mid:
+        return True, ""                      # 识别不出具体机型 → 放行（宁多勿漏）
+    table = RRP_TABLE.get(mid)
+    if not table:
+        return True, ""                      # 新机型暂无发行价 → 放行，待补表
+    cfg = config_key(title)
+    if cfg and "卫星" in title and f"{cfg}卫星" in table:
+        cfg += "卫星"
+    rrp = table.get(cfg)
+    if rrp is None:
+        rrp = min(table.values())            # 配置未知 → 按该机型最低发行价从严判断
+    limit = rrp * (1 - GOOD_DEAL_DISCOUNT)
+    return price <= limit, f"¥{price:.0f}/发行价¥{rrp}，门槛¥{limit:.0f}"
 
 
 def model_key(match_text: str) -> str:
@@ -258,15 +350,16 @@ def build_text(deals: list[dict], news: list[dict]) -> str:
     lines += [
         "━━━━━━━━━━━━━━━━━━",
         "监测：Find X9/X10 · vivo X300/X500 全系列 + OPPO官方直降盯价",
-        "同款同价最多 3 次，间隔 30 分钟 · 每 5 分钟巡检",
+        "好价=低于发行价10% · 同款同价最多3次间隔30分钟 · 每5分钟巡检",
     ]
     return "\n".join(lines)
 
 
 def push(token: str, title: str, content: str) -> None:
-    """按渠道逐个发送：微信服务号 + 微信ClawBot(clawbot)。
+    """按渠道逐个发送。好价默认只走 clawbot（微信ClawBot），不发微信服务号；
+    需要临时改渠道用环境变量 PUSHPLUS_CHANNELS（如 "wechat,clawbot"）。
     逐渠道独立成败，某渠道未绑定不影响其它渠道。"""
-    channels = os.environ.get("PUSHPLUS_CHANNELS", "wechat,clawbot")
+    channels = os.environ.get("PUSHPLUS_CHANNELS", "clawbot")
     results = []
     for ch in [c.strip() for c in channels.split(",") if c.strip()]:
         try:
@@ -306,6 +399,19 @@ def main() -> int:
             bucket.extend(fn())
         except (requests.RequestException, ET.ParseError) as e:
             log(f"源 {name} 抓取失败: {type(e).__name__} {e}")
+
+    # ── 好价判断：低于发行价 10% 才保留，达不到静默淘汰 ──
+    if deals:
+        kept = []
+        for d in deals:
+            ok, why = is_good_deal(d)
+            if ok:
+                kept.append(d)
+            else:
+                log(f"[好价过滤] 淘汰 {why} | {d['title'][:44]}")
+        if len(kept) != len(deals):
+            log(f"[好价过滤] {len(kept)}/{len(deals)} 条达标（低于发行价 10%）")
+        deals = kept
 
     if not deals and not news:
         log("两个源都没拿到数据，退出")
