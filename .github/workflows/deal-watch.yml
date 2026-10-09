@@ -2,8 +2,9 @@ name: Phone Deal Watch
 
 on:
   schedule:
-    # 每 30 分钟巡检一次（北京时间 X:07 / X:37，避开整点拥堵）
-    - cron: "7,37 * * * *"
+    # 每 5 分钟巡检（GitHub Actions 官方最快频率；分钟取 2/7/12...避开 0 分和 30 分
+    # —— pushplus 文档建议避开整点/半点，高峰期投递更快）
+    - cron: "2-59/5 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -11,7 +12,8 @@ permissions:
 
 concurrency:
   group: phone-deal-${{ github.ref_name }}
-  cancel-in-progress: true
+  # 不取消进行中的运行：正在推送的历史不能被杀掉
+  cancel-in-progress: false
 
 jobs:
   watch:
@@ -46,5 +48,9 @@ jobs:
             echo "no history changes"
           else
             git commit -m "chore(deal): 更新手机好价去重历史"
-            git push
+            for i in 1 2 3; do
+              git pull --rebase origin "${{ github.ref_name }}" && git push && break
+              echo "push retry $i"
+              sleep 5
+            done
           fi
