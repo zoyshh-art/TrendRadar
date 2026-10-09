@@ -1320,6 +1320,18 @@ def send_to_generic_webhook(
             )
             
             if response.status_code >= 200 and response.status_code < 300:
+                # PushPlus 等渠道即使业务失败也返回 HTTP 200，需检查 body 中的 code
+                try:
+                    resp_body = response.json()
+                except ValueError:
+                    resp_body = None
+                if isinstance(resp_body, dict) and "code" in resp_body:
+                    resp_code = resp_body.get("code")
+                    if resp_code not in (0, 200, "0", "200", None):
+                        print(
+                            f"{log_prefix}第 {i}/{len(batches)} 批次发送失败 [{report_type}]，渠道返回 code={resp_code}, msg={resp_body.get('msg')}, 响应: {response.text}"
+                        )
+                        return False
                 print(f"{log_prefix}第 {i}/{len(batches)} 批次发送成功 [{report_type}]")
                 if i < len(batches):
                     time.sleep(batch_interval)
