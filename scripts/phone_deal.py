@@ -443,8 +443,9 @@ def push(token: str, title: str, content: str) -> None:
 
     results = [send(ch) for ch in channels]
     # 回退：配置渠道全部失败且未显式包含服务号 → 自动补发服务号
+    # 回退不记状态，仅对本条生效：下一条仍从 ClawBot 开始尝试
     if not any(ok for _, ok, _ in results) and "wechat" not in channels:
-        log("配置渠道全部失败，回退微信服务号")
+        log("配置渠道全部失败，回退微信服务号（仅本条；下一条仍优先 ClawBot）")
         results.append(send("wechat"))
     for ch, ok, detail in results:
         log(f"推送[{ch}] {'成功' if ok else '失败'} {detail}")
