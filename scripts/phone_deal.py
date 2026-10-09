@@ -19,8 +19,9 @@
 
 信息源：
 1. 什么值得买 · 手机分类好价 https://www.smzdm.com/fenlei/shouji/
-2. IT之家 RSS https://www.ithome.com/rss/
-3. OPPO 官方商城盯价 https://www.opposhop.cn（7 款目标机型直降第一手）
+2. 什么值得买 · 移动站好价榜 https://m.smzdm.com/top/shouji/（SSR，与 1 高度互补）
+3. IT之家 RSS https://www.ithome.com/rss/
+4. OPPO 官方商城盯价 https://www.opposhop.cn（7 款目标机型直降第一手）
 
 环境变量：PUSHPLUS_TOKEN（必填）
           PUSHPLUS_CHANNELS（默认 clawbot，即微信ClawBot；好价不推服务号）
@@ -72,6 +73,25 @@ UA = {
 
 SMZDM_URL = "https://www.smzdm.com/fenlei/shouji/"
 ITHOME_RSS = "https://www.ithome.com/rss/"
+
+# 源四：什么值得买移动站好价榜（SSR，数据内嵌 window.__NUXT__，与 PC 分类页高度互补）
+SMZDM_TOP_URLS = [
+    "https://m.smzdm.com/top/shouji/",
+    "https://m.smzdm.com/top/zhinengshouji/",
+]
+UA_MOBILE = {
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 "
+                  "(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+    "Accept-Language": "zh-CN,zh;q=0.9",
+}
+# NUXT 序列化行：id → 标题 → 展示价 → 结构化价格（可能是字面量或变量）
+TOP_ROW_RE = re.compile(
+    r'article_id:"(\d+)"'
+    r'.*?article_title:"((?:[^"\\]|\\.)*)"'
+    r'.*?article_subtitle:"((?:[^"\\]|\\.)*)"'
+    r'.*?article_digital_price:("?[0-9.]+"?|[A-Za-z]\w*)',
+    re.S,
+)
 
 # 源三：OPPO 官方商城（opposhop.cn）目标机型商品页 —— 官方直降第一手
 # 价格字段 buyPrice（页内内联 JS），价格一变即视为新消息
@@ -253,6 +273,47 @@ def fetch_oppo_official() -> list[dict]:
     return items
 
 
+# ──────────────── 源四：smzdm 移动站好价榜 ────────────────
+
+def fetch_smzdm_top() -> list[dict]:
+    items: dict[str, dict] = {}
+    for url in SMZDM_TOP_URLS:
+        try:
+            r = requests.get(url, headers=UA_MOBILE, timeout=25)
+            r.raise_for_status()
+            page = r.text
+        except requests.RequestException as e:
+            log(f"[smzdm榜] {url} 抓取失败: {type(e).__name__}")
+            continue
+        for m in TOP_ROW_RE.finditer(page):
+            pid, title, subtitle, price_raw = m.groups()
+            title = re.sub(r"\s+", " ", title.replace("\\u002F", "/")).strip()
+            subtitle = subtitle.replace("\\u002F", "/")
+            if price_raw.startswith('"'):
+                price = price_raw.strip('"')
+            else:   # 变量引用 → 从展示价 “xxx元” 提取
+                pm = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*元", subtitle)
+                price = pm.group(1) if pm else ""
+            if not price:
+                continue
+            mm = MODEL_RE.search(title)
+            if not mm:
+                continue
+            if pid in items:
+                continue
+            mk = model_key(mm.group(0))
+            items[pid] = {
+                "url": f"https://www.smzdm.com/p/{pid}/",
+                "title": title, "price": price,
+                "src": "smzdm_top", "kind": "deal",
+                "key": f"{mk}|{price}",
+                "model": mk,
+            }
+    out = list(items.values())
+    log(f"[smzdm榜] 命中机型好价 {len(out)} 条")
+    return out
+
+
 # ──────────────────────── 源二：IT之家 RSS ────────────────────────
 
 def fetch_ithome() -> list[dict]:
@@ -393,6 +454,7 @@ def main() -> int:
 
     deals, news = [], []
     for name, fn, bucket in (("smzdm", fetch_smzdm, deals),
+                             ("smzdm榜", fetch_smzdm_top, deals),
                              ("ithome", fetch_ithome, news),
                              ("oppo官方", fetch_oppo_official, deals)):
         try:
