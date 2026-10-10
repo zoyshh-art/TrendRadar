@@ -79,6 +79,9 @@ BING_QUERIES = [
 
 # 百度图片关键词池（按日期轮换；风格混池：辣度向/丝袜向/泳装车模/JK制服/AI美女）
 BAIDU_KEYWORDS = [
+    "AI美女 写真",
+    "AI性感美女",
+    "AI写真 火辣",
     "情趣内衣 写真",
     "黑丝 写真",
     "肉丝袜 写真",
@@ -94,7 +97,7 @@ BAIDU_KEYWORDS = [
 ]
 
 # 360 图片关键词池（image.so.com；敏感词查询会被折叠成 1-2 条，只用实测能出量的词）
-SO360_QUERIES = ["性感美女", "比基尼美女", "泳装美女", "车模", "美女"]
+SO360_QUERIES = ["AI美女", "性感美女", "比基尼美女", "泳装美女", "车模", "美女"]
 
 # 内容闸：标题/来源页命中即整条丢弃（机械工厂/工业吊装/科技硬件/菜谱/图表素材等误配图）
 REJECT_PAT = re.compile(
@@ -375,46 +378,6 @@ def pool_360(session: requests.Session, rng: random.Random, need: int) -> list[d
     return pool
 
 
-def pool_civitai(session: requests.Session, rng: random.Random, need: int) -> list[dict]:
-    """Civitai AI 生成图（公开 API，免 key）：Soft/Mature 两档，prompt 作标题走内容闸
-
-    墙外源：本地大概率超时，runner(US) 可达；图床 image.civitai.com
-    """
-    pool, seen = [], set()
-    for nsfw in ("Mature", "Soft"):
-        try:
-            r = session.get(
-                "https://civitai.com/api/v1/images",
-                params={"limit": 30, "sort": "Most Reactions", "period": "Day",
-                        "nsfw": nsfw},
-                timeout=25,
-            )
-            items = (r.json() or {}).get("items") or []
-        except (requests.RequestException, ValueError) as e:
-            log(f"  Civitai请求失败({nsfw}): {type(e).__name__}")
-            items = []
-        for it in items:
-            u = it.get("url") or it.get("thumbnailUrl") or ""
-            w_, h_ = int(it.get("width") or 0), int(it.get("height") or 0)
-            if not u or u in seen:
-                continue
-            if w_ and h_ and h_ <= w_:        # 只要竖图
-                continue
-            prompt = str(((it.get("meta") or {}).get("prompt")) or "")[:80]
-            if not prompt:
-                # Civitai 服务端已按 nsfw=Soft/Mature 过滤，无 prompt 时用标签兜底
-                # （AI 源豁免“无题闸”：内容本身已是目标向）
-                prompt = "AI性感写真 lingerie sexy portrait"
-            seen.add(u)
-            pool.append({"thumbURL": u, "width": w_, "height": h_,
-                         "fromPageTitleEnc": prompt,
-                         "_purl": "https://civitai.com/",
-                         "source": f"AI(Civitai·{nsfw})",
-                         "_aspect": (h_ / w_) if (w_ and h_) else 0})
-    log(f"[AI·Civitai] 候选 {len(pool)} 张")
-    return pool
-
-
 # ──────────────────────── 选图与验证 ────────────────────────
 
 def _image_size(data: bytes) -> tuple | None:
@@ -486,7 +449,9 @@ def text_gate(it: dict) -> int | None:
         return None
     if REJECT_PAT.search(blob):
         return None
-    if ANIME_PAT.search(title):
+    # AI 生成图来源（标题带 AI 关键词）豁免二次元闸：AI 图允许动漫风格
+    is_ai = bool(re.search(r"\bAI\b|AI美女|AI写真|AI性感|二次元|anime", title, re.IGNORECASE))
+    if ANIME_PAT.search(title) and not is_ai:
         return None
     return len(PERSON_PAT.findall(title))
 
@@ -564,10 +529,11 @@ def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
     百度（辣度词池）+ 360（车模/比基尼）+ Civitai（AI 生成性感图）+ 必应（adlt=off）
     """
     day_idx = date.today().toordinal()
+    # 三源均墙内可达（百度CDN/360CDN/必应CDN）→ 微信内不会裂图
+    # Civitai AI 图床墙内不可达（523），已移除；AI 生成图改由百度"AI美女"词供给
     builders_all = [
         ("百度", lambda: pool_baidu(session, rng, NUM_IMAGES)),
         ("360", lambda: pool_360(session, rng, NUM_IMAGES)),
-        ("AI", lambda: pool_civitai(session, rng, NUM_IMAGES)),
         ("必应", lambda: pool_bing(session, rng, NUM_IMAGES)),
     ]
     rot = day_idx % len(builders_all)
