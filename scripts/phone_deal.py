@@ -4,11 +4,8 @@
 监测范围（型号白名单）：
 - OPPO Find X9 系列：Find X9 / X9 Pro / X9s Pro / X9 Ultra
 - OPPO Find X10 系列：Find X10 / X10 Pro Max / X10 E / (未来 Ultra)
-- vivo X200 系列：X200 / X200 Pro / X200 Pro mini / X200 Ultra / X200s
 - vivo X300 系列：X300 / X300 Pro / X300s / X300 Ultra / X300 E
 - vivo X500 系列：X500 / X500 Pro / X500 Pro Max
-- iQOO 全系：数字系列（15/15T/15 Ultra/16）/ Neo11 / Z11 Turbo / Z11S 等
-- vivo S50 / S60 系列（含 Pro mini / 元气版）
 （前缀匹配，未来新增后缀自动覆盖）
 
 推送规则：
@@ -77,18 +74,17 @@ LEGACY_PATH = Path(__file__).resolve().parent.parent / "output" / "phone_deal_hi
 PUSH_URL = "https://www.pushplus.plus/send"
 
 # ── 型号白名单（前缀匹配，覆盖全系列含未来后缀） ──
+# 范围约定：仅 OPPO Find X9/X10 + vivo X300/X500 各系列（勿扩）
 MODEL_RE = re.compile(
     "|".join([
         r"(?:OPPO\s*)?Find\s*X\s?(?:9|10)(?!\d)",   # OPPO Find X9 / X10 系列
         r"OPPO\s*X\s?(?:9|10)(?!\d)",                # 少数爆料省略 Find
-        r"vivo\s*X\s?(?:200|300|500)(?!\d)",         # vivo X200 / X300 / X500 系列
-        r"iQOO\s*(?:\d+|neo\s*\d+|z\s*\d+)(?!\d)",   # iQOO 数字 / Neo / Z 系列
-        r"vivo\s*S\s*(?:50|60)(?!\d)",               # vivo S50 / S60 系列
+        r"vivo\s*X\s?(?:300|500)(?!\d)",             # vivo X300 / X500 系列
     ]),
     re.I,
 )
 
-# 配件标题一律不进推送（“iQOO 8 充电器”这类误配）
+# 配件标题一律不进推送（“Find X9 充电器”这类误配）
 ACC_RE = re.compile(
     r"充电器|数据线|充电线|手机壳|保护壳|钢化膜|贴膜|耳机|适配器|背夹|"
     r"延保|礼品卡|以旧换新|清洁套装"
@@ -140,7 +136,7 @@ TOP_ROW_RE = re.compile(
 SMZDM_API = "https://api.smzdm.com/v1/list"
 SMZDM_API_H = {**UA, "Referer": "https://www.smzdm.com/"}
 SMZDM_API_CATS = {"手机通讯": 165, "手机": 389, "安卓手机": 4953}
-SMZDM_API_KEYWORDS = ["Find X9", "Find X10", "vivo X200", "vivo X300", "vivo X500", "iQOO"]
+SMZDM_API_KEYWORDS = ["Find X9", "Find X10", "vivo X300", "vivo X500"]
 
 # 源五：中关村在线手机报价列表（SSR：alt=机型(配置) / b.price-type=参考价）
 ZOL_URLS = [
@@ -191,30 +187,9 @@ RRP_TABLE = {
     "x500pro": {"12+256": 6499, "12+512": 7499, "16+512": 7999, "12+1tb": 8499, "16+1tb": 8999},
     "x500promax": {"12+256": 6999, "12+512": 7999, "16+512": 8499,
                    "12+1tb": 8999, "16+1tb": 9499, "16+1tb卫星": 9499},
-    # vivo X200 系列（2024-10-14 / X200s·X200 Ultra 2025-04-21）
-    "x200": {"12+256": 4299, "12+512": 4699, "16+512": 4999, "16+1tb": 5499},
-    "x200pro": {"12+256": 5299, "16+512": 5999, "16+1tb": 6499, "16+1tb卫星": 6799},
-    "x200promini": {"12+256": 4699, "12+512": 4999, "16+512": 5299, "16+1tb": 5799},
-    "x200ultra": {"12+256": 6499, "16+512": 6999, "16+1tb": 7999},
-    "x200s": {"12+256": 4199, "16+256": 4399, "12+512": 4699, "16+512": 4999, "16+1tb": 5499},
-    # iQOO 系列（15 2025-10-20 / 15 Ultra 2026-02-04 / 15T 2026-05-20 / 16 2026-09-29 /
-    #            Neo11 2025-10-30 / Neo11至尊版 2026-08-18 / Z11 Turbo 2026-01-15 / Z11S 2026-08-18）
-    "iqoo15": {"12+256": 4199, "16+256": 4499, "12+512": 4699, "16+512": 4999, "16+1tb": 5499},
-    "iqoo15t": {"12+256": 4099, "16+256": 4499, "12+512": 4799, "16+512": 5199, "16+1tb": 5999},
-    "iqoo15ultra": {"16+256": 5499, "16+512": 5999, "16+1tb": 6999, "24+1tb": 7699},
-    "iqoo16": {"12+256": 5999, "12+512": 6799, "16+512": 7499, "16+1tb": 8499},
-    "neo11": {"12+256": 2699, "16+256": 2999, "12+512": 2999, "16+512": 3299, "16+1tb": 3799},
-    "neo11zun": {"12+256": 3399, "16+256": 3799, "12+512": 3999, "16+512": 4399},
-    "z11s": {"8+128": 1999, "8+256": 2199, "12+256": 2499, "12+512": 2899},
-    "z11turbo": {"12+256": 2699, "16+256": 2999, "12+512": 3199, "16+512": 3499, "16+1tb": 3999},
-    # vivo S 系列（S50 2025-12-15 / S60 2026-05-29）
-    "s50": {"12+256": 2999, "12+512": 3299, "16+256": 3399, "16+512": 3599},
-    "s50promini": {"12+256": 3699, "12+512": 3999, "16+512": 4299},
-    "s60": {"12+256": 3599, "12+512": 3999, "16+512": 4399},
-    "s60lite": {"8+256": 2899, "12+256": 3199, "12+512": 3499},
 }
 
-# 完整型号提取（变体顺序：长后缀优先），返回如 x9 / x9spro / x10promax / iqoo15ultra
+# 完整型号提取（变体顺序：长后缀优先），返回如 x9 / x9spro / x10promax / x300ultra
 # 结构：(正则, 键前缀)，组1 = 型号后缀
 _FULL_MODEL_RES = [
     (re.compile(
@@ -227,15 +202,9 @@ _FULL_MODEL_RES = [
     (re.compile(
         r"vivo\s*X\s*(500\s*pro\s*max|500\s*pro|500\s*ultra|500(?!\d)"
         r"|300\s*pro|300\s*ultra|300\s*s|300\s*e|300(?!\d))", re.I), "x"),
-    (re.compile(
-        r"vivo\s*X\s*(200\s*pro\s*mini|200\s*pro|200\s*ultra|200s|200(?!\d))", re.I), "x"),
-    (re.compile(r"iQOO\s*(15\s*ultra|15\s*t|15(?!\d)|16(?!\d)|13(?!\d))", re.I), "iqoo"),
-    (re.compile(r"iQOO\s*neo\s*(11\s*至尊版|11|10)(?!\d)", re.I), "neo"),
-    (re.compile(r"iQOO\s*Z\s*(11\s*turbo|11s|11|10)(?!\d)", re.I), "z"),
-    (re.compile(r"vivo\s*S\s*(60\s*元气版|60(?!\d)|50\s*pro\s*mini|50(?!\d))", re.I), "s"),
 ]
 
-CONFIG_RE = re.compile(r"(8|12|16|24)\s*(?:GB)?\s*[+＋\-—×xX/]\s*(256|512|128|1\s*[Tt][Bb]?)(?!\d)", re.I)
+CONFIG_RE = re.compile(r"(12|16|24)\s*(?:GB)?\s*[+＋\-—×xX]\s*(256|512|128|1\s*[Tt][Bb]?)(?!\d)", re.I)
 
 
 def log(msg: str) -> None:
@@ -247,9 +216,7 @@ def full_model_id(text: str) -> str:
     for pat, prefix in _FULL_MODEL_RES:
         m = pat.search(text)
         if m:
-            suffix = re.sub(r"[\s_]+", "", m.group(1).lower())
-            suffix = suffix.replace("至尊版", "zun").replace("元气版", "lite")
-            return prefix + suffix
+            return prefix + re.sub(r"[\s_]+", "", m.group(1).lower())
     return ""
 
 
@@ -629,7 +596,7 @@ def build_text(deals: list[dict], news: list[dict], batch_info: str = "") -> str
             lines += [f"▸ {i}. {n['title']}", f"　　{n['url']}", ""]
     lines += [
         "━━━━━━━━━━━━━━━━━━",
-        "监测：Find X9/X10 · vivo X200/X300/X500/S50/S60 · iQOO 全系列 + OPPO官方直降盯价",
+        "监测：Find X9/X10 · vivo X300/X500 全系列 + OPPO官方直降盯价",
         "好价=低于发行价20% · 同款同价最多3次间隔30分钟 · 全天候巡检",
     ]
     return "\n".join(lines)
