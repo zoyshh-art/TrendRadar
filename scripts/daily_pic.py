@@ -401,6 +401,10 @@ def pool_civitai(session: requests.Session, rng: random.Random, need: int) -> li
             if w_ and h_ and h_ <= w_:        # 只要竖图
                 continue
             prompt = str(((it.get("meta") or {}).get("prompt")) or "")[:80]
+            if not prompt:
+                # Civitai 服务端已按 nsfw=Soft/Mature 过滤，无 prompt 时用标签兜底
+                # （AI 源豁免“无题闸”：内容本身已是目标向）
+                prompt = "AI性感写真 lingerie sexy portrait"
             seen.add(u)
             pool.append({"thumbURL": u, "width": w_, "height": h_,
                          "fromPageTitleEnc": prompt,
