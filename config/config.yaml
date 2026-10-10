@@ -138,23 +138,24 @@ rss:
       url: "https://www.chinanews.com.cn/rss/health.xml"
       max_items: 4
 
-    - id: "cns-culture"
-      name: "🎭 文化·娱乐"
-      url: "https://www.chinanews.com.cn/rss/culture.xml"
+    # 🎭 文化·娱乐源已按需求移除（2026-10-10）：如需要可在下方恢复
+    # - id: "cns-culture"
+    #   name: "🎭 文化·娱乐"
+    #   url: "https://www.chinanews.com.cn/rss/culture.xml"
+
+    - id: "nytimes-cn"
+      name: "🌐 纽约时报中文网"
+      url: "https://cn.nytimes.com/rss/"
       max_items: 8
 
     # 备选源（探测验证过可用，按需取消注释）
     # - id: "ithome"
     #   name: "📱 数码·IT"
-    #   url: "https://www.ithome.com/rss"
+    #   url: "https://www.ithome.com/rss/"
     #   max_items: 6
     # - id: "cns-society"
     #   name: "🏠 国内·社会"
     #   url: "https://www.chinanews.com.cn/rss/society.xml"
-    #   max_items: 5
-    # - id: "nytimes-cn"
-    #   name: "🌐 纽约时报中文网"
-    #   url: "https://cn.nytimes.com/rss/"
     #   max_items: 5
 
 

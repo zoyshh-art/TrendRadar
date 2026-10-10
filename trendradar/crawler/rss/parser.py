@@ -8,6 +8,7 @@ RSS 解析器
 import re
 import html
 import json
+import urllib.parse
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional, Dict, Any
@@ -170,7 +171,7 @@ class RSSParser:
 
         return ParsedRSSItem(
             title=title,
-            url=url,
+            url=self._clean_url(url),
             published_at=published_at,
             summary=summary or None,
             author=author,
@@ -250,7 +251,7 @@ class RSSParser:
 
         return ParsedRSSItem(
             title=title,
-            url=url,
+            url=self._clean_url(url),
             published_at=published_at,
             summary=summary,
             author=author,
@@ -272,6 +273,17 @@ class RSSParser:
         text = re.sub(r'\s+', ' ', text)
 
         return text.strip()
+
+    def _clean_url(self, url: str) -> str:
+        """清洗链接：去零宽/空白字符，非 ASCII（如中文）转 percent-encoding
+
+        微信等平台对含原始中文或空格的 URL 不做自动识别 → 点了没反应
+        """
+        if not url:
+            return ""
+        u = (url or "").strip().replace("\u200b", "").replace("\ufeff", "")
+        u = re.sub(r"\s+", "", u.replace("\u3000", ""))
+        return urllib.parse.quote(u, safe=":/?#[]@!$&'()*+,;=%.-_~")
 
     def _parse_date(self, entry: Any) -> Optional[str]:
         """解析发布日期"""

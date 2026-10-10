@@ -8,6 +8,7 @@ TrendRadar 主程序
 
 import argparse
 import os
+import re
 import webbrowser
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -27,6 +28,59 @@ from trendradar.commands.version import _fetch_remote_version, _parse_version
 
 
 # === 主分析器 ===
+def _rss_title_key(title: str) -> str:
+    """标题归一化：去【来源前缀】/空白/标点，取前 14 字作为同题判据"""
+    t = re.sub(r"^【[^】]{1,10}】", "", title or "")
+    t = re.sub(r"^\[[^\]]{1,10}\]", "", t)
+    t = re.sub(r"[\s\W_]+", "", t)
+    return t[:14]
+
+
+def _rss_same_story(a: str, b: str) -> bool:
+    """两条归一化标题是否同一新闻：
+    - 前 8 字相同（同题不同量/不同来源写法）→ 同
+    - 长度 ≥10 且一方包含另一方 → 同
+    """
+    if not a or not b:
+        return False
+    if len(a) >= 8 and len(b) >= 8 and a[:8] == b[:8]:
+        return True
+    if len(a) >= 10 and a in b:
+        return True
+    if len(b) >= 10 and b in a:
+        return True
+    return False
+
+
+def dedup_rss_cross_source(groups: Optional[List[Dict]], label: str) -> Optional[List[Dict]]:
+    """跨来源同新闻去重：相同内容只保留一条（保留分组顺序中先出现的那条）
+
+    Args:
+        groups: [{"name": 源名, "titles": [title_data...]}, ...]
+        label: 日志标签（全部RSS / 新增RSS）
+
+    Returns:
+        去重后的 groups（原地修改并返回）
+    """
+    if not groups:
+        return groups
+    keys: List[str] = []
+    dropped = 0
+    for g in groups:
+        kept = []
+        for td in g.get("titles", []):
+            key = _rss_title_key(td.get("title", ""))
+            if any(_rss_same_story(key, k) for k in keys):
+                dropped += 1
+                continue
+            keys.append(key)
+            kept.append(td)
+        g["titles"] = kept
+    if dropped:
+        print(f"[RSS跨源去重] {label}：同题仅留一条，移除 {dropped} 条")
+    return groups
+
+
 class NewsAnalyzer:
     """新闻分析器"""
 
@@ -869,6 +923,10 @@ class NewsAnalyzer:
 
             # 是否发送版本更新信息
             update_info_to_send = self.update_info if cfg["SHOW_VERSION_UPDATE"] else None
+
+            # 跨来源同新闻去重：相同内容只推一条（保留先出现者）
+            rss_items = dedup_rss_cross_source(rss_items, "全部RSS")
+            rss_new_items = dedup_rss_cross_source(rss_new_items, "新增RSS")
 
             # 使用 NotificationDispatcher 发送到所有渠道
             # RSS/独立展示区数据已在分析流水线中翻译过，跳过重复翻译（仅翻译热榜 report_data）

@@ -7,12 +7,26 @@
 
 from datetime import datetime
 from typing import Dict, List, Optional, Callable
+import re
+import urllib.parse
 
 from trendradar.report.formatter import format_title_for_platform
 from trendradar.report.helpers import format_rank_display
 from trendradar.notification.renderer import _format_rss_item_summary
 from trendradar.utils.time import DEFAULT_TIMEZONE, format_iso_time_friendly, convert_time_for_display
 from trendradar.notification.batch import truncate_at_line_boundary
+
+
+def _clean_clickable_url(url: str) -> str:
+    """清洗链接：去零宽/空白字符，非 ASCII（中文）转 percent-encoding
+
+    微信等平台对含原始中文/空格的 URL 不自动识别 → 点了没反应
+    """
+    if not url:
+        return ""
+    u = (url or "").strip().replace("\u200b", "").replace("\ufeff", "")
+    u = re.sub(r"\s+", "", u.replace("\u3000", ""))
+    return urllib.parse.quote(u, safe=":/?#[]@!$&'()*+,;=%.-_~")
 
 
 def _build_rss_item_block(index: int, title_data: Dict) -> str:
@@ -32,14 +46,14 @@ def _build_rss_item_block(index: int, title_data: Dict) -> str:
     """
     title = (title_data.get("title") or "").strip()
     summary = _format_rss_item_summary(title_data, title)
-    link = title_data.get("mobile_url") or title_data.get("url") or ""
+    link = _clean_clickable_url(title_data.get("mobile_url") or title_data.get("url") or "")
 
-    # 标题用 ▸ 标注，摘要/链接用全角缩进与标题拉开层次
+    # 标题用 ▸ 标注，摘要/链接用全角缩进与标题拉开层次；链接顶格放，避免全角缩进影响微信识别
     block = f"▸ {index}. {title}\n"
     if summary:
         block += f"\n　　{summary}\n"
     if link:
-        block += f"\n　　{link}\n"
+        block += f"\n{link}\n"
     return block
 
 

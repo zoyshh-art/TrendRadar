@@ -1,7 +1,7 @@
 # coding=utf-8
 """每日美图推送
 
-三图源轮换（百度图片/必应图片优先，Pexels 兜底），真人写真 → PushPlus 微信服务号
+双图源轮换（百度图片/必应图片），大尺度真人写真 → PushPlus 微信服务号
 （HTML 模板）推送。默认 10 张/次，只取竖图大图。
 
 图源（均免 key）：
@@ -58,25 +58,26 @@ PEXELS_QUERIES = [
     "swimsuit model summer",
 ]
 
-# 必应图片关键词池
+# 必应图片关键词池（大尺度写真）
 BING_QUERIES = [
-    "性感美女 写真",
+    "情趣内衣 模特 写真",
+    "黑丝 性感 写真",
+    "性感尤物 写真",
+    "露背 性感 写真",
     "比基尼 女神 写真",
-    "性感模特 人体艺术",
-    "清纯美女 私房写真",
-    "泳装 女神 写真",
-    "妩媚 性感 写真",
+    "极度性感 写真",
+    "吊带 性感 写真",
 ]
 
 # 百度图片关键词池（按日期轮换）
 BAIDU_KEYWORDS = [
-    "性感美女 写真",
+    "情趣内衣 写真",
+    "黑丝 性感 写真",
+    "性感尤物 写真",
     "比基尼 写真 女生",
-    "人体艺术 写真",
-    "清纯 私房写真",
-    "泳装 美女 写真",
-    "性感模特 写真",
-    "妩媚 写真 女神",
+    "极度性感 写真",
+    "泳装 性感 写真",
+    "露背 吊带 写真",
 ]
 
 PUSH_URL = "https://www.pushplus.plus/send"
@@ -334,7 +335,6 @@ def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
     builders_all = [
         ("百度", lambda: pool_baidu(session, rng, NUM_IMAGES)),
         ("必应", lambda: pool_bing(session, rng, NUM_IMAGES)),
-        ("Pexels", lambda: pool_pexels(rng, NUM_IMAGES)),
     ]
     rot = day_idx % len(builders_all)
     builders = builders_all[rot:] + builders_all[:rot]
