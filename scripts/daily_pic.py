@@ -1,20 +1,20 @@
 # coding=utf-8
 """每日美图推送
 
-三图源轮换（必应图片/百度图片/360图片），性感写真真人图 → PushPlus 微信服务号
+四源配额混推（百度/360/Civitai-AI/必应），每源约 3 张风格混合 → PushPlus 微信服务号
 （HTML 模板）推送。默认 10 张/次，只取竖图大图。
 
 图源（均免 key）：
-1. 必应图片 async —— adlt=off 关闭安全搜索拿大尺度；标题带 purl 走内容闸
-2. 百度图片 acjson —— 中文写真内容，baidu 自家缓存 CDN 国内秒开
-3. 360 图片 image.so.com —— 车模/比基尼类出量稳定（敏感词查询会被折叠）
+1. 百度图片 acjson —— 辣度词池（情趣内衣/黑丝/肉丝袜/内衣秀/比基尼/车模/JK/女仆/AI美女）
+2. 360 图片 image.so.com —— 车模/比基尼类出量稳定（敏感词查询会被折叠）
+3. Civitai 公开 API —— AI 生成性感图（Soft/Mature 两档，prompt 作标题），墙外源 runner 可达
+4. 必应图片 async —— adlt=off 关闭安全搜索；标题带 purl 走内容闸
 
 质量闸（防止工厂设备/菜谱/素材图等误配）：
 - 标题/来源页命中黑名单（REJECT_PAT）或二次元（ANIME_PAT）→ 直接丢弃
 - 肤色占比（skin_ratio）过低且标题无人像词 → 丢弃
-- 候选按 人像词得分 + 肤色占比 排序，优先选真人写真
-
-轮换：按日期交替主图源，主源不够时次源补满。
+- 标题无人像词 → 丢弃（证件照/男性头像等高肤色垃圾靠标题区分）
+- 候选按 人像词得分 + 肤色占比 排序，配额混推后按分补满
 
 - 选取：只取竖图（高>宽），按日期固定随机种子（同日重跑结果一致）
 - 去重：output/pic_history.json 记录近期已推 URL
@@ -69,23 +69,28 @@ PEXELS_QUERIES = [
 BING_QUERIES = [
     "情趣内衣 模特 写真",
     "黑丝 长腿 美女",
-    "湿身 写真 美女",
-    "性感尤物 写真",
-    "比基尼 女神 写真",
-    "极度性感 写真",
+    "丝袜 美腿 写真",
     "内衣秀 超模",
+    "比基尼 女神 写真",
+    "车模 写真",
+    "湿身 写真 美女",
     "私房 写真 性感",
 ]
 
-# 百度图片关键词池（按日期轮换）
+# 百度图片关键词池（按日期轮换；风格混池：辣度向/丝袜向/泳装车模/JK制服/AI美女）
 BAIDU_KEYWORDS = [
     "情趣内衣 写真",
-    "黑丝 性感 写真",
-    "性感尤物 写真",
-    "比基尼 写真 女生",
-    "极度性感 写真",
+    "黑丝 写真",
+    "肉丝袜 写真",
+    "丝袜 长腿 写真",
+    "内衣秀 写真",
+    "比基尼 写真",
     "泳装 性感 写真",
+    "车模 写真",
+    "JK制服 写真",
+    "女仆装 写真",
     "湿身 写真 美女",
+    "AI美女 写真",
 ]
 
 # 360 图片关键词池（image.so.com；敏感词查询会被折叠成 1-2 条，只用实测能出量的词）
@@ -98,7 +103,8 @@ REJECT_PAT = re.compile(
     r"招股书|财报|股票|基金|K线|标识|logo|标志|矢量|psd|素材下载|千图网|昵图网|众图网|包图网|设计图|"
     r"青椒|京酱|菜谱|做法|家常菜|下饭|美食|食谱|烘焙|欧洲半岛|地图|地理|考试|试题|试卷|论文|专利|"
     r"公筷|公勺|文明用餐|文明就餐|就餐|公益|海报|小报|宣传画|宣传栏|模板|素材|文明城市|倡议书|"
-    r"证件照|身份证|一寸照|两寸照|简历|形象照|职业照|毕业照|全家福|婚纱摄影|孕照|儿童摄影"
+    r"证件照|身份证|一寸照|两寸照|简历|形象照|职业照|毕业照|全家福|婚纱摄影|孕照|儿童摄影|"
+    r"街拍|穿搭|ootd|无不良引导|正常穿搭|背影合集"
 )
 # 二次元/插画类（要真人）
 ANIME_PAT = re.compile(
@@ -106,9 +112,11 @@ ANIME_PAT = re.compile(
     r"原神|崩坏|碧蓝航线|明日方舟|手办|壁纸 原创"
 )
 # 人像正向词（命中越多越优先，也用于放宽肤色比下限；裸词“女”误伤面太大已去掉）
+# 含英文词：Civitai(AI图，标题=prompt) / 必应英文标题用得上
 PERSON_PAT = re.compile(
     r"美女|性感|写真|模特|比基尼|泳装|黑丝|肉丝|丝袜|美腿|长腿|内衣|情趣|私房|少妇|女神|"
-    r"少女|女郎|大尺度|湿身|诱惑|尤物|维密|人像|车模|靓女|小姐姐|妹"
+    r"少女|女郎|大尺度|湿身|诱惑|尤物|维密|人像|车模|靓女|小姐姐|妹|"
+    r"sexy|lingerie|bikini|swimsuit|woman|girl|nsfw|portrait|\bmodel\b"
 )
 
 PUSH_URL = "https://www.pushplus.plus/send"
@@ -367,6 +375,42 @@ def pool_360(session: requests.Session, rng: random.Random, need: int) -> list[d
     return pool
 
 
+def pool_civitai(session: requests.Session, rng: random.Random, need: int) -> list[dict]:
+    """Civitai AI 生成图（公开 API，免 key）：Soft/Mature 两档，prompt 作标题走内容闸
+
+    墙外源：本地大概率超时，runner(US) 可达；图床 image.civitai.com
+    """
+    pool, seen = [], set()
+    for nsfw in ("Mature", "Soft"):
+        try:
+            r = session.get(
+                "https://civitai.com/api/v1/images",
+                params={"limit": 30, "sort": "Most Reactions", "period": "Day",
+                        "nsfw": nsfw},
+                timeout=25,
+            )
+            items = (r.json() or {}).get("items") or []
+        except (requests.RequestException, ValueError) as e:
+            log(f"  Civitai请求失败({nsfw}): {type(e).__name__}")
+            items = []
+        for it in items:
+            u = it.get("url") or it.get("thumbnailUrl") or ""
+            w_, h_ = int(it.get("width") or 0), int(it.get("height") or 0)
+            if not u or u in seen:
+                continue
+            if w_ and h_ and h_ <= w_:        # 只要竖图
+                continue
+            prompt = str(((it.get("meta") or {}).get("prompt")) or "")[:80]
+            seen.add(u)
+            pool.append({"thumbURL": u, "width": w_, "height": h_,
+                         "fromPageTitleEnc": prompt,
+                         "_purl": "https://civitai.com/",
+                         "source": f"AI(Civitai·{nsfw})",
+                         "_aspect": (h_ / w_) if (w_ and h_) else 0})
+    log(f"[AI·Civitai] 候选 {len(pool)} 张")
+    return pool
+
+
 # ──────────────────────── 选图与验证 ────────────────────────
 
 def _image_size(data: bytes) -> tuple | None:
@@ -443,90 +487,118 @@ def text_gate(it: dict) -> int | None:
     return len(PERSON_PAT.findall(title))
 
 
+def _verify_candidate(src_name: str, it: dict) -> dict | None:
+    """下载校验单张：可用性/竖图/肤色闸/无题闸/分数闸，通过则返回带 _score 的 it"""
+    ok, dims, content = verify_image(it["thumbURL"])
+    if not ok:
+        return None
+    if it.get("source") == "必应图片" and not it.get("width"):
+        # 必应无尺寸元数据：实测尺寸把关竖图，并换成放大版 URL
+        if dims is None or dims[1] <= dims[0]:
+            return None
+        it["width"], it["height"] = dims
+        if dims[0] < 768:
+            base = it["thumbURL"]
+            big = base + ("&" if "?" in base else "?") + \
+                f"w=768&h={round(768 * dims[1] / dims[0])}&rs=1&pid=ImgDetMain"
+            ok2, dims2, _ = verify_image(big)
+            if ok2:
+                it["thumbURL"] = big
+                if dims2 and dims2[1] > dims2[0]:
+                    it["width"], it["height"] = dims2
+    elif dims and not it.get("width"):
+        it["width"], it["height"] = dims
+    # 肤色占比闸：无人像词 + 肤色过低 = 大概率不是人物图（工厂/器材/图表）
+    skin = skin_ratio(content) if content else None
+    it["_skin"] = skin
+    if skin is not None and skin < 0.06 and it["_score"] == 0:
+        log(f"  [{src_name}] 肤色闸丢弃 skin={skin:.2f} {it['thumbURL'][:60]}")
+        return None
+    # 标题无人像词一律不要：证件照/男性头像等高肤色垃圾图靠标题区分
+    if it["_score"] == 0:
+        log(f"  [{src_name}] 无题闸丢弃 {str(it.get('fromPageTitleEnc'))[:30]} "
+            f"{it['thumbURL'][:50]}")
+        return None
+    it["_score"] += (skin or 0) * 1.5
+    # 综合分下限：标题人像词太少且肤色一般 = 审查降级/垃圾图
+    if it["_score"] < 1.2:
+        log(f"  [{src_name}] 分数闸丢弃 score={it['_score']:.2f} "
+            f"{str(it.get('fromPageTitleEnc'))[:30]}")
+        return None
+    return it
+
+
+def _verified_pool(src_name: str, pool: list[dict], history: set, rng: random.Random) -> list[dict]:
+    """内容闸 → 下载校验 → 源内按综合分（人像词 + 肤色占比）降序"""
+    fresh = [it for it in pool if it["thumbURL"] not in history]
+    # 已推过的不重复用（除非该源实在没有新图）
+    fresh = fresh or pool
+    gated = []
+    for it in fresh:
+        score = text_gate(it)
+        if score is None:
+            continue
+        it["_score"] = score
+        gated.append(it)
+    if len(gated) < len(fresh):
+        log(f"  [{src_name}] 内容闸丢弃 {len(fresh) - len(gated)} 条（误配/二次元）")
+    rng.shuffle(gated)
+    verified: list[dict] = []
+    for it in gated:
+        if len(verified) >= NUM_IMAGES * 2:      # 单源验证上限，够用即可
+            break
+        v = _verify_candidate(src_name, it)
+        if v is not None:
+            verified.append(v)
+    verified.sort(key=lambda x: x["_score"], reverse=True)
+    return verified
+
+
 def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
-    """按日轮换主图源，主源不足时次源补满；内容闸 + 肤色比 + 人像词综合打分"""
+    """四源配额混推：每源先出 ~3 张（风格混合），不够再按分补满
+
+    百度（辣度词池）+ 360（车模/比基尼）+ Civitai（AI 生成性感图）+ 必应（adlt=off）
+    """
     day_idx = date.today().toordinal()
-    # 百度最稳（国内 CDN + 标题信息全）为主源；必应对数据中心 IP 间歇性反爬 → 次源
     builders_all = [
         ("百度", lambda: pool_baidu(session, rng, NUM_IMAGES)),
-        ("必应", lambda: pool_bing(session, rng, NUM_IMAGES)),
         ("360", lambda: pool_360(session, rng, NUM_IMAGES)),
+        ("AI", lambda: pool_civitai(session, rng, NUM_IMAGES)),
+        ("必应", lambda: pool_bing(session, rng, NUM_IMAGES)),
     ]
     rot = day_idx % len(builders_all)
     builders = builders_all[rot:] + builders_all[:rot]
-    log(f"今日主图源: {builders[0][0]}")
+    log(f"今日主图源: {builders[0][0]}（配额混推：每源约 {max(3, NUM_IMAGES // len(builders_all))} 张）")
 
     history = load_history()
-    chosen: list[dict] = []
+    per_src = max(3, NUM_IMAGES // len(builders_all))
+    by_src: list[tuple[str, list[dict]]] = []
     for src_name, build in builders:
+        by_src.append((src_name, _verified_pool(src_name, build(), history, rng)))
+
+    chosen: list[dict] = []
+
+    def _try_add(it: dict) -> bool:
         if len(chosen) >= NUM_IMAGES:
+            return False
+        if any(c["thumbURL"] == it["thumbURL"] for c in chosen):
+            return True
+        chosen.append(it)
+        log(f"  选定 [{it.get('source')}] {it.get('width')}x{it.get('height')} "
+            f"score={it['_score']:.2f} {it['thumbURL'][:70]}")
+        return True
+
+    # 配额 pass：每源头部若干张 → 一次推送混风格
+    for _, verified in by_src:
+        for it in verified[:per_src]:
+            if not _try_add(it):
+                break
+    # 补满 pass：剩余候选按综合分降序
+    rest = [it for _, v in by_src for it in v[per_src:]]
+    rest.sort(key=lambda x: x["_score"], reverse=True)
+    for it in rest:
+        if not _try_add(it):
             break
-        pool = build()
-        fresh = [it for it in pool if it["thumbURL"] not in history]
-        # 已推过的不重复用（除非该源实在没有新图）
-        fresh = fresh or pool
-        # 内容闸：黑名单/二次元直接丢，留下人像得分
-        gated = []
-        for it in fresh:
-            score = text_gate(it)
-            if score is None:
-                continue
-            it["_score"] = score
-            gated.append(it)
-        if len(gated) < len(fresh):
-            log(f"  [{src_name}] 内容闸丢弃 {len(fresh) - len(gated)} 条（误配/二次元）")
-        rng.shuffle(gated)
-        verified: list[dict] = []
-        for it in gated:
-            if len(verified) >= NUM_IMAGES * 2:      # 单源验证上限，够用即可
-                break
-            ok, dims, content = verify_image(it["thumbURL"])
-            if not ok:
-                continue
-            if it.get("source") == "必应图片" and not it.get("width"):
-                # 必应无尺寸元数据：实测尺寸把关竖图，并换成放大版 URL
-                if dims is None or dims[1] <= dims[0]:
-                    continue
-                it["width"], it["height"] = dims
-                if dims[0] < 768:
-                    base = it["thumbURL"]
-                    big = base + ("&" if "?" in base else "?") + \
-                        f"w=768&h={round(768 * dims[1] / dims[0])}&rs=1&pid=ImgDetMain"
-                    ok2, dims2, _ = verify_image(big)
-                    if ok2:
-                        it["thumbURL"] = big
-                        if dims2 and dims2[1] > dims2[0]:
-                            it["width"], it["height"] = dims2
-            elif dims and not it.get("width"):
-                it["width"], it["height"] = dims
-            # 肤色占比闸：无人像词 + 肤色过低 = 大概率不是人物图（工厂/器材/图表）
-            skin = skin_ratio(content) if content else None
-            it["_skin"] = skin
-            if skin is not None and skin < 0.06 and it["_score"] == 0:
-                log(f"  [{src_name}] 肤色闸丢弃 skin={skin:.2f} {it['thumbURL'][:60]}")
-                continue
-            # 标题无人像词一律不要：证件照/男性头像等高肤色垃圾图靠标题区分
-            if it["_score"] == 0:
-                log(f"  [{src_name}] 无题闸丢弃 {str(it.get('fromPageTitleEnc'))[:30]} "
-                    f"{it['thumbURL'][:50]}")
-                continue
-            it["_score"] += (skin or 0) * 1.5
-            # 综合分下限：标题人像词太少且肤色一般 = 审查降级/垃圾图
-            if it["_score"] < 1.2:
-                log(f"  [{src_name}] 分数闸丢弃 score={it['_score']:.2f} "
-                    f"{str(it.get('fromPageTitleEnc'))[:30]}")
-                continue
-            verified.append(it)
-        # 源内按综合分（人像词 + 肤色占比）降序，写真图优先
-        verified.sort(key=lambda x: x["_score"], reverse=True)
-        for it in verified:
-            if len(chosen) >= NUM_IMAGES:
-                break
-            if any(c["thumbURL"] == it["thumbURL"] for c in chosen):
-                continue
-            chosen.append(it)
-            log(f"  选定 [{it.get('source')}] {it.get('width')}x{it.get('height')} "
-                f"score={it['_score']:.2f} {it['thumbURL'][:70]}")
     return chosen
 
 
