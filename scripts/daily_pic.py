@@ -446,9 +446,10 @@ def text_gate(it: dict) -> int | None:
 def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
     """按日轮换主图源，主源不足时次源补满；内容闸 + 肤色比 + 人像词综合打分"""
     day_idx = date.today().toordinal()
+    # 百度最稳（国内 CDN + 标题信息全）为主源；必应对数据中心 IP 间歇性反爬 → 次源
     builders_all = [
-        ("必应", lambda: pool_bing(session, rng, NUM_IMAGES)),
         ("百度", lambda: pool_baidu(session, rng, NUM_IMAGES)),
+        ("必应", lambda: pool_bing(session, rng, NUM_IMAGES)),
         ("360", lambda: pool_360(session, rng, NUM_IMAGES)),
     ]
     rot = day_idx % len(builders_all)
