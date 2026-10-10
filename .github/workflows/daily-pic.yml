@@ -5,6 +5,11 @@ on:
     # 北京时间每天 12:30（GitHub cron 为 UTC，04:30 = 北京 12:30）
     - cron: "30 4 * * *"
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "仅试跑（抓图+打分日志，不推送不落盘）"
+        required: false
+        default: "false"
 
 permissions:
   contents: write   # 回写图片去重历史 output/pic_history.json
@@ -30,14 +35,20 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install requests pillow
 
       - name: Fetch images and push to WeChat
         env:
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
-        run: python scripts/daily_pic.py
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python scripts/daily_pic.py --dry-run
+          else
+            python scripts/daily_pic.py
+          fi
 
       - name: Commit picture history
+        if: github.event.inputs.dry_run != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
