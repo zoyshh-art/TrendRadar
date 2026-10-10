@@ -127,9 +127,10 @@ rss:
       url: "https://www.solidot.org/index.rss"
       max_items: 8
 
-    - id: "cns-sports"
-      name: "⚽ 体育"
-      url: "https://www.chinanews.com.cn/rss/sports.xml"
+    # ⚽ 体育源已按需求移除（2026-10-10）：如需要可在下方恢复
+    # - id: "cns-sports"
+    #   name: "⚽ 体育"
+    #   url: "https://www.chinanews.com.cn/rss/sports.xml"
       max_items: 8
 
     - id: "cns-health"

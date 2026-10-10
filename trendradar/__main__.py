@@ -35,19 +35,19 @@ class NewsAnalyzer:
         "incremental": {
             "mode_name": "增量模式",
             "description": "增量模式（只关注新增新闻，无新增时不推送）",
-            "report_type": "增量分析",
+            "report_type": "新闻 · 增量分析",
             "should_send_notification": True,
         },
         "current": {
             "mode_name": "当前榜单模式",
             "description": "当前榜单模式（当前榜单匹配新闻 + 新增新闻区域 + 按时推送）",
-            "report_type": "当前榜单",
+            "report_type": "新闻 · 当前榜单",
             "should_send_notification": True,
         },
         "daily": {
             "mode_name": "全天汇总模式",
             "description": "全天汇总模式（所有匹配新闻 + 新增新闻区域 + 按时推送）",
-            "report_type": "全天汇总",
+            "report_type": "新闻 · 全天汇总",
             "should_send_notification": True,
         },
     }

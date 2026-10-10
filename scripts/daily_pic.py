@@ -1,7 +1,8 @@
 # coding=utf-8
 """每日美图推送
 
-双图源轮换，真人写真 → PushPlus 微信服务号（HTML 模板）推送。
+三图源轮换（百度图片/必应图片优先，Pexels 兜底），真人写真 → PushPlus 微信服务号
+（HTML 模板）推送。默认 10 张/次，只取竖图大图。
 
 图源（均免 key）：
 1. Pexels 站内接口 —— 国际模特/写真摄影，无水印高质量
@@ -34,38 +35,48 @@ from pathlib import Path
 
 import requests
 
+# Windows 控制台默认 GBK，打印含 emoji 的标题/内容会 UnicodeEncodeError → 强制 UTF-8
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 # ──────────────────────────── 配置 ────────────────────────────
 
-NUM_IMAGES = 3                 # 每次推送张数
-HISTORY_KEEP = 100             # 历史保留条数
+NUM_IMAGES = 10                # 每次推送张数
+HISTORY_KEEP = 300             # 历史保留条数（10 张/天 → 约 30 天不重复）
 HISTORY_PATH = Path(__file__).resolve().parent.parent / "output" / "pic_history.json"
 
 # Pexels 站内 Web API 的公开 Secret-Key（官网前端硬编码，非个人账号 key）
 PEXELS_KEY = "H2jk9uKnhRmL6WPwh89zBezWvr"
 PEXELS_QUERIES = [
-    "glamour model photoshoot",
-    "fashion model portrait",
-    "beauty portrait studio",
-    "asian model photoshoot",
-    "summer fashion model",
+    "sexy model photoshoot",
+    "bikini model beach",
+    "lingerie model portrait",
+    "sensual woman portrait",
+    "swimsuit model summer",
 ]
 
 # 必应图片关键词池
 BING_QUERIES = [
-    "美女写真 摄影",
-    "性感写真 模特",
-    "人像写真 少女",
-    "比基尼 写真 女生",
+    "性感美女 写真",
+    "比基尼 女神 写真",
+    "性感模特 人体艺术",
+    "清纯美女 私房写真",
+    "泳装 女神 写真",
+    "妩媚 性感 写真",
 ]
 
 # 百度图片关键词池（按日期轮换）
 BAIDU_KEYWORDS = [
-    "美女写真 摄影",
-    "真人写真 模特",
-    "人像摄影 少女写真",
-    "日系写真 少女",
+    "性感美女 写真",
     "比基尼 写真 女生",
-    "时尚写真 女模",
+    "人体艺术 写真",
+    "清纯 私房写真",
+    "泳装 美女 写真",
+    "性感模特 写真",
+    "妩媚 写真 女神",
 ]
 
 PUSH_URL = "https://www.pushplus.plus/send"
@@ -134,7 +145,7 @@ def pool_pexels(rng: random.Random, need: int) -> list[dict]:
     queries = PEXELS_QUERIES[:]
     rng.shuffle(queries)
     pool, seen = [], set()
-    for q in queries[:3]:
+    for q in queries:
         for page in (1, 2):
             try:
                 items = pexels_search(q, page=page)
@@ -321,9 +332,9 @@ def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
     """按日轮换主图源，主源不足时次源补满，逐一验证"""
     day_idx = date.today().toordinal()
     builders_all = [
-        ("Pexels", lambda: pool_pexels(rng, NUM_IMAGES)),
         ("百度", lambda: pool_baidu(session, rng, NUM_IMAGES)),
         ("必应", lambda: pool_bing(session, rng, NUM_IMAGES)),
+        ("Pexels", lambda: pool_pexels(rng, NUM_IMAGES)),
     ]
     rot = day_idx % len(builders_all)
     builders = builders_all[rot:] + builders_all[:rot]
@@ -387,7 +398,7 @@ def build_html(images: list[dict]) -> str:
     parts = [
         '<div style="font-family:-apple-system,Helvetica,Arial,sans-serif;color:#2b2b2b;line-height:1.6">',
         '<div style="text-align:center;border-bottom:2px solid #d33;padding-bottom:8px;">'
-        f'<span style="font-size:18px;font-weight:bold;">📸 每日美图 · {today}</span></div>',
+        f'<span style="font-size:18px;font-weight:bold;">📸 【美图】今日写真集 · {today}</span></div>',
         '<div style="height:8px"></div>',
     ]
     for i, it in enumerate(images, 1):
@@ -468,7 +479,7 @@ def main() -> int:
         log(f"警告：只拿到 {len(images)} 张")
 
     content = build_html(images)
-    title = f"每日美图 · {date.today().isoformat()}"
+    title = f"【美图】性感写真 {NUM_IMAGES} 张 · {date.today().isoformat()}"
 
     if dry:
         print("──── DRY RUN ────")
