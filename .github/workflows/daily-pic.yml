@@ -57,5 +57,10 @@ jobs:
             echo "no history changes"
           else
             git commit -m "chore(pic): 更新每日美图去重历史"
-            git push
+            # 好价巡检每 5 分钟回写 state，可能撞车 → rebase 重试
+            for i in 1 2 3; do
+              git pull --rebase origin master && git push && exit 0
+              sleep 5
+            done
+            exit 1
           fi
