@@ -1,20 +1,20 @@
 # coding=utf-8
 """每日美图推送
 
-四源配额混推（百度/360/Civitai-AI/必应），每源约 3 张风格混合 → PushPlus 微信服务号
-（HTML 模板）推送。默认 10 张/次，只取竖图大图。
+AI 主力配额混推（AI 写真 5 张 + 真人源 5 张）→ PushPlus 微信服务号（HTML 模板）推送。
+默认 10 张/次，只取竖图大图。
 
-图源（均免 key）：
-1. 百度图片 acjson —— 辣度词池（情趣内衣/黑丝/肉丝袜/内衣秀/比基尼/车模/JK/女仆/AI美女）
-2. 360 图片 image.so.com —— 车模/比基尼类出量稳定（敏感词查询会被折叠）
-3. Civitai 公开 API —— AI 生成性感图（Soft/Mature 两档，prompt 作标题），墙外源 runner 可达
-4. 必应图片 async —— adlt=off 关闭安全搜索；标题带 purl 走内容闸
+图源（均免 key、墙内可达 → 微信内不裂图）：
+1. AI 写真 —— 百度搜 AI 词（AI美女/AI性感/AI比基尼/AI黑丝/AI女仆…），用户偏好主力
+2. 百度图片 acjson —— 真人辣度词池（情趣内衣/黑丝/肉丝袜/内衣秀/比基尼/车模/JK/女仆）
+3. 360 图片 image.so.com —— 车模/比基尼类出量稳定（敏感词查询会被折叠）
+4. 必应图片 async —— adlt=off 关闭安全搜索；对数据中心 IP 间歇反爬，自动兜底
 
-质量闸（防止工厂设备/菜谱/素材图等误配）：
-- 标题/来源页命中黑名单（REJECT_PAT）或二次元（ANIME_PAT）→ 直接丢弃
+质量闸（防止工厂设备/菜谱/素材图/水印图等误配）：
+- 标题/来源页命中黑名单（REJECT_PAT，含抖音/快手水印平台）或二次元（ANIME_PAT）→ 直接丢弃
 - 肤色占比（skin_ratio）过低且标题无人像词 → 丢弃
 - 标题无人像词 → 丢弃（证件照/男性头像等高肤色垃圾靠标题区分）
-- 候选按 人像词得分 + 肤色占比 排序，配额混推后按分补满
+- 候选按 人像词得分 + 肤色占比 + 尺寸（≥1000px 加分）排序，配额出图后按分补满
 
 - 选取：只取竖图（高>宽），按日期固定随机种子（同日重跑结果一致）
 - 去重：output/pic_history.json 记录近期已推 URL
@@ -77,11 +77,21 @@ BING_QUERIES = [
     "私房 写真 性感",
 ]
 
-# 百度图片关键词池（按日期轮换；风格混池：辣度向/丝袜向/泳装车模/JK制服/AI美女）
-BAIDU_KEYWORDS = [
+# AI 生成图关键词池（百度图源，国内 CDN 可达；用户偏好 AI 图 → 配额最高 5/10）
+AI_WORDS = [
     "AI美女 写真",
+    "AI性感写真",
+    "AI黑丝丝袜 美女",
+    "AI比基尼 美女",
+    "AI辣妹 写真",
     "AI性感美女",
-    "AI写真 火辣",
+    "AI女仆 写真",
+    "AI泳装美女",
+    "AI美女 私房",
+]
+
+# 百度图片关键词池（真人写真，按日期轮换；风格混池：辣度向/丝袜向/泳装车模/JK制服）
+BAIDU_KEYWORDS = [
     "情趣内衣 写真",
     "黑丝 写真",
     "肉丝袜 写真",
@@ -93,7 +103,6 @@ BAIDU_KEYWORDS = [
     "JK制服 写真",
     "女仆装 写真",
     "湿身 写真 美女",
-    "AI美女 写真",
 ]
 
 # 360 图片关键词池（image.so.com；敏感词查询会被折叠成 1-2 条，只用实测能出量的词）
@@ -107,7 +116,8 @@ REJECT_PAT = re.compile(
     r"青椒|京酱|菜谱|做法|家常菜|下饭|美食|食谱|烘焙|欧洲半岛|地图|地理|考试|试题|试卷|论文|专利|"
     r"公筷|公勺|文明用餐|文明就餐|就餐|公益|海报|小报|宣传画|宣传栏|模板|素材|文明城市|倡议书|"
     r"证件照|身份证|一寸照|两寸照|简历|形象照|职业照|毕业照|全家福|婚纱摄影|孕照|儿童摄影|"
-    r"街拍|穿搭|ootd|无不良引导|正常穿搭|背影合集"
+    r"街拍|穿搭|ootd|无不良引导|正常穿搭|背影合集|"
+    r"抖音|快手|直播|水印|美女直播|游戏主播"
 )
 # 二次元/插画类（要真人）
 ANIME_PAT = re.compile(
@@ -266,6 +276,41 @@ def pool_baidu(session: requests.Session, rng: random.Random, need: int) -> list
     return pool
 
 
+def pool_ai(session: requests.Session, rng: random.Random, need: int) -> list[dict]:
+    """AI 生成图：百度搜 AI 词（国内 CDN 可达，微信内不裂图）
+
+    图源为各平台 AI 画师作品（搜狐/小红书/图虫等转载），标题自带"AI美女"标签
+    """
+    words = AI_WORDS[:]
+    rng.shuffle(words)
+    pool, seen = [], set()
+    for word in words[:5]:
+        for pn in (0, 30, 60):
+            try:
+                items = baidu_search(session, word, pn=pn)
+            except requests.RequestException as e:
+                log(f"  AI搜索失败 {word} pn={pn}: {type(e).__name__}")
+                continue
+            for it in items:
+                u = it.get("thumbURL", "")
+                w, h = it.get("width") or 0, it.get("height") or 0
+                if not u.startswith("https://") or u in seen:
+                    continue
+                if not (h > w >= 600):       # 只要竖图大图
+                    continue
+                if it.get("type") in ("gif", "webp"):
+                    continue
+                seen.add(u)
+                it["source"] = "AI写真"
+                pool.append(it)
+            if len(pool) >= need * 4:
+                break
+        if len(pool) >= need * 4:
+            break
+    log(f"[AI写真] 候选 {len(pool)} 张")
+    return pool
+
+
 # ──────────────────────── 图源三：必应图片 ────────────────────────
 
 def bing_fetch(session: requests.Session, query: str) -> list[dict]:
@@ -362,7 +407,7 @@ def pool_360(session: requests.Session, rng: random.Random, need: int) -> list[d
                 if not img or img in seen:
                     continue
                 w_, h_ = int(it.get("width") or 0), int(it.get("height") or 0)
-                if w_ and h_ and h_ <= w_:
+                if w_ and (w_ < 600 or h_ <= w_):
                     continue
                 seen.add(img)
                 pool.append({"thumbURL": img, "width": w_, "height": h_,
@@ -494,11 +539,15 @@ def _verify_candidate(src_name: str, it: dict) -> dict | None:
         log(f"  [{src_name}] 分数闸丢弃 score={it['_score']:.2f} "
             f"{str(it.get('fromPageTitleEnc'))[:30]}")
         return None
+    # 尺寸加分：高清图优先
+    if (it.get("width") or 0) >= 1000:
+        it["_score"] += 0.8
     return it
 
 
-def _verified_pool(src_name: str, pool: list[dict], history: set, rng: random.Random) -> list[dict]:
-    """内容闸 → 下载校验 → 源内按综合分（人像词 + 肤色占比）降序"""
+def _verified_pool(src_name: str, pool: list[dict], history: set, rng: random.Random,
+                   max_verify: int = 0) -> list[dict]:
+    """内容闸 → 下载校验 → 源内按综合分（人像词 + 肤色占比 + 尺寸）降序"""
     fresh = [it for it in pool if it["thumbURL"] not in history]
     # 已推过的不重复用（除非该源实在没有新图）
     fresh = fresh or pool
@@ -513,8 +562,9 @@ def _verified_pool(src_name: str, pool: list[dict], history: set, rng: random.Ra
         log(f"  [{src_name}] 内容闸丢弃 {len(fresh) - len(gated)} 条（误配/二次元）")
     rng.shuffle(gated)
     verified: list[dict] = []
+    cap = max_verify or NUM_IMAGES * 2      # 单源验证上限，够用即可
     for it in gated:
-        if len(verified) >= NUM_IMAGES * 2:      # 单源验证上限，够用即可
+        if len(verified) >= cap:
             break
         v = _verify_candidate(src_name, it)
         if v is not None:
@@ -524,27 +574,27 @@ def _verified_pool(src_name: str, pool: list[dict], history: set, rng: random.Ra
 
 
 def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
-    """四源配额混推：每源先出 ~3 张（风格混合），不够再按分补满
-
-    百度（辣度词池）+ 360（车模/比基尼）+ Civitai（AI 生成性感图）+ 必应（adlt=off）
-    """
+    """AI 主力配额混推：AI 写真 5 张打头，真人三源（百度/360/必应）按日轮换补位"""
     day_idx = date.today().toordinal()
-    # 三源均墙内可达（百度CDN/360CDN/必应CDN）→ 微信内不会裂图
-    # Civitai AI 图床墙内不可达（523），已移除；AI 生成图改由百度"AI美女"词供给
-    builders_all = [
+    # 真人源按日轮换（三源均墙内可达 → 微信内不会裂图）
+    real_all = [
         ("百度", lambda: pool_baidu(session, rng, NUM_IMAGES)),
         ("360", lambda: pool_360(session, rng, NUM_IMAGES)),
         ("必应", lambda: pool_bing(session, rng, NUM_IMAGES)),
     ]
-    rot = day_idx % len(builders_all)
-    builders = builders_all[rot:] + builders_all[:rot]
-    log(f"今日主图源: {builders[0][0]}（配额混推：每源约 {max(3, NUM_IMAGES // len(builders_all))} 张）")
+    rot = day_idx % len(real_all)
+    real = real_all[rot:] + real_all[:rot]
+    ai_quota = 5 if NUM_IMAGES >= 8 else max(1, NUM_IMAGES // 2)
+    per_src = max(2, (NUM_IMAGES - ai_quota) // len(real))
+    builders = [("AI", lambda: pool_ai(session, rng, NUM_IMAGES), ai_quota)] + \
+               [(n, b, per_src) for n, b in real]
+    log(f"配额混推: AI {ai_quota} 张 + 真人源各 {per_src} 张（今日主真人源: {real[0][0]}）")
 
     history = load_history()
-    per_src = max(3, NUM_IMAGES // len(builders_all))
-    by_src: list[tuple[str, list[dict]]] = []
-    for src_name, build in builders:
-        by_src.append((src_name, _verified_pool(src_name, build(), history, rng)))
+    by_src: list[tuple[str, int, list[dict]]] = []
+    for src_name, build, quota in builders:
+        by_src.append((src_name, quota,
+                       _verified_pool(src_name, build(), history, rng, max_verify=quota * 3)))
 
     chosen: list[dict] = []
 
@@ -558,13 +608,13 @@ def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
             f"score={it['_score']:.2f} {it['thumbURL'][:70]}")
         return True
 
-    # 配额 pass：每源头部若干张 → 一次推送混风格
-    for _, verified in by_src:
-        for it in verified[:per_src]:
+    # 配额 pass：每源按配额出图（AI 打头）
+    for _, quota, verified in by_src:
+        for it in verified[:quota]:
             if not _try_add(it):
                 break
     # 补满 pass：剩余候选按综合分降序
-    rest = [it for _, v in by_src for it in v[per_src:]]
+    rest = [it for _, q, v in by_src for it in v[q:]]
     rest.sort(key=lambda x: x["_score"], reverse=True)
     for it in rest:
         if not _try_add(it):
