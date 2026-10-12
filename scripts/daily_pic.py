@@ -465,6 +465,18 @@ GEN_STYLES = [
     ("午后窗台", "beautiful young woman wearing a summer dress by a sunlit window, backlit curves, photorealistic portrait"),
     ("晚安睡衣", "beautiful young woman wearing a satin slip dress, bedside lamp warm light, soft alluring expression, photorealistic portrait"),
 ]
+# 仙侠/古装美女 AI 风格（用户偏好方向：画风统一、电影感强、脸自然）
+XIANXIA_STYLES = [
+    ("仙侠剑修", "immortal female sword cultivator, flowing white and jade hanfu, silk ribbons in the wind, misty mountain peaks, ethereal beauty, photorealistic portrait, cinematic"),
+    ("敦煌飞天", "dunhuang flying apsara, ancient chinese mural style, flowing silk ribbons, gold and azure palette, divine beauty, photorealistic"),
+    ("古装红衣", "ancient chinese empress in red hanfu, elaborate gold headdress, ornate embroidery, palace hall, photorealistic portrait"),
+    ("瑶池仙子", "celestial chinese goddess in flowing aqua silk dress, lotus pond, dreamy clouds, serene beauty, photorealistic portrait"),
+    ("黑衣剑侠", "female swordswoman in black ancient chinese outfit, bamboo forest, dramatic rim lighting, photorealistic portrait"),
+    ("薄纱仙姿", "ancient chinese goddess in sheer flowing silk hanfu, bare shoulders, sensual pose, golden hour light, photorealistic portrait"),
+    ("雪中仙子", "immortal woman in white fur cloak, snow mountain, cold serene beauty, falling snow, photorealistic portrait"),
+    ("龙族公主", "ancient chinese dragon princess with golden horns, ornate teal hanfu, palace courtyard, photorealistic portrait"),
+    ("青楼古装", "ancient chinese courtesan in red silk dress, ornate hairpin, candlelight, alluring gaze, photorealistic portrait"),
+]
 GEN_MODIFIERS = [
     "85mm lens, shallow depth of field",
     "cinematic color grading, high detail skin texture",
@@ -520,15 +532,17 @@ def _bank_append(item: dict) -> None:
 
 
 def pool_gen(session: requests.Session, rng: random.Random, need: int,
-             bank: bool = True) -> list[dict]:
+             bank: bool = True, style_pool: list | None = None,
+             source_name: str = "AI生成") -> list[dict]:
     """文生图源（flux 免 key）：prompt 控尺度，真人级写真质量
 
+    - style_pool：风格池（默认 GEN_STYLES 写真；传 XIANXIA_STYLES 出仙侠/古装）
     - 匿名档有限流（HTTP 402）：图片间 8-14s 随机间隔 + 退避重试，连续失败即停
     - 生成 URL 即图床（Cloudflare CDN，微信内可直接 <img> 加载）
     - 每张生成即下载校验（防 402 HTML 页伪装成图）
     - bank=False 时不写入库存池（--dry-run 试跑用，避免白烧配额）
     """
-    styles = GEN_STYLES[:]
+    styles = (style_pool or GEN_STYLES)[:]
     rng.shuffle(styles)
     want = min(len(styles), need + 3)   # 多备几张给校验/补满
     out: list[dict] = []
@@ -573,8 +587,8 @@ def pool_gen(session: requests.Session, rng: random.Random, need: int,
             "thumbURL": url,
             "width": real_dims[0],
             "height": real_dims[1],
-            "fromPageTitleEnc": f"AI生成写真 · {label}",
-            "source": "AI生成",
+            "fromPageTitleEnc": f"{source_name} · {label}",
+            "source": source_name,
             "vetted": False,        # 未目检：定时任务不会推，需人工目检后标记（scripts/pic_vet.py）
         })
         log(f"  [AI生成] {label} seed 就绪（入库）" if bank else f"  [AI生成] {label} seed 就绪")
@@ -839,23 +853,17 @@ def _verified_pool(src_name: str, pool: list[dict], history: set, rng: random.Ra
         if len(verified) >= cap:
             break
         v = _verify_candidate(src_name, it)
-        if v is None:
-            continue
-        # NSFW 自动闸（无人值守的安全前提）：nsfw 丢弃；判别器不可用 → fail-closed 丢弃
-        data = v.pop("_content", None)
-        if nsfw_check_enabled():
-            label = nsfw_label(data)
-            if label == "nsfw":
-                log(f"  [{src_name}] NSFW闸丢弃 {str(it.get('fromPageTitleEnc'))[:30]} "
-                    f"{it['thumbURL'][:50]}")
-                continue
-            if label == "unknown" and not nsfw_fail_open():
-                log(f"  [{src_name}] NSFW判别不可用→保守丢弃 "
-                    f"{str(it.get('fromPageTitleEnc'))[:24]}")
-                continue
-        verified.append(v)
+        if v is not None:
+            verified.append(v)
     verified.sort(key=lambda x: x["_score"], reverse=True)
     return verified
+
+
+def pool_gen_xianxia(session: requests.Session, rng: random.Random, need: int,
+                     bank: bool = True) -> list[dict]:
+    """仙侠/古装美女 AI 风格（用户偏好方向）—— 走 pool_gen 指定风格池"""
+    return pool_gen(session, rng, need, bank=bank,
+                    style_pool=XIANXIA_STYLES, source_name="AI仙侠")
 
 
 def pick_images(session: requests.Session, rng: random.Random, bank: bool = True,
@@ -879,9 +887,9 @@ def pick_images(session: requests.Session, rng: random.Random, bank: bool = True
             # 现场生成只补库存（vetted=false），供后续人工目检放行
             log(f"已目检库存不足 {NUM_IMAGES} 张，现场生成 {need_live} 张补库存（不推，等目检）")
             builders.append(("AI生成·补库", lambda: pool_gen(session, rng, need_live, bank=bank), 0))
-        log("定时策略：只推已目检库存图（无自动 NSFW 闸门，目检是唯一防线）")
+        log("定时策略：只推已目检库存图（NSFW 自动闸纵深防御）")
 
-        by_src = [(name, quota, _verified_pool(name, build(), history, rng, max_verify=quota))
+        by_src = [(name, quota, _verified_pool(name, build(), history, rng, max_verify=max(quota, 12)))
                   for name, build, quota in builders]
         chosen: list[dict] = []
         for _, quota, verified in by_src:
@@ -889,6 +897,12 @@ def pick_images(session: requests.Session, rng: random.Random, bank: bool = True
             for it in verified[:quota]:
                 if len(chosen) >= NUM_IMAGES:
                     break
+                if nsfw_check_enabled():
+                    label = nsfw_label(it.get("_content"))
+                    it.pop("_content", None)
+                    if label == "nsfw" or (label == "unknown" and not nsfw_fail_open()):
+                        log(f"  NSFW闸丢弃 [{it.get('source')}] {str(it.get('fromPageTitleEnc'))[:26]}")
+                        continue
                 chosen.append(it)
                 log(f"  选定 [已目检] {it.get('fromPageTitleEnc')} {it['thumbURL'][:60]}")
         if len(chosen) < NUM_IMAGES:
@@ -898,12 +912,13 @@ def pick_images(session: requests.Session, rng: random.Random, bank: bool = True
     # ---- 手动全源模式（--allow-raw）：真人原图为主，AI 已目检库存点缀 ----
     # 必应 murl 原图（1024~2048px，墙内 CDN 优先）+ 百度 500px + 360 兜底 + AI 库存 ≤2
     builders = [
-        ("必应原图", lambda: pool_bing(session, rng, NUM_IMAGES), 7),
+        ("必应原图", lambda: pool_bing(session, rng, NUM_IMAGES), 5),
         ("百度图片", lambda: pool_baidu(session, rng, NUM_IMAGES), 2),
         ("360图片", lambda: pool_360(session, rng, NUM_IMAGES), 1),
+        ("AI仙侠", lambda: pool_gen_xianxia(session, rng, 2, bank=bank), 2),
         ("AI生成·已目检", lambda: vetted, 1),
     ]
-    log("手动全源模式：真人原图为主（必应 7 + 百度 1 + 360 1）+ 已目检 AI ≤1")
+    log("手动全源模式：真人原图为主（必应 5 + 百度 2 + 360 1）+ AI仙侠 ≤2 + 已目检 AI ≤1")
 
     by_src: list[tuple[str, int, list[dict]]] = []
     for src_name, build, quota in builders:
@@ -913,8 +928,30 @@ def pick_images(session: requests.Session, rng: random.Random, bank: bool = True
 
     chosen: list[dict] = []
     picked_titles: set[str] = set()
+    nsfw_pass = 0
+    nsfw_blocked = 0
+
+    def _nsfw_gate(it: dict) -> bool:
+        """返回 True=可入选。nsfw→False；判别不可用→fail-closed(False)"""
+        nonlocal nsfw_pass, nsfw_blocked
+        if not nsfw_check_enabled():
+            it.pop("_content", None)
+            return True
+        label = nsfw_label(it.get("_content"))
+        it.pop("_content", None)
+        if label == "nsfw":
+            nsfw_blocked += 1
+            log(f"  NSFW闸丢弃 [{it.get('source')}] {str(it.get('fromPageTitleEnc'))[:28]}")
+            return False
+        if label == "unknown" and not nsfw_fail_open():
+            nsfw_blocked += 1
+            log(f"  NSFW判别不可用→保守丢弃 {str(it.get('fromPageTitleEnc'))[:24]}")
+            return False
+        nsfw_pass += 1
+        return True
 
     def _try_add(it: dict) -> bool:
+        nonlocal nsfw_pass, nsfw_blocked
         if len(chosen) >= NUM_IMAGES:
             return False
         if any(c["thumbURL"] == it["thumbURL"] for c in chosen):
@@ -923,6 +960,9 @@ def pick_images(session: requests.Session, rng: random.Random, bank: bool = True
         tkey = re.sub(r"[\s|_\-]+", "", str(it.get("fromPageTitleEnc") or ""))[:18]
         if tkey and tkey in picked_titles:
             return True
+        # NSFW 自动闸：只在"即将入选"时判定（省调用，不再全量判定）
+        if not _nsfw_gate(it):
+            return True   # 已计拦截；返回 True 让上层继续试下一张
         if tkey:
             picked_titles.add(tkey)
         chosen.append(it)
