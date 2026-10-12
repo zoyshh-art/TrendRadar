@@ -59,7 +59,7 @@ HISTORY_PATH = Path(__file__).resolve().parent.parent / "output" / "pic_history.
 # 生成图库存池：现场生成的图 URL 入库持久化（URL 永久有效），
 # 文生图接口限流（HTTP 402）时用库存兜底，库存富余后推送 0 生成请求
 GEN_BANK_PATH = Path(__file__).resolve().parent.parent / "output" / "gen_bank.json"
-GEN_BANK_KEEP = 40             # 库存保留条数
+GEN_BANK_KEEP = 40             # 库存保留条数（已目检的优先保留，淘汰先动未目检的）
 
 # Pexels 站内 Web API 的公开 Secret-Key（官网前端硬编码，非个人账号 key）
 PEXELS_KEY = "H2jk9uKnhRmL6WPwh89zBezWvr"
@@ -434,9 +434,16 @@ def load_gen_bank() -> list[dict]:
 
 
 def save_gen_bank(items: list[dict]) -> None:
+    """写库存：超量时先淘汰未目检（vetted 缺失为假）的条目，已目检的最后动"""
+    if len(items) > GEN_BANK_KEEP:
+        vetted = [i for i in items if i.get("vetted")]
+        raw = [i for i in items if not i.get("vetted")]
+        keep_raw = max(0, GEN_BANK_KEEP - len(vetted))
+        keep_ids = {id(x) for x in vetted} | {id(x) for x in raw[-keep_raw:]}
+        items = [i for i in items if id(i) in keep_ids]
     GEN_BANK_PATH.parent.mkdir(parents=True, exist_ok=True)
     GEN_BANK_PATH.write_text(
-        json.dumps({"items": items[-GEN_BANK_KEEP:],
+        json.dumps({"items": items,
                     "updated": datetime.now().isoformat(timespec="seconds")},
                    ensure_ascii=False, indent=1),
         encoding="utf-8",
@@ -510,6 +517,7 @@ def pool_gen(session: requests.Session, rng: random.Random, need: int,
             "height": real_dims[1],
             "fromPageTitleEnc": f"AI生成写真 · {label}",
             "source": "AI生成",
+            "vetted": False,        # 未目检：定时任务不会推，需人工目检后标记（scripts/pic_vet.py）
         })
         log(f"  [AI生成] {label} seed 就绪（入库）" if bank else f"  [AI生成] {label} seed 就绪")
         if bank:
@@ -708,12 +716,43 @@ def _verified_pool(src_name: str, pool: list[dict], history: set, rng: random.Ra
     return verified
 
 
-def pick_images(session: requests.Session, rng: random.Random, bank: bool = True) -> list[dict]:
-    """全 AI 生成十张打头：库存生成图优先，不足再现场生成，最后 AI图/真人源兜底"""
-    history = load_history()
-    bank = [it for it in load_gen_bank() if it["thumbURL"] not in history]
-    log(f"生成图库存 {len(bank)} 张可用（历史已推 {len(history)} 条）")
+def pick_images(session: requests.Session, rng: random.Random, bank: bool = True,
+                vetted_only: bool = True) -> list[dict]:
+    """选图。默认 vetted_only=True：只推"已目检"库存图（定时任务安全策略）
 
+    - vetted_only：仅取库存中 vetted=true 且未推过的图；不足则现场生成补库存
+      （新图 vetted=false，只入库不推，等人工目检后再放行）；不碰真人兜底源
+    - 非 vetted_only（手动 --allow-raw）：库存优先 + 现场生成 + AI图/真人源兜底
+    """
+    history = load_history()
+    all_bank = [it for it in load_gen_bank() if it["thumbURL"] not in history]
+    vetted = [it for it in all_bank if it.get("vetted")]
+    log(f"生成图库存：可推未推 {len(all_bank)} 张，其中已目检 {len(vetted)} 张"
+        f"（历史已推 {len(history)} 条）")
+
+    if vetted_only:
+        need_live = max(0, NUM_IMAGES - len(vetted))
+        builders = [("AI生成·已目检", lambda: vetted, len(vetted))]
+        if need_live > 0:
+            # 现场生成只补库存（vetted=false），供后续人工目检放行
+            log(f"已目检库存不足 {NUM_IMAGES} 张，现场生成 {need_live} 张补库存（不推，等目检）")
+            builders.append(("AI生成·补库", lambda: pool_gen(session, rng, need_live, bank=bank), 0))
+        log("定时策略：只推已目检库存图（无自动 NSFW 闸门，目检是唯一防线）")
+
+        by_src = [(name, quota, _verified_pool(name, build(), history, rng, max_verify=quota))
+                  for name, build, quota in builders]
+        chosen: list[dict] = []
+        for _, _, verified in by_src:
+            for it in verified:
+                if len(chosen) >= NUM_IMAGES:
+                    break
+                chosen.append(it)
+                log(f"  选定 [已目检] {it.get('fromPageTitleEnc')} {it['thumbURL'][:60]}")
+        if len(chosen) < NUM_IMAGES:
+            log(f"仅 {len(chosen)} 张已目检库存可推（不足 10 张属正常，等目检放行后补）")
+        return chosen
+
+    # ---- 手动全源模式（--allow-raw）：旧混推策略 ----
     day_idx = date.today().toordinal()
     # 真人源按日轮换（三源均墙内可达 → 微信内不会裂图）
     real_all = [
@@ -723,10 +762,10 @@ def pick_images(session: requests.Session, rng: random.Random, bank: bool = True
     ]
     rot = day_idx % len(real_all)
     real = real_all[rot:] + real_all[:rot]
-    need_live = max(0, NUM_IMAGES - len(bank))
+    need_live = max(0, NUM_IMAGES - len(all_bank))
     per_src = max(2, need_live // len(real))
     builders = [
-        ("AI生成·库存", lambda: bank, min(len(bank), NUM_IMAGES)),
+        ("AI生成·库存", lambda: all_bank, min(len(all_bank), NUM_IMAGES)),
         ("AI图", lambda: pool_ai(session, rng, NUM_IMAGES), 0),   # 仅补满
     ] + [(n, b, per_src) for n, b in real]
     if need_live > 0:
@@ -735,7 +774,7 @@ def pick_images(session: requests.Session, rng: random.Random, bank: bool = True
                             lambda: pool_gen(session, rng, need_live, bank=bank), need_live))
     else:
         log("库存充足，跳过现场生成（绕开接口限流）")
-    log(f"配额混推: 库存 {min(len(bank), NUM_IMAGES)} + 现场 {need_live} + "
+    log(f"手动全源模式：库存 {min(len(all_bank), NUM_IMAGES)} + 现场 {need_live} + "
         f"兜底源各 {per_src}（今日主真人源: {real[0][0]}）")
 
     by_src: list[tuple[str, int, list[dict]]] = []
@@ -866,8 +905,13 @@ def main() -> int:
 
     # 同一天固定种子：workflow 重跑结果一致，配合历史去重
     rng = random.Random(date.today().isoformat())
-    images = pick_images(session, rng, bank=not dry)
+    # 默认只推已目检库存（定时任务安全策略）；--allow-raw 手动全源模式
+    allow_raw = "--allow-raw" in sys.argv
+    images = pick_images(session, rng, bank=not dry, vetted_only=not allow_raw)
     if not images:
+        if not allow_raw:
+            log("无已目检库存可用，跳过推送（等人工目检放行 scripts/pic_vet.py 后恢复）")
+            return 0
         log("没有可用图片，退出")
         return 1
     if len(images) < NUM_IMAGES:
