@@ -72,16 +72,17 @@ PEXELS_QUERIES = [
 ]
 
 # 必应图片关键词池（大尺度写真；runner 侧以 adlt=off 关闭安全搜索）
+# murl 原图直链实测可达 1024~2048px（多来自 sinaimg.cn 等墙内 CDN）
 # 注意避开歧义词（如“吊带”→工业吊装带、“肉丝”→菜谱），靠标题黑名单兜底
 BING_QUERIES = [
-    "情趣内衣 模特 写真",
-    "黑丝 长腿 美女",
-    "丝袜 美腿 写真",
-    "内衣秀 超模",
-    "比基尼 女神 写真",
-    "车模 写真",
+    "私房写真 性感模特",
+    "性感尤物 私房 写真 大胆",
+    "黑丝 长腿 写真 性感",
+    "丝袜 高跟 写真 性感 模特",
     "湿身 写真 美女",
-    "私房 写真 性感",
+    "比基尼 写真 模特 性感",
+    "睡衣 吊带 写真 性感 美女",
+    "吊带裙 写真 模特 高清",
 ]
 
 # AI 生成图关键词池（百度图源，国内 CDN 可达；用户偏好 AI 图 → 配额最高 5/10）
@@ -101,14 +102,13 @@ AI_WORDS = [
 BAIDU_KEYWORDS = [
     "情趣内衣 写真",
     "黑丝 写真",
-    "肉丝袜 写真",
     "丝袜 长腿 写真",
-    "内衣秀 写真",
+    "私房 性感 写真",
+    "睡衣 写真 性感",
+    "吊带 写真 美女",
     "比基尼 写真",
     "泳装 性感 写真",
     "车模 写真",
-    "JK制服 写真",
-    "女仆装 写真",
     "湿身 写真 美女",
 ]
 
@@ -124,7 +124,23 @@ REJECT_PAT = re.compile(
     r"公筷|公勺|文明用餐|文明就餐|就餐|公益|海报|小报|宣传画|宣传栏|模板|素材|文明城市|倡议书|"
     r"证件照|身份证|一寸照|两寸照|简历|形象照|职业照|毕业照|全家福|婚纱摄影|孕照|儿童摄影|"
     r"街拍|穿搭|ootd|无不良引导|正常穿搭|背影合集|"
-    r"抖音|快手|直播|水印|美女直播|游戏主播"
+    r"抖音|快手|直播|水印|美女直播|游戏主播|"
+    # 露骨内容闸（真人源标题有信息量，可据此拦；AI 生成标题无效，靠人工目检）
+    r"全裸|裸体|裸照|赤裸|裸身|色情|情色|无码|一丝不挂|敏感部位|性暗示|做爱|性爱|床照情|"
+    r"nsfw|uncensored|福利姬|露出胸|走光裙|"
+    # 色情站垃圾（实测必应"黑丝"词会返回此类：肛交/深喉/约炮…），一律拦
+    r"肛交|口交|深喉|做愛|性交|裸聊|自慰|约炮|一夜情|偷拍|偷窥|乱伦|调教|成人影片|无码影片|"
+    r"色情网|色情小说|av女优|AV女优|无码区|约炮视频|成人视频|情色视频|做视频|gv视频|资源合集|"
+    # 商品页/内容农场（丝袜平铺、穿搭搭配文章——既不自然也没尺度）
+    r"阿里巴巴|京东|淘宝|天猫|1688|值得买|smzdm|桔子时尚|juziss|知乎|zhuanlan|搭配|显瘦|显高|"
+    r"怎么穿|包邮|促销|优惠券|批发|厂家|平铺|三角裤|文胸|连裤袜|大腿袜|吊带袜|内裤批发|"
+    # JK/校园主题（国内平台明确违规擦边，且非用户诉求）
+    r"jk|JK|水手服|校服|校园|校花|学生妹|中学生|高中|大学妹|萝莉|小学生"
+)
+# 垃圾来源域名（电商商品图/内容农场文章图）
+BAD_HOST_PAT = re.compile(
+    r"zhimg\.com|zdmimg\.com|juziss\.com|smzdm\.com|cbu01\.alicdn\.com|"
+    r"detail\.tmall\.com|item\.jd\.com|zhuanlan\.zhihu|taobao\.com/list|1688\.com"
 )
 # 二次元/插画类（要真人）
 ANIME_PAT = re.compile(
@@ -320,52 +336,90 @@ def pool_ai(session: requests.Session, rng: random.Random, need: int) -> list[di
 
 # ──────────────────────── 图源三：必应图片 ────────────────────────
 
+def _query_keywords(query: str) -> list[str]:
+    """从查询词拆出相关性关键词：标题/来源页至少命中一个，否则视为无关结果丢弃"""
+    toks = [t for t in query.split() if len(t) >= 2]
+    return toks or [query]
+
+
 def bing_fetch(session: requests.Session, query: str) -> list[dict]:
-    """拉取必应图片搜索结果，解析 iusc.m 属性拿自家缓存缩略图 turl
+    """拉取必应图片搜索结果，解析 iusc.m 属性：优先取原图直链 murl，退化才用缓存缩略图 turl
 
     adlt=off 关闭安全搜索：默认中度安全搜索会滤掉大尺度写真
-    （国内 cn.bing 会无视该参数并降级结果，故本地试跑仅供参考，以 runner 为准）
+    murl 实测可达 1024~2048px 竖图原图（多来自 sinaimg.cn 等墙内 CDN）→ 尺寸问题的解
+    端点：cn.bing.com 更稳（www 端点偶发不理会 query 返回默认流，如返回医学图）
     """
     w = urllib.parse.quote(query)
-    session.cookies.set("SRCHHPGUSR", "ADLT=OFF", domain=".bing.com")
-    try:
-        r = session.get(
-            "https://www.bing.com/images/async",
-            params={"q": query, "first": "0", "count": "35", "relp": "35",
-                    "mmasync": "1", "adlt": "off", "scenario": "ImageBasicHover",
-                    "datsrc": "N_I", "layout": "RowBased"},
-            headers={"Referer": f"https://www.bing.com/images/search?q={w}&adlt=off"},
-            timeout=20,
-        )
-    finally:
-        session.cookies.clear()
-    if r.status_code != 200 or len(r.text) < 5000:
-        raise requests.RequestException(f"bing 返回异常 status={r.status_code} len={len(r.text)}")
+    hosts = ("https://cn.bing.com/images/async", "https://www.bing.com/images/async")
+    r = None
+    for host in hosts:
+        session.cookies.set("SRCHHPGUSR", "ADLT=OFF", domain=".bing.com")
+        try:
+            r = session.get(
+                host,
+                params={"q": query, "first": "0", "count": "35", "relp": "35",
+                        "mmasync": "1", "adlt": "off", "scenario": "ImageBasicHover",
+                        "datsrc": "N_I", "layout": "RowBased"},
+                headers={"Referer": f"https://{urllib.parse.urlparse(host).netloc}/images/search?q={w}&adlt=off"},
+                timeout=20,
+            )
+        except requests.RequestException:
+            continue
+        finally:
+            session.cookies.clear()
+        if r.status_code == 200 and len(r.text) >= 5000:
+            break
+    if r is None or r.status_code != 200 or len(r.text) < 5000:
+        raise requests.RequestException(f"bing 返回异常 status={r.status_code if r is not None else 'None'} len={len(r.text) if r is not None else 0}")
     out = []
     for ma in re.findall(r'm="(\{[^"]+\})"', r.text):
         try:
             j = json.loads(htmllib.unescape(ma))
         except ValueError:
             continue
+        t = j.get("t") or ""
+        purl = j.get("purl") or ""
+        # 查询相关性：标题/来源页必须命中 query 的核心词（防默认流/无关图）
+        if not any(kw in t or kw in purl for kw in _query_keywords(query)):
+            continue
+        murl = j.get("murl") or ""
         turl = j.get("turl") or ""
         mw, mh = j.get("mw") or 0, j.get("mh") or 0
-        if not turl.startswith("https://"):
+        use_murl = murl.startswith("https://")
+        use_turl = (not use_murl) and turl.startswith("https://")
+        if not (use_murl or use_turl):
             continue
         if mw and mh and mh <= mw:        # 有尺寸信息时先过滤非竖图
             continue
-        out.append({"thumbURL": turl, "width": mw, "height": mh,
+        url = murl if use_murl else turl
+        host = urllib.parse.urlparse(url).netloc.lower()
+        out.append({"thumbURL": url, "width": mw, "height": mh,
                     "fromPageTitleEnc": j.get("t") or "",
                     "_purl": j.get("purl") or "",
                     "source": "必应图片",
+                    "_is_turl": (not use_murl),
+                    "_host": host,
                     "_aspect": (mh / mw) if (mw and mh) else 0})
     return out
+
+
+# 墙内优先（微信加载快/不裂）：命中的域排在前面
+_CN_HOSTS = ("sinaimg.cn", "qpic.cn", "huanqiu.com", "baidu.com", "so.com",
+             "sogou.com", "qq.com", "163.com", "zcool.com.cn", "tuchong.com",
+             "photophoto.cn", "nipic.com", "16pic.com", "aliimg.com", "taobao.com")
+
+
+def _cn_first(items: list[dict]) -> list[dict]:
+    return sorted(items, key=lambda it: 0 if any(h in it.get("_host", "") for h in _CN_HOSTS) else 1)
 
 
 def pool_bing(session: requests.Session, rng: random.Random, need: int) -> list[dict]:
     queries = BING_QUERIES[:]
     rng.shuffle(queries)
     pool, seen = [], set()
-    for q in queries[:3]:
+    for q in queries[:6]:                      # 必应偶发返回默认流/垃圾流，多跑几个词直到出够量
+        if len(pool) >= need * 3:
+            break
         for attempt in range(3):
             try:
                 items = bing_fetch(session, q)
@@ -374,14 +428,18 @@ def pool_bing(session: requests.Session, rng: random.Random, need: int) -> list[
                 log(f"  必应搜索失败 {q} 第{attempt + 1}次: {e}")
                 items = []
                 time.sleep(2 + attempt * 3)
+        items = _cn_first(items)
+        n_murl = 0
         for it in items:
             if it["thumbURL"] in seen:
                 continue
             aspect = it.pop("_aspect", 0)
-            if aspect:
-                # 必应缓存图按原始比例放大（turl 本身是小图）
+            if it.get("_is_turl") and aspect:
+                # 仅缓存缩略图走放大参数；murl 原图不能拼参数（会破坏 URL）
                 it["thumbURL"] += ("&" if "?" in it["thumbURL"] else "?") + \
                     f"w=768&h={round(768 * aspect)}&rs=1&pid=ImgDetMain"
+            if not it.get("_is_turl"):
+                n_murl += 1
             seen.add(it["thumbURL"])
             pool.append(it)
         if len(pool) >= need * 4:
@@ -635,6 +693,8 @@ def text_gate(it: dict) -> int | None:
     blob = title + " " + str(it.get("_purl") or "")
     if re.search(r"https?://", title):      # 标题里夹垃圾推广链接
         return None
+    if BAD_HOST_PAT.search(blob):          # 电商商品图/内容农场
+        return None
     if REJECT_PAT.search(blob):
         return None
     # AI 生成图来源（标题带 AI 关键词）豁免二次元闸：AI 图允许动漫风格
@@ -650,11 +710,11 @@ def _verify_candidate(src_name: str, it: dict) -> dict | None:
     if not ok:
         return None
     if it.get("source") == "必应图片" and not it.get("width"):
-        # 必应无尺寸元数据：实测尺寸把关竖图，并换成放大版 URL
+        # 必应无尺寸元数据：实测尺寸把关竖图；仅缓存缩略图才拼放大参数（murl 是原图，拼接会坏 URL）
         if dims is None or dims[1] <= dims[0]:
             return None
         it["width"], it["height"] = dims
-        if dims[0] < 768:
+        if it.get("_is_turl") and dims[0] < 768:
             base = it["thumbURL"]
             big = base + ("&" if "?" in base else "?") + \
                 f"w=768&h={round(768 * dims[1] / dims[0])}&rs=1&pid=ImgDetMain"
@@ -753,43 +813,36 @@ def pick_images(session: requests.Session, rng: random.Random, bank: bool = True
             log(f"仅 {len(chosen)} 张已目检库存可推（不足 10 张属正常，等目检放行后补）")
         return chosen
 
-    # ---- 手动全源模式（--allow-raw）：旧混推策略 ----
-    day_idx = date.today().toordinal()
-    # 真人源按日轮换（三源均墙内可达 → 微信内不会裂图）
-    real_all = [
-        ("百度", lambda: pool_baidu(session, rng, NUM_IMAGES)),
-        ("360", lambda: pool_360(session, rng, NUM_IMAGES)),
-        ("必应", lambda: pool_bing(session, rng, NUM_IMAGES)),
-    ]
-    rot = day_idx % len(real_all)
-    real = real_all[rot:] + real_all[:rot]
-    need_live = max(0, NUM_IMAGES - len(all_bank))
-    per_src = max(2, need_live // len(real))
+    # ---- 手动全源模式（--allow-raw）：真人原图为主，AI 已目检库存点缀 ----
+    # 必应 murl 原图（1024~2048px，墙内 CDN 优先）+ 百度 500px + 360 兜底 + AI 库存 ≤2
     builders = [
-        ("AI生成·库存", lambda: all_bank, min(len(all_bank), NUM_IMAGES)),
-        ("AI图", lambda: pool_ai(session, rng, NUM_IMAGES), 0),   # 仅补满
-    ] + [(n, b, per_src) for n, b in real]
-    if need_live > 0:
-        log(f"库存不足 {NUM_IMAGES} 张，现场补生成 {need_live} 张")
-        builders.insert(1, ("AI生成·现场",
-                            lambda: pool_gen(session, rng, need_live, bank=bank), need_live))
-    else:
-        log("库存充足，跳过现场生成（绕开接口限流）")
-    log(f"手动全源模式：库存 {min(len(all_bank), NUM_IMAGES)} + 现场 {need_live} + "
-        f"兜底源各 {per_src}（今日主真人源: {real[0][0]}）")
+        ("必应原图", lambda: pool_bing(session, rng, NUM_IMAGES), 7),
+        ("百度图片", lambda: pool_baidu(session, rng, NUM_IMAGES), 2),
+        ("360图片", lambda: pool_360(session, rng, NUM_IMAGES), 1),
+        ("AI生成·已目检", lambda: vetted, 1),
+    ]
+    log("手动全源模式：真人原图为主（必应 7 + 百度 1 + 360 1）+ 已目检 AI ≤1")
 
     by_src: list[tuple[str, int, list[dict]]] = []
     for src_name, build, quota in builders:
         by_src.append((src_name, quota,
-                       _verified_pool(src_name, build(), history, rng, max_verify=quota * 3)))
+                       _verified_pool(src_name, build(), history, rng,
+                                      max_verify=max(quota * 3, 12))))
 
     chosen: list[dict] = []
+    picked_titles: set[str] = set()
 
     def _try_add(it: dict) -> bool:
         if len(chosen) >= NUM_IMAGES:
             return False
         if any(c["thumbURL"] == it["thumbURL"] for c in chosen):
             return True
+        # 同标题去重（同组摄影常有多个近似图，标题一模一样）
+        tkey = re.sub(r"[\s|_\-]+", "", str(it.get("fromPageTitleEnc") or ""))[:18]
+        if tkey and tkey in picked_titles:
+            return True
+        if tkey:
+            picked_titles.add(tkey)
         chosen.append(it)
         log(f"  选定 [{it.get('source')}] {it.get('width')}x{it.get('height')} "
             f"score={it['_score']:.2f} {it['thumbURL'][:70]}")
@@ -834,13 +887,20 @@ def build_html(images: list[dict]) -> str:
     ]
     for i, it in enumerate(images, 1):
         cap = clean_title(it.get("fromPageTitleEnc", ""))
-        # 外层 overflow 裁角 + 内层 1.12 倍居中放大：
-        # 右下角 pollinations 水印（横向82%-98%、纵向95.5%到底）被整体顶出可视区
-        parts.append(
-            '<div style="overflow:hidden;border-radius:8px;">'
-            f'<img src="{it["thumbURL"]}" style="width:100%;border-radius:0;'
-            'display:block;transform:scale(1.12);" /></div>'
-        )
+        url = it.get("thumbURL", "")
+        if "pollinations.ai" in url:
+            # AI 生成图：外层 overflow 裁角 + 1.12 倍居中放大，
+            # 把右下角 pollinations 水印（横向82%-98%、纵向95.5%到底）整体顶出可视区
+            parts.append(
+                '<div style="overflow:hidden;border-radius:8px;">'
+                f'<img src="{url}" style="width:100%;border-radius:0;'
+                'display:block;transform:scale(1.12);" /></div>'
+            )
+        else:
+            # 真人原图：原分辨率直出，不裁不缩
+            parts.append(
+                f'<img src="{url}" style="width:100%;border-radius:8px;display:block;" />'
+            )
         if cap:
             parts.append(
                 f'<div style="text-align:center;color:#8a8a8a;font-size:13px;'
