@@ -94,6 +94,25 @@ rss:
   # - 不配置：使用全局 freshness_filter.max_age_days（默认 3 天）
   # - 正整数：覆盖全局设置，只推送此天数内的文章
   # - 0：禁用此频道的新鲜度过滤，推送所有文章
+
+  # 每轮精选：把推送精炼到最多 max_items 条，当天热搜/热点优先
+  # 选材顺序：热榜严格命中 > 热榜宽松命中 > 其余按发布时间从新到旧补足
+  # 热榜接口失败时退化为按新旧精选，条数上限始终生效；不影响 HTML 报告全量数据
+  select:
+    enabled: true                     # 是否启用每轮精选（true=启用, false=原样全推）
+    max_items: 25                     # 每轮推送上限（跨全部分类合计）
+    hot_api_url: ""                   # 热榜 API（留空使用默认 newsnow 公共实例）
+    hot_platforms:                    # 热点信号源（仅作选材依据，不单独展示）
+      - weibo                         # 微博热搜
+      - baidu                         # 百度热搜
+      - toutiao                       # 今日头条热榜
+      - zhihu                         # 知乎热榜
+      - wallstreetcn-hot              # 华尔街见闻热榜（财经）
+      - ithome                        # IT之家热榜（科技）
+      - freebuf                       # FreeBuf 热榜（安全）
+      - juejin                        # 掘金热门（开发）
+    hot_timeout: 10                   # 热榜抓取超时（秒/平台，整体并发）
+
   feeds:
     # ── 世界多分类新闻（简体中文、均带正文摘要、国内可直接点开）──
     # 推送按源分组显示，name 即分组标题；max_items 限制每次抓取条数

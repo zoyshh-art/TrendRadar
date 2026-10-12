@@ -198,6 +198,23 @@ def _load_rss_config(config_data: Dict) -> Dict:
         max_age_days = 3
 
     # RSS 配置直接从 config.yaml 读取，不再支持环境变量
+
+    # 每轮精选配置：当天热搜/热点优先，最多 max_items 条
+    select = rss.get("select", {})
+    raw_select_max = select.get("max_items", 25)
+    try:
+        select_max = int(raw_select_max)
+        if select_max <= 0:
+            raise ValueError("non-positive")
+    except (ValueError, TypeError):
+        print(f"[警告] RSS select.max_items 格式错误 ({raw_select_max})，使用默认值 25")
+        select_max = 25
+    raw_select_timeout = select.get("hot_timeout", 10)
+    try:
+        select_timeout = max(3, int(raw_select_timeout))
+    except (ValueError, TypeError):
+        select_timeout = 10
+
     return {
         "ENABLED": rss.get("enabled", False),
         "REQUEST_INTERVAL": advanced_rss.get("request_interval", 2000),
@@ -208,6 +225,13 @@ def _load_rss_config(config_data: Dict) -> Dict:
         "FRESHNESS_FILTER": {
             "ENABLED": freshness_filter.get("enabled", True),  # 默认启用
             "MAX_AGE_DAYS": max_age_days,
+        },
+        "SELECT": {
+            "ENABLED": select.get("enabled", False),
+            "MAX_ITEMS": select_max,
+            "HOT_API_URL": select.get("hot_api_url", "") or "",
+            "HOT_PLATFORMS": list(select.get("hot_platforms", []) or []),
+            "HOT_TIMEOUT": select_timeout,
         },
     }
 
