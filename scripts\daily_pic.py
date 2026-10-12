@@ -450,12 +450,14 @@ def _bank_append(item: dict) -> None:
         log(f"  [库存池] 写入失败（不影响推送）: {e}")
 
 
-def pool_gen(session: requests.Session, rng: random.Random, need: int) -> list[dict]:
+def pool_gen(session: requests.Session, rng: random.Random, need: int,
+             bank: bool = True) -> list[dict]:
     """文生图源（flux 免 key）：prompt 控尺度，真人级写真质量
 
     - 匿名档有限流（HTTP 402）：图片间 8-14s 随机间隔 + 退避重试，连续失败即停
     - 生成 URL 即图床（Cloudflare CDN，微信内可直接 <img> 加载）
     - 每张生成即下载校验（防 402 HTML 页伪装成图）
+    - bank=False 时不写入库存池（--dry-run 试跑用，避免白烧配额）
     """
     styles = GEN_STYLES[:]
     rng.shuffle(styles)
@@ -505,8 +507,9 @@ def pool_gen(session: requests.Session, rng: random.Random, need: int) -> list[d
             "fromPageTitleEnc": f"AI生成写真 · {label}",
             "source": "AI生成",
         })
-        log(f"  [AI生成] {label} seed 就绪（入库）")
-        _bank_append(out[-1])          # 逐张入库，中断不丢
+        log(f"  [AI生成] {label} seed 就绪（入库）" if bank else f"  [AI生成] {label} seed 就绪")
+        if bank:
+            _bank_append(out[-1])      # 逐张入库，中断不丢
         time.sleep(rng.uniform(8, 14))
     return out
 
@@ -701,7 +704,7 @@ def _verified_pool(src_name: str, pool: list[dict], history: set, rng: random.Ra
     return verified
 
 
-def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
+def pick_images(session: requests.Session, rng: random.Random, bank: bool = True) -> list[dict]:
     """全 AI 生成十张打头：库存生成图优先，不足再现场生成，最后 AI图/真人源兜底"""
     history = load_history()
     bank = [it for it in load_gen_bank() if it["thumbURL"] not in history]
@@ -725,7 +728,7 @@ def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
     if need_live > 0:
         log(f"库存不足 {NUM_IMAGES} 张，现场补生成 {need_live} 张")
         builders.insert(1, ("AI生成·现场",
-                            lambda: pool_gen(session, rng, need_live), need_live))
+                            lambda: pool_gen(session, rng, need_live, bank=bank), need_live))
     else:
         log("库存充足，跳过现场生成（绕开接口限流）")
     log(f"配额混推: 库存 {min(len(bank), NUM_IMAGES)} + 现场 {need_live} + "
@@ -859,7 +862,7 @@ def main() -> int:
 
     # 同一天固定种子：workflow 重跑结果一致，配合历史去重
     rng = random.Random(date.today().isoformat())
-    images = pick_images(session, rng)
+    images = pick_images(session, rng, bank=not dry)
     if not images:
         log("没有可用图片，退出")
         return 1
