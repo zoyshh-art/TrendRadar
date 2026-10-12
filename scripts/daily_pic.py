@@ -1,14 +1,17 @@
 # coding=utf-8
 """每日美图推送
 
-AI 主力配额混推（AI 写真 5 张 + 真人源 5 张）→ PushPlus 微信服务号（HTML 模板）推送。
+全 AI 生成十张打头（文生图 prompt 控尺度）→ PushPlus 微信服务号（HTML 模板）推送。
 默认 10 张/次，只取竖图大图。
 
-图源（均免 key、墙内可达 → 微信内不裂图）：
-1. AI 写真 —— 百度搜 AI 词（AI美女/AI性感/AI比基尼/AI黑丝/AI女仆…），用户偏好主力
-2. 百度图片 acjson —— 真人辣度词池（情趣内衣/黑丝/肉丝袜/内衣秀/比基尼/车模/JK/女仆）
-3. 360 图片 image.so.com —— 车模/比基尼类出量稳定（敏感词查询会被折叠）
-4. 必应图片 async —— adlt=off 关闭安全搜索；对数据中心 IP 间歇反爬，自动兜底
+图源：
+1. 文生图 flux（主力 10/10）—— Pollinations 免 key API，prompt 控制尺度与质量
+   （情趣内衣/蕾丝/湿身/私房/纯欲等写真实拍风格；生成 URL 即图床）
+   匿名档限流（HTTP 402）：图片间隔 8-14s + 退避重试；连续失败自动回退下列源
+2. AI 写真 —— 百度搜 AI 词（生成不足时补位）
+3. 百度图片 acjson —— 真人辣度词池（情趣内衣/黑丝/肉丝袜/内衣秀/比基尼/车模/JK/女仆）
+4. 360 图片 image.so.com —— 车模/比基尼类出量稳定（敏感词查询会被折叠）
+5. 必应图片 async —— adlt=off 关闭安全搜索；对数据中心 IP 间歇反爬，自动兜底
 
 质量闸（防止工厂设备/菜谱/素材图/水印图等误配）：
 - 标题/来源页命中黑名单（REJECT_PAT，含抖音/快手水印平台）或二次元（ANIME_PAT）→ 直接丢弃
@@ -53,6 +56,10 @@ except Exception:
 NUM_IMAGES = 10                # 每次推送张数
 HISTORY_KEEP = 300             # 历史保留条数（10 张/天 → 约 30 天不重复）
 HISTORY_PATH = Path(__file__).resolve().parent.parent / "output" / "pic_history.json"
+# 生成图库存池：现场生成的图 URL 入库持久化（URL 永久有效），
+# 文生图接口限流（HTTP 402）时用库存兜底，库存富余后推送 0 生成请求
+GEN_BANK_PATH = Path(__file__).resolve().parent.parent / "output" / "gen_bank.json"
+GEN_BANK_KEEP = 40             # 库存保留条数
 
 # Pexels 站内 Web API 的公开 Secret-Key（官网前端硬编码，非个人账号 key）
 PEXELS_KEY = "H2jk9uKnhRmL6WPwh89zBezWvr"
@@ -383,6 +390,118 @@ def pool_bing(session: requests.Session, rng: random.Random, need: int) -> list[
     return pool
 
 
+# 文生图关键词池（flux 模型）：(中文标签, 英文 prompt 主体)
+# prompt 即尺度：情趣/蕾丝/湿身/私房/纯欲 等写真实拍风格
+GEN_STYLES = [
+    ("情趣内衣写真", "beautiful young woman in delicate lace lingerie, soft studio lighting, alluring gaze, photorealistic portrait"),
+    ("蕾丝吊带", "beautiful young woman in a sheer lace camisole, warm bedroom lighting, photorealistic portrait"),
+    ("湿身诱惑", "beautiful young woman with wet hair and wet skin, water droplets on skin, swimwear, dramatic lighting, photorealistic portrait"),
+    ("纯欲风", "beautiful young woman, pure yet alluring mood, soft focus, pastel tones, photorealistic portrait"),
+    ("私房慵懒", "beautiful young woman in a loose white shirt, cozy bedroom, lazy alluring expression, photorealistic portrait"),
+    ("泳装池畔", "attractive young woman in a bikini beside a swimming pool, summer sunlight, wet skin, photorealistic portrait"),
+    ("黑丝御姐", "elegant mature woman in black stockings and fitted dress, confident alluring look, photorealistic portrait"),
+    ("浴室写真", "beautiful young woman with wet skin in a steamy bathroom, soft steam light, photorealistic portrait"),
+    ("红色礼服", "beautiful young woman in a form-fitting red evening dress, dim ambient light, cinematic, photorealistic portrait"),
+    ("少女心事", "young woman lying on a bed, innocent yet alluring expression, soft morning light, photorealistic portrait"),
+    ("镜前自拍", "beautiful young woman taking a mirror selfie, tight fitted top, alluring look, photorealistic portrait"),
+    ("午后窗台", "beautiful young woman by a sunlit window in a summer dress, backlit curves, photorealistic portrait"),
+]
+GEN_MODIFIERS = [
+    "85mm lens, shallow depth of field",
+    "cinematic color grading, high detail skin texture",
+    "professional photoshoot, rim lighting",
+    "soft bokeh background, sharp focus on face",
+]
+GEN_API = "https://image.pollinations.ai/prompt"
+
+
+def load_gen_bank() -> list[dict]:
+    """读生成图库存池（持久化在图源仓 output/ 下，随每日回写）"""
+    try:
+        data = json.loads(GEN_BANK_PATH.read_text(encoding="utf-8"))
+        items = data.get("items", [])
+        return [it for it in items if isinstance(it, dict) and it.get("thumbURL")]
+    except (OSError, ValueError):
+        return []
+
+
+def save_gen_bank(items: list[dict]) -> None:
+    GEN_BANK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    GEN_BANK_PATH.write_text(
+        json.dumps({"items": items[-GEN_BANK_KEEP:],
+                    "updated": datetime.now().isoformat(timespec="seconds")},
+                   ensure_ascii=False, indent=1),
+        encoding="utf-8",
+    )
+
+
+def _bank_append(item: dict) -> None:
+    """单张入库（去重 + 限量裁剪）"""
+    try:
+        bank = load_gen_bank()
+        if item["thumbURL"] not in {b["thumbURL"] for b in bank}:
+            bank.append(item)
+            save_gen_bank(bank)
+    except Exception as e:
+        log(f"  [库存池] 写入失败（不影响推送）: {e}")
+
+
+def pool_gen(session: requests.Session, rng: random.Random, need: int) -> list[dict]:
+    """文生图源（flux 免 key）：prompt 控尺度，真人级写真质量
+
+    - 匿名档有限流（HTTP 402）：图片间 8-14s 随机间隔 + 退避重试，连续失败即停
+    - 生成 URL 即图床（Cloudflare CDN，微信内可直接 <img> 加载）
+    - 每张生成即下载校验（防 402 HTML 页伪装成图）
+    """
+    styles = GEN_STYLES[:]
+    rng.shuffle(styles)
+    want = min(len(styles), need + 3)   # 多备几张给校验/补满
+    out: list[dict] = []
+    fail_streak = 0
+    for label, prompt in styles:
+        if len(out) >= want:
+            break
+        if fail_streak >= 3:
+            log("  [AI生成] 连续失败，停止生成（限流或接口异常），回退既有图源")
+            break
+        url = ""
+        for attempt in range(3):
+            seed = rng.randrange(1, 10 ** 7)
+            body = f"{prompt}, {rng.choice(GEN_MODIFIERS)}"
+            q = urllib.parse.quote(body)
+            url = (f"{GEN_API}/{q}?width=768&height=1024&nologo=true"
+                   f"&model=flux&seed={seed}")
+            try:
+                r = requests.get(url, headers=MOBILE_UA, timeout=60)
+                if r.status_code == 200 and "image" in r.headers.get("Content-Type", "") \
+                        and len(r.content) > 8000:
+                    break
+                url = ""
+                wait = 15 * (attempt + 1)
+                log(f"  [AI生成] HTTP {r.status_code}（{attempt + 1}/3 次），{wait}s 后重试")
+                time.sleep(wait)
+            except requests.RequestException as e:
+                url = ""
+                wait = 15 * (attempt + 1)
+                log(f"  [AI生成] 请求失败 {type(e).__name__}（{attempt + 1}/3 次），{wait}s 后重试")
+                time.sleep(wait)
+        if not url:
+            fail_streak += 1
+            continue
+        fail_streak = 0
+        out.append({
+            "thumbURL": url,
+            "width": 768,
+            "height": 1024,
+            "fromPageTitleEnc": f"AI生成写真 · {label}",
+            "source": "AI生成",
+        })
+        log(f"  [AI生成] {label} seed 就绪（入库）")
+        _bank_append(out[-1])          # 逐张入库，中断不丢
+        time.sleep(rng.uniform(8, 14))
+    return out
+
+
 def pool_360(session: requests.Session, rng: random.Random, need: int) -> list[dict]:
     """360 图片（image.so.com 开放 JSON）：img 字段为大图，title 走内容闸"""
     words = SO360_QUERIES[:]
@@ -574,7 +693,11 @@ def _verified_pool(src_name: str, pool: list[dict], history: set, rng: random.Ra
 
 
 def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
-    """AI 主力配额混推：AI 写真 5 张打头，真人三源（百度/360/必应）按日轮换补位"""
+    """全 AI 生成十张打头：库存生成图优先，不足再现场生成，最后 AI图/真人源兜底"""
+    history = load_history()
+    bank = [it for it in load_gen_bank() if it["thumbURL"] not in history]
+    log(f"生成图库存 {len(bank)} 张可用（历史已推 {len(history)} 条）")
+
     day_idx = date.today().toordinal()
     # 真人源按日轮换（三源均墙内可达 → 微信内不会裂图）
     real_all = [
@@ -584,13 +707,21 @@ def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
     ]
     rot = day_idx % len(real_all)
     real = real_all[rot:] + real_all[:rot]
-    ai_quota = 5 if NUM_IMAGES >= 8 else max(1, NUM_IMAGES // 2)
-    per_src = max(2, (NUM_IMAGES - ai_quota) // len(real))
-    builders = [("AI", lambda: pool_ai(session, rng, NUM_IMAGES), ai_quota)] + \
-               [(n, b, per_src) for n, b in real]
-    log(f"配额混推: AI {ai_quota} 张 + 真人源各 {per_src} 张（今日主真人源: {real[0][0]}）")
+    need_live = max(0, NUM_IMAGES - len(bank))
+    per_src = max(2, need_live // len(real))
+    builders = [
+        ("AI生成·库存", lambda: bank, min(len(bank), NUM_IMAGES)),
+        ("AI图", lambda: pool_ai(session, rng, NUM_IMAGES), 0),   # 仅补满
+    ] + [(n, b, per_src) for n, b in real]
+    if need_live > 0:
+        log(f"库存不足 {NUM_IMAGES} 张，现场补生成 {need_live} 张")
+        builders.insert(1, ("AI生成·现场",
+                            lambda: pool_gen(session, rng, need_live), need_live))
+    else:
+        log("库存充足，跳过现场生成（绕开接口限流）")
+    log(f"配额混推: 库存 {min(len(bank), NUM_IMAGES)} + 现场 {need_live} + "
+        f"兜底源各 {per_src}（今日主真人源: {real[0][0]}）")
 
-    history = load_history()
     by_src: list[tuple[str, int, list[dict]]] = []
     for src_name, build, quota in builders:
         by_src.append((src_name, quota,
