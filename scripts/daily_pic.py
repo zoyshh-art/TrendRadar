@@ -393,25 +393,33 @@ def pool_bing(session: requests.Session, rng: random.Random, need: int) -> list[
 # 文生图关键词池（flux 模型）：(中文标签, 英文 prompt 主体)
 # prompt 即尺度：情趣/蕾丝/湿身/私房/纯欲 等写真实拍风格
 GEN_STYLES = [
-    ("情趣内衣写真", "beautiful young woman in delicate lace lingerie, soft studio lighting, alluring gaze, photorealistic portrait"),
-    ("蕾丝吊带", "beautiful young woman in a sheer lace camisole, warm bedroom lighting, photorealistic portrait"),
-    ("湿身诱惑", "beautiful young woman with wet hair and wet skin, water droplets on skin, swimwear, dramatic lighting, photorealistic portrait"),
-    ("纯欲风", "beautiful young woman, pure yet alluring mood, soft focus, pastel tones, photorealistic portrait"),
-    ("私房慵懒", "beautiful young woman in a loose white shirt, cozy bedroom, lazy alluring expression, photorealistic portrait"),
-    ("泳装池畔", "attractive young woman in a bikini beside a swimming pool, summer sunlight, wet skin, photorealistic portrait"),
-    ("黑丝御姐", "elegant mature woman in black stockings and fitted dress, confident alluring look, photorealistic portrait"),
-    ("浴室写真", "beautiful young woman with wet skin in a steamy bathroom, soft steam light, photorealistic portrait"),
-    ("红色礼服", "beautiful young woman in a form-fitting red evening dress, dim ambient light, cinematic, photorealistic portrait"),
-    ("少女心事", "young woman lying on a bed, innocent yet alluring expression, soft morning light, photorealistic portrait"),
-    ("镜前自拍", "beautiful young woman taking a mirror selfie, tight fitted top, alluring look, photorealistic portrait"),
-    ("午后窗台", "beautiful young woman by a sunlit window in a summer dress, backlit curves, photorealistic portrait"),
+    ("情趣内衣写真", "beautiful young woman wearing a black lace lingerie set, soft studio lighting, alluring gaze, photorealistic portrait"),
+    ("蕾丝吊带", "beautiful young woman wearing a sheer lace camisole and matching shorts, warm bedroom lighting, photorealistic portrait"),
+    ("湿身诱惑", "beautiful young woman wearing a bikini, wet hair and wet skin, water droplets on skin, dramatic lighting, photorealistic portrait"),
+    ("纯欲风", "beautiful young woman wearing a silk slip dress, pure yet alluring mood, soft focus, pastel tones, photorealistic portrait"),
+    ("私房慵懒", "beautiful young woman wearing an oversized white shirt, cozy bedroom, lazy alluring expression, photorealistic portrait"),
+    ("泳装池畔", "attractive young woman wearing a bikini beside a swimming pool, summer sunlight, wet skin, photorealistic portrait"),
+    ("黑丝御姐", "elegant woman wearing a black mini dress with black stockings, sitting pose, alluring look, photorealistic portrait"),
+    ("浴室写真", "beautiful young woman wearing a bath towel, wet hair, steamy bathroom, soft steam light, photorealistic portrait"),
+    ("红色礼服", "beautiful young woman wearing a form-fitting red evening dress, dim ambient light, cinematic, photorealistic portrait"),
+    ("少女心事", "young woman wearing lingerie lying on a bed, innocent yet alluring expression, soft morning light, photorealistic portrait"),
+    ("镜前自拍", "beautiful young woman taking a mirror selfie wearing a fitted tank top and underwear, alluring look, photorealistic portrait"),
+    ("午后窗台", "beautiful young woman wearing a summer dress by a sunlit window, backlit curves, photorealistic portrait"),
+    ("晚安睡衣", "beautiful young woman wearing a satin slip dress, bedside lamp warm light, soft alluring expression, photorealistic portrait"),
 ]
 GEN_MODIFIERS = [
     "85mm lens, shallow depth of field",
     "cinematic color grading, high detail skin texture",
     "professional photoshoot, rim lighting",
     "soft bokeh background, sharp focus on face",
+    "medium shot, natural pose",
 ]
+# 所有 prompt 追加：自然解剖结构（缓解 AI 肢体/比例不自然）
+# + 穿衣/非露骨硬约束（flux 见 "wet skin/steam/loose shirt/bed" 极易滑向裸体，
+#   实测出现过站立全裸；skin_ratio 无法区分裸体与内衣，skin 0.54 裸体 < 0.85 内衣，
+#   故只能靠 prompt 层面硬约束 + 人工目检）
+GEN_ANATOMY = ("anatomically correct, natural body proportions, realistic pose, "
+               "fully clothed, non-explicit, no nudity")
 GEN_API = "https://image.pollinations.ai/prompt"
 
 
@@ -446,12 +454,14 @@ def _bank_append(item: dict) -> None:
         log(f"  [库存池] 写入失败（不影响推送）: {e}")
 
 
-def pool_gen(session: requests.Session, rng: random.Random, need: int) -> list[dict]:
+def pool_gen(session: requests.Session, rng: random.Random, need: int,
+             bank: bool = True) -> list[dict]:
     """文生图源（flux 免 key）：prompt 控尺度，真人级写真质量
 
     - 匿名档有限流（HTTP 402）：图片间 8-14s 随机间隔 + 退避重试，连续失败即停
     - 生成 URL 即图床（Cloudflare CDN，微信内可直接 <img> 加载）
     - 每张生成即下载校验（防 402 HTML 页伪装成图）
+    - bank=False 时不写入库存池（--dry-run 试跑用，避免白烧配额）
     """
     styles = GEN_STYLES[:]
     rng.shuffle(styles)
@@ -465,16 +475,21 @@ def pool_gen(session: requests.Session, rng: random.Random, need: int) -> list[d
             log("  [AI生成] 连续失败，停止生成（限流或接口异常），回退既有图源")
             break
         url = ""
+        real_dims = (1024, 1280)
         for attempt in range(3):
             seed = rng.randrange(1, 10 ** 7)
-            body = f"{prompt}, {rng.choice(GEN_MODIFIERS)}"
+            body = f"{prompt}, {rng.choice(GEN_MODIFIERS)}, {GEN_ANATOMY}"
             q = urllib.parse.quote(body)
-            url = (f"{GEN_API}/{q}?width=768&height=1024&nologo=true"
+            url = (f"{GEN_API}/{q}?width=1024&height=1280&nologo=true"
                    f"&model=flux&seed={seed}")
             try:
                 r = requests.get(url, headers=MOBILE_UA, timeout=60)
                 if r.status_code == 200 and "image" in r.headers.get("Content-Type", "") \
                         and len(r.content) > 8000:
+                    # 免 key 档会降级实际尺寸：按真实像素回填（打分/展示更诚实）
+                    dims = _image_size(r.content)
+                    if dims:
+                        real_dims = dims
                     break
                 url = ""
                 wait = 15 * (attempt + 1)
@@ -491,13 +506,14 @@ def pool_gen(session: requests.Session, rng: random.Random, need: int) -> list[d
         fail_streak = 0
         out.append({
             "thumbURL": url,
-            "width": 768,
-            "height": 1024,
+            "width": real_dims[0],
+            "height": real_dims[1],
             "fromPageTitleEnc": f"AI生成写真 · {label}",
             "source": "AI生成",
         })
-        log(f"  [AI生成] {label} seed 就绪（入库）")
-        _bank_append(out[-1])          # 逐张入库，中断不丢
+        log(f"  [AI生成] {label} seed 就绪（入库）" if bank else f"  [AI生成] {label} seed 就绪")
+        if bank:
+            _bank_append(out[-1])      # 逐张入库，中断不丢
         time.sleep(rng.uniform(8, 14))
     return out
 
@@ -692,7 +708,7 @@ def _verified_pool(src_name: str, pool: list[dict], history: set, rng: random.Ra
     return verified
 
 
-def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
+def pick_images(session: requests.Session, rng: random.Random, bank: bool = True) -> list[dict]:
     """全 AI 生成十张打头：库存生成图优先，不足再现场生成，最后 AI图/真人源兜底"""
     history = load_history()
     bank = [it for it in load_gen_bank() if it["thumbURL"] not in history]
@@ -716,7 +732,7 @@ def pick_images(session: requests.Session, rng: random.Random) -> list[dict]:
     if need_live > 0:
         log(f"库存不足 {NUM_IMAGES} 张，现场补生成 {need_live} 张")
         builders.insert(1, ("AI生成·现场",
-                            lambda: pool_gen(session, rng, need_live), need_live))
+                            lambda: pool_gen(session, rng, need_live, bank=bank), need_live))
     else:
         log("库存充足，跳过现场生成（绕开接口限流）")
     log(f"配额混推: 库存 {min(len(bank), NUM_IMAGES)} + 现场 {need_live} + "
@@ -778,8 +794,12 @@ def build_html(images: list[dict]) -> str:
     ]
     for i, it in enumerate(images, 1):
         cap = clean_title(it.get("fromPageTitleEnc", ""))
+        # 外层 overflow 裁角 + 内层 1.12 倍居中放大：
+        # 右下角 pollinations 水印（横向82%-98%、纵向95.5%到底）被整体顶出可视区
         parts.append(
-            f'<img src="{it["thumbURL"]}" style="width:100%;border-radius:6px;display:block;" />'
+            '<div style="overflow:hidden;border-radius:8px;">'
+            f'<img src="{it["thumbURL"]}" style="width:100%;border-radius:0;'
+            'display:block;transform:scale(1.12);" /></div>'
         )
         if cap:
             parts.append(
@@ -846,7 +866,7 @@ def main() -> int:
 
     # 同一天固定种子：workflow 重跑结果一致，配合历史去重
     rng = random.Random(date.today().isoformat())
-    images = pick_images(session, rng)
+    images = pick_images(session, rng, bank=not dry)
     if not images:
         log("没有可用图片，退出")
         return 1
