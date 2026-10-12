@@ -7,6 +7,7 @@
 
 from datetime import datetime
 from typing import Dict, List, Optional, Callable
+import html
 import re
 import urllib.parse
 
@@ -30,12 +31,12 @@ def _clean_clickable_url(url: str) -> str:
 
 
 def _build_rss_item_block(index: int, title_data: Dict) -> str:
-    """构建纯文本友好的 RSS 条目块
+    """构建 RSS 条目块（PushPlus html 模板：标题带可点击链接）
 
-    针对 PushPlus txt / ClawBot 等不渲染 Markdown 的渠道优化：
-    - 标题行：仅序号 + 标题（不带来源前缀、排名、时间等噪音）
-    - 摘要段：正文中文概括（独立段落，保证视觉分隔）
-    - 链接段：URL 独立成段，方便点击
+    针对 PushPlus html 模板 / 微信服务号渲染优化：
+    - 标题行：序号 + <a href> 包裹的标题，微信内点击直达原文
+    - 摘要段：正文中文概括（200-300 字，独立段落）
+    - 换行由发送端统一转 <br>（generic_webhook.html_breaks），此处用 \n 排版
 
     Args:
         index: 序号（从 1 开始）
@@ -48,12 +49,15 @@ def _build_rss_item_block(index: int, title_data: Dict) -> str:
     summary = _format_rss_item_summary(title_data, title)
     link = _clean_clickable_url(title_data.get("mobile_url") or title_data.get("url") or "")
 
-    # 标题用 ▸ 标注，摘要/链接用全角缩进与标题拉开层次；链接顶格放，避免全角缩进影响微信识别
-    block = f"▸ {index}. {title}\n"
-    if summary:
-        block += f"\n　　{summary}\n"
+    esc_title = html.escape(title) if title else ""
+    block = f"▸ {index}. "
     if link:
-        block += f"\n{link}\n"
+        block += f'<a href="{html.escape(link, quote=True)}">{esc_title}</a>'
+    else:
+        block += esc_title
+    block += "\n"
+    if summary:
+        block += f"\n　　{html.escape(summary)}\n"
     return block
 
 

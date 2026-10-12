@@ -38,8 +38,9 @@ def _format_rss_item_summary(item: dict, title: str) -> str:
     if "查看更多头条" in summary:
         return ""
 
-    if len(summary) > 160:
-        summary = summary[:160] + "…"
+    # 上限 320 字：正文概括（200-300 字）可完整保留
+    if len(summary) > 320:
+        summary = summary[:320] + "…"
     return summary
 
 

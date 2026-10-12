@@ -114,7 +114,8 @@ rss:
     hot_timeout: 10                   # 热榜抓取超时（秒/平台，整体并发）
 
   feeds:
-    # ── 世界多分类新闻（简体中文、均带正文摘要、国内可直接点开）──
+
+    # 世界多分类新闻（简体中文、均带正文摘要、国内可直接点开）
     # 推送按源分组显示，name 即分组标题；max_items 限制每次抓取条数
     - id: "cns-world"
       name: "🌍 国际时事"
@@ -176,6 +177,16 @@ rss:
     #   name: "🏠 国内·社会"
     #   url: "https://www.chinanews.com.cn/rss/society.xml"
     #   max_items: 5
+
+  # 正文概括：抓取文章原文页，为每条新闻生成 200-300 字中文概括
+  # RSS 自带描述多为 50-180 字（部分源为 0），不达标时自动抓原文补全
+  # 抓取失败自动退回原有摘要，不影响推送
+  summarize:
+    enabled: true                     # 是否启用正文概括（true=启用, false=只用 RSS 摘要）
+    min_chars: 200                    # 概括下限（字）
+    max_chars: 300                    # 概括上限（字）
+    timeout: 12                       # 单篇文章抓取超时（秒）
+    concurrency: 8                    # 并发抓取数（推送前并行，控制总耗时）
 
 
 # ===============================================================
@@ -331,8 +342,9 @@ notification:
       payload_template: ""            # JSON 模板，支持 {title} 和 {content} 占位符
                                       # 示例：{"content": "{content}"}
                                       # 留空则使用默认格式：{"title": "{title}", "content": "{content}"}
-      plain_text: true                # 推送前把 Markdown 转成纯文本（PushPlus txt 模板 / ClawBot 用）
-                                      # true=去掉 ** 加粗、[标题](链接) 转为 标题 链接 等符号
+      plain_text: false               # 推送前把 Markdown 转成纯文本（txt 模板渠道用）
+                                      # false=保留 HTML（PushPlus html 模板下 <a> 链接可点击）
+      html_breaks: true               # 把换行转成 <br>（html 模板渲染必需，否则整篇糊成一段）
 
 
 # ===============================================================

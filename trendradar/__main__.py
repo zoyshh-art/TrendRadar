@@ -18,6 +18,7 @@ from trendradar import __version__
 from trendradar.core import load_config
 from trendradar.core.analyzer import convert_keyword_stats_to_platform_stats
 from trendradar.core.hot_select import select_rss_groups
+from trendradar.core.article_digest import enrich_rss_groups
 from trendradar.crawler import DataFetcher
 from trendradar.storage import convert_crawl_results_to_news_data
 from trendradar.utils.time import DEFAULT_TIMEZONE, is_within_days, calculate_days_old
@@ -874,6 +875,18 @@ class NewsAnalyzer:
             rss_items = dedup_rss_cross_source(rss_items, "全部RSS")
             rss_new_items = dedup_rss_cross_source(rss_new_items, "新增RSS")
             rss_items = select_rss_groups(rss_items, self.ctx.rss_config.get("SELECT", {}))
+
+            # 正文概括：抓原文页为每条新闻补全 200-300 字中文概括
+            # （抓取失败自动退回 RSS 自带摘要，不影响推送）
+            sum_cfg = self.ctx.rss_config.get("SUMMARIZE", {})
+            rss_items = enrich_rss_groups(
+                rss_items,
+                enabled=sum_cfg.get("ENABLED", False),
+                min_chars=sum_cfg.get("MIN_CHARS", 200),
+                max_chars=sum_cfg.get("MAX_CHARS", 300),
+                timeout=sum_cfg.get("TIMEOUT", 12),
+                concurrency=sum_cfg.get("CONCURRENCY", 8),
+            )
 
         has_rss_content = bool(rss_items and len(rss_items) > 0)
         has_any_content = has_news_content or has_rss_content

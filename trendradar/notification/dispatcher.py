@@ -806,6 +806,7 @@ class NotificationDispatcher:
                 display_regions=display_regions,
                 standalone_data=standalone_data,
                 plain_text=self.config.get("GENERIC_WEBHOOK_PLAIN", False),
+                html_breaks=self.config.get("GENERIC_WEBHOOK_HTML_BREAKS", False),
             )
             results.append(result)
 

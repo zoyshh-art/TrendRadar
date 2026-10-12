@@ -1222,6 +1222,7 @@ def send_to_generic_webhook(
     display_regions: Optional[Dict] = None,
     standalone_data: Optional[Dict] = None,
     plain_text: Any = False,
+    html_breaks: Any = False,
 ) -> bool:
     """
     发送到通用 Webhook（支持分批发送，支持自定义 JSON 模板，支持热榜+RSS合并+独立展示区）
@@ -1241,6 +1242,7 @@ def send_to_generic_webhook(
         rss_items: RSS 统计条目列表（可选，用于合并推送）
         rss_new_items: RSS 新增条目列表（可选，用于新增区块）
         plain_text: 发送前将 Markdown 转纯文本（PushPlus txt / ClawBot 等不渲染 Markdown 的渠道）
+        html_breaks: 将换行转成 <br>（html 模板渲染必需，否则整篇糊成一段）
 
     Returns:
         bool: 发送是否成功
@@ -1284,6 +1286,14 @@ def send_to_generic_webhook(
         plain_enabled = bool(plain_text)
     if plain_enabled:
         batches = [strip_markdown(batch_content) for batch_content in batches]
+
+    # html 模板：把换行转成 <br>，否则 HTML 渲染会把整篇糊成一段
+    if isinstance(html_breaks, str):
+        breaks_enabled = html_breaks.strip().lower() not in ("", "false", "0", "no", "off")
+    else:
+        breaks_enabled = bool(html_breaks)
+    if breaks_enabled:
+        batches = [batch_content.replace("\n", "<br>") for batch_content in batches]
 
     print(f"{log_prefix}消息分为 {len(batches)} 批次发送 [{report_type}]")
 

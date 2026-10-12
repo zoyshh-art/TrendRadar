@@ -201,6 +201,27 @@ def _load_rss_config(config_data: Dict) -> Dict:
 
     # 每轮精选配置：当天热搜/热点优先，最多 max_items 条
     select = rss.get("select", {})
+
+    # 正文概括配置：抓原文页生成 min-max 字中文概括
+    summarize = rss.get("summarize", {})
+    try:
+        summarize_min = max(20, int(summarize.get("min_chars", 200)))
+    except (ValueError, TypeError):
+        print(f"[警告] RSS summarize.min_chars 格式错误 ({summarize.get('min_chars')})，使用默认值 200")
+        summarize_min = 200
+    try:
+        summarize_max = max(summarize_min, int(summarize.get("max_chars", 300)))
+    except (ValueError, TypeError):
+        print(f"[警告] RSS summarize.max_chars 格式错误 ({summarize.get('max_chars')})，使用默认值 300")
+        summarize_max = 300
+    try:
+        summarize_timeout = max(5, int(summarize.get("timeout", 12)))
+    except (ValueError, TypeError):
+        summarize_timeout = 12
+    try:
+        summarize_conc = max(1, int(summarize.get("concurrency", 8)))
+    except (ValueError, TypeError):
+        summarize_conc = 8
     raw_select_max = select.get("max_items", 25)
     try:
         select_max = int(raw_select_max)
@@ -232,6 +253,14 @@ def _load_rss_config(config_data: Dict) -> Dict:
             "HOT_API_URL": select.get("hot_api_url", "") or "",
             "HOT_PLATFORMS": list(select.get("hot_platforms", []) or []),
             "HOT_TIMEOUT": select_timeout,
+        },
+        # 正文概括：抓文章页生成 200-300 字中文概括（推送前补全）
+        "SUMMARIZE": {
+            "ENABLED": summarize.get("enabled", False),
+            "MIN_CHARS": summarize_min,
+            "MAX_CHARS": summarize_max,
+            "TIMEOUT": summarize_timeout,
+            "CONCURRENCY": summarize_conc,
         },
     }
 
@@ -461,6 +490,11 @@ def _load_webhook_config(config_data: Dict) -> Dict:
         "GENERIC_WEBHOOK_URL": _get_env_str("GENERIC_WEBHOOK_URL") or generic.get("webhook_url", ""),
         "GENERIC_WEBHOOK_TEMPLATE": _get_env_str("GENERIC_WEBHOOK_TEMPLATE") or generic.get("payload_template", ""),
         "GENERIC_WEBHOOK_PLAIN": _get_env_bool("GENERIC_WEBHOOK_PLAIN") if _get_env_bool("GENERIC_WEBHOOK_PLAIN") is not None else generic.get("plain_text", False),
+        "GENERIC_WEBHOOK_HTML_BREAKS": (
+            _get_env_bool("GENERIC_WEBHOOK_HTML_BREAKS")
+            if _get_env_bool("GENERIC_WEBHOOK_HTML_BREAKS") is not None
+            else generic.get("html_breaks", False)
+        ),
     }
 
 
