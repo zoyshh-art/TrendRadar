@@ -216,7 +216,31 @@
    "fromPageTitleEnc": "AI生成写真 · 红色礼服",
    "source": "AI生成",
    "vetted": true
+  },
+  {
+   "thumbURL": "https://image.pollinations.ai/prompt/beautiful%20young%20woman%20wearing%20a%20summer%20dress%20by%20a%20sunlit%20window%2C%20backlit%20curves%2C%20photorealistic%20portrait%2C%20cinematic%20color%20grading%2C%20high%20detail%20skin%20texture%2C%20anatomically%20correct%2C%20natural%20body%20proportions%2C%20realistic%20pose%2C%20fully%20clothed%2C%20non-explicit%2C%20no%20nudity?width=1024&height=1280&nologo=true&model=flux&seed=220656",
+   "width": 686,
+   "height": 858,
+   "fromPageTitleEnc": "AI生成写真 · 午后窗台",
+   "source": "AI生成",
+   "vetted": false
+  },
+  {
+   "thumbURL": "https://image.pollinations.ai/prompt/beautiful%20young%20woman%20taking%20a%20mirror%20selfie%20wearing%20a%20fitted%20tank%20top%20and%20underwear%2C%20alluring%20look%2C%20photorealistic%20portrait%2C%2085mm%20lens%2C%20shallow%20depth%20of%20field%2C%20anatomically%20correct%2C%20natural%20body%20proportions%2C%20realistic%20pose%2C%20fully%20clothed%2C%20non-explicit%2C%20no%20nudity?width=1024&height=1280&nologo=true&model=flux&seed=7057237",
+   "width": 686,
+   "height": 858,
+   "fromPageTitleEnc": "AI生成写真 · 镜前自拍",
+   "source": "AI生成",
+   "vetted": false
+  },
+  {
+   "thumbURL": "https://image.pollinations.ai/prompt/beautiful%20young%20woman%20wearing%20a%20sheer%20lace%20camisole%20and%20matching%20shorts%2C%20warm%20bedroom%20lighting%2C%20photorealistic%20portrait%2C%2085mm%20lens%2C%20shallow%20depth%20of%20field%2C%20anatomically%20correct%2C%20natural%20body%20proportions%2C%20realistic%20pose%2C%20fully%20clothed%2C%20non-explicit%2C%20no%20nudity?width=1024&height=1280&nologo=true&model=flux&seed=9490942",
+   "width": 686,
+   "height": 858,
+   "fromPageTitleEnc": "AI生成写真 · 蕾丝吊带",
+   "source": "AI生成",
+   "vetted": false
   }
  ],
- "updated": "manual-vet"
+ "updated": "purged-leaked"
 }

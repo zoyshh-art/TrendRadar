@@ -742,8 +742,9 @@ def pick_images(session: requests.Session, rng: random.Random, bank: bool = True
         by_src = [(name, quota, _verified_pool(name, build(), history, rng, max_verify=quota))
                   for name, build, quota in builders]
         chosen: list[dict] = []
-        for _, _, verified in by_src:
-            for it in verified:
+        for _, quota, verified in by_src:
+            # 严格按配额取：补库那路 quota=0，只入库不推（防止未目检图泄漏进推送）
+            for it in verified[:quota]:
                 if len(chosen) >= NUM_IMAGES:
                     break
                 chosen.append(it)
