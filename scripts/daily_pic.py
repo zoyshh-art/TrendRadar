@@ -675,6 +675,72 @@ def skin_ratio(data: bytes) -> float | None:
         return None
 
 
+def _image_size(data: bytes):
+    try:
+        from PIL import Image
+        import io as _io
+        im = Image.open(_io.BytesIO(data))
+        return im.size
+    except Exception:
+        return None
+
+
+# ─────────────── NSFW 自动闸（无人值守安全推的前提）───────────────
+# 免 token：Hugging Face 公开 Space（Falconsai/nsfw_image_detection）匿名调用
+# 有 HF_TOKEN：走 api-inference 直连模型
+# 判别器不可用时 fail-closed（丢弃），宁可不推也不盲推——裸图已漏过两次
+NSFW_MODEL = "Falconsai/nsfw_image_detection"
+NSFW_SPACE = "Falconsai/nsfw_image_detection"
+_nsfw_client = None
+_nsfw_broken = False
+
+
+def nsfw_check_enabled() -> bool:
+    return (os.environ.get("NSFW_CHECK", "on").strip().lower()
+            not in ("off", "0", "false", "no", "none"))
+
+
+def nsfw_fail_open() -> bool:
+    return (os.environ.get("NSFW_FAIL_OPEN", "").strip().lower()
+            in ("1", "true", "on", "yes"))
+
+
+def nsfw_label(image_bytes) -> str:
+    """返回 normal / nsfw / unknown（判别器不可用→unknown，由上层决定丢弃或放行）"""
+    global _nsfw_client, _nsfw_broken
+    if _nsfw_broken or not image_bytes:
+        return "unknown"
+    token = os.environ.get("HF_TOKEN", "").strip()
+    try:
+        if token:
+            r = requests.post(
+                f"https://api-inference.huggingface.co/models/{NSFW_MODEL}",
+                headers={"Authorization": f"Bearer {token}"},
+                data=image_bytes, timeout=25)
+            if r.status_code == 200:
+                lab = (r.json() or [{}])[0] or {}
+                return "normal" if str(lab.get("label", "")).lower() == "normal" else "nsfw"
+            raise requests.RequestException(f"api-inference {r.status_code}: {r.text[:80]}")
+        # 免 token：公开 Space
+        if _nsfw_client is None:
+            from gradio_client import Client
+            _nsfw_client = Client(NSFW_SPACE, verbose=False)
+        from PIL import Image
+        import io as _io
+        out = _nsfw_client.predict(Image.open(_io.BytesIO(image_bytes)))
+        txt = json.dumps(out, ensure_ascii=False).lower()
+        if "normal" in txt:
+            return "normal"
+        if "nsfw" in txt:
+            return "nsfw"
+        return "unknown"
+    except Exception as e:
+        log(f"  [NSFW] 判别器不可用（{'fail-closed 丢弃' if not nsfw_fail_open() else 'fail-open 放行'}）: "
+            f"{type(e).__name__}: {str(e)[:90]}")
+        _nsfw_broken = True
+        return "unknown"
+
+
 def verify_image(url: str, timeout: int = 20) -> tuple[bool, tuple | None, bytes | None]:
     """模拟微信 <img> 加载：下载整图确认可用，解析尺寸并回传内容（供肤色比计算）"""
     try:
@@ -745,6 +811,9 @@ def _verify_candidate(src_name: str, it: dict) -> dict | None:
     # 尺寸加分：高清图优先
     if (it.get("width") or 0) >= 1000:
         it["_score"] += 0.8
+    # 留存原始字节给 NSFW 判别器（推送前会被 pop 掉，不进消息）
+    if content:
+        it["_content"] = content
     return it
 
 
@@ -770,8 +839,21 @@ def _verified_pool(src_name: str, pool: list[dict], history: set, rng: random.Ra
         if len(verified) >= cap:
             break
         v = _verify_candidate(src_name, it)
-        if v is not None:
-            verified.append(v)
+        if v is None:
+            continue
+        # NSFW 自动闸（无人值守的安全前提）：nsfw 丢弃；判别器不可用 → fail-closed 丢弃
+        data = v.pop("_content", None)
+        if nsfw_check_enabled():
+            label = nsfw_label(data)
+            if label == "nsfw":
+                log(f"  [{src_name}] NSFW闸丢弃 {str(it.get('fromPageTitleEnc'))[:30]} "
+                    f"{it['thumbURL'][:50]}")
+                continue
+            if label == "unknown" and not nsfw_fail_open():
+                log(f"  [{src_name}] NSFW判别不可用→保守丢弃 "
+                    f"{str(it.get('fromPageTitleEnc'))[:24]}")
+                continue
+        verified.append(v)
     verified.sort(key=lambda x: x["_score"], reverse=True)
     return verified
 

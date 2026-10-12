@@ -36,7 +36,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install requests pillow
+        run: pip install requests pillow gradio_client
 
       - name: Fetch images and push to WeChat
         env:
