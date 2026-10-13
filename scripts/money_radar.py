@@ -378,18 +378,261 @@ def dedup_and_filter_pushed(ops: list[dict], state: dict) -> list[dict]:
 
 
 # ──────────────────── 推送 ────────────────────
+# ──────────────────── 中文概括（翻译 + 扩写 200-300 字） ────────────────────
+# 主通道：LLM（OpenAI 兼容协议，DeepSeek/OpenAI/Moonshot/Qwen 通用）
+#   环境变量 LLM_API_KEY（必填）+ LLM_BASE_URL（可选）+ LLM_MODEL（可选）
+# 降级通道：MyMemory 免 key 机器翻译（只能直译，扩不动 200 字）
+LLM_BASE = os.environ.get("LLM_BASE_URL", "https://api.deepseek.com/v1").rstrip("/")
+LLM_MODEL = os.environ.get("LLM_MODEL", "deepseek-chat")
+LLM_TIMEOUT = int(os.environ.get("LLM_TIMEOUT", "40"))
+MAX_CONCURRENCY = int(os.environ.get("LLM_CONCURRENCY", "4"))
+
+DIGEST_PROMPT = """你是中文商业分析师。请把下面这条「赚钱机会信号」写成一段 **200-300 字的中文分析**，要求：
+
+1. **翻译并归纳**原始标题与描述（原文可能是英文）
+2. 说明它**到底是什么东西**、解决什么问题
+3. 分析**为什么现在值得看**（冷门红利期 / 需求已验证 / 竞争者还少）
+4. 指出**变现路径**和**主要风险或门槛**
+5. 用平实的中文，不要营销腔，不要 emoji，不要标题，不要分点
+
+严格要求：
+- 篇幅 **200-300 个汉字**，这是硬要求
+- 不要输出任何解释性前后缀，直接给正文
+- 如果原文信息很少（只有一句话描述），就基于已知信息合理推断，但**不要编造具体数字、融资金额、用户量**
+
+信号来源：{src}
+信号类别：{cat}
+原文标题：{title}
+原文描述：{desc}
+链接：{link}
+信号评分：{score}分
+"""
+
+_fallback_cn: dict[str, str] = {}
+
+
+def _my_memory_translate(text: str) -> str:
+    """降级：MyMemory 免 key 机器翻译（限长 500 字符）"""
+    if not text.strip():
+        return ""
+    if text in _fallback_cn:
+        return _fallback_cn[text]
+    try:
+        r = requests.get(
+            "https://api.mymemory.translated.net/get",
+            params={"q": text[:480], "langpair": "en|zh-CN"},
+            timeout=15,
+        )
+        out = ((r.json() or {}).get("responseData") or {}).get("translatedText", "")
+        out = re.sub(r"<[^>]+>", "", out or "").strip()
+        _fallback_cn[text] = out
+        return out
+    except Exception:
+        return ""
+
+
+def _cn_char_len(s: str) -> int:
+    return len(re.findall(r"[\u4e00-\u9fff]", s or ""))
+
+
+def _signal_note(op: dict) -> str:
+    """基于真实信号数据生成中文分析句（不编造任何未采集到的信息）"""
+    src = op.get("src", "")
+    stars, days = op.get("stars", 0), op.get("days", 0)
+    if src.startswith("GitHub"):
+        if days and days <= 7 and stars >= 100:
+            return (f"这个项目开源才 {days} 天就积累 {stars} 个星标，属于典型的早期红利期——"
+                    f"同类工具大多还没被中文开发者注意到，现在进场能吃到信息差。")
+        if days:
+            return (f"项目开源 {days} 天、{stars} 个星标，属于刚进入视野的早期信号，"
+                    f"体量不大说明还没被充分开发验证。")
+        return "来自 GitHub 的开源项目，可以直接查看代码和许可证，不存在闭源绑架的风险。"
+    if "HN" in src:
+        return ("它在 Hacker News 公开亮相并引发讨论，说明有真实开发者在做、也有开发者愿意关注，"
+                "属于需求已被初步验证的信号，比单纯的自说自话可信度更高。")
+    if "ProductHunt" in src:
+        return ("它登上了 Product Hunt 的新品榜，这个榜单的读者是全球付费意愿最强的独立开发者群体，"
+                "说明确实有人愿意为这类工具掏钱。")
+    if "V2EX" in src:
+        return ("这是国内独立开发者在 V2EX 主动公开的作品，敢发出来说明已经做到自认为可用的状态，"
+                "国内同类项目少，容易在细分需求上形成差异。")
+    return "来自公开信息源，可直接打开链接查看细节。"
+
+
+def _gate_note(op: dict) -> str:
+    """门槛与风险提示（按来源和类别给出真实需要注意的点）"""
+    src = op.get("src", "")
+    cat = op.get("cat", "")
+    bits = []
+    if src.startswith("GitHub"):
+        bits.append("需要注意开源项目没有商业支持，文档完整度、长期维护和数据安全都要自己验证")
+    elif "ProductHunt" in src or "HN" in src:
+        bits.append("海外工具直接搬到国内通常会遇到访问稳定性与合规要求，需要评估落地成本")
+    elif "V2EX" in src:
+        bits.append("个人作品没有售后与稳定性承诺，商用前务必先在自己场景里跑通验证")
+    if "SaaS" in cat:
+        bits.append("国内做成对外产品还要注意 ICP 备案与生成式 AI 备案")
+    if "电商" in cat:
+        bits.append("涉及平台规则的自动化要留意平台条款，改动频繁且可能被处罚")
+    return "；".join(bits) + "。" if bits else ""
+
+
+def _ensure_punct(s: str) -> str:
+    """确保段落以句末标点收尾，避免与下一段黏连"""
+    s = (s or "").strip()
+    if not s:
+        return ""
+    return s if s[-1] in "。！？；…" else s + "。"
+
+
+def _fit_cn(text: str, lo: int = 200, hi: int = 300) -> str:
+    """按「汉字数」把正文裁进 [lo, hi] 区间（不是字符数——中英混排会算错）。
+    超长时按段落整体裁，优先保住信号分析与变现思路。"""
+    if _cn_char_len(text) <= hi:
+        return text
+    lines = [l for l in text.split("\n") if l.strip()]
+    kept = []
+    n = 0
+    for line in lines:
+        ln = _cn_char_len(line)
+        if n + ln > hi:
+            # 当前段超预算：若还没保住任何内容，硬截到剩余额度
+            if not kept:
+                out, cnt = [], 0
+                for ch in line:
+                    if re.match(r"[\u4e00-\u9fff]", ch):
+                        cnt += 1
+                        if cnt > hi:
+                            break
+                    out.append(ch)
+                return "".join(out).rstrip("，。；") + "。"
+            break
+        kept.append(line)
+        n += ln
+    return "\n".join(kept)
+
+
+def digest_one(op: dict, key: str) -> None:
+    """把 op 翻译并组装为 200-300 字中文，写回 op['cn_title']/op['cn_digest']"""
+    title, desc = op.get("title", ""), op.get("desc", "")
+
+    # ── 降级通道（无 LLM key）：翻译 + 结构化信号拼装 ──
+    if not key:
+        cn_desc = _my_memory_translate(desc[:420])
+        # 项目名/仓库名翻译无意义，只翻译描述性标题（含空格且非路径）
+        translatable = bool(re.search(r"[一-鿿]", title)) is False and " " in title and "/" not in title
+        cn_title = _my_memory_translate(title) if translatable else title
+        segs = [s for s in [cn_desc, _signal_note(op), (f"变现思路：{op['how']}。" if op.get("how") else ""),
+                             _gate_note(op)] if s]
+        # 每段独立成行，读起来有节奏（_cn_char_len 只统计汉字，不受换行影响）
+        text = "\n".join(_ensure_punct(s) for s in segs)
+        n = _cn_char_len(text)
+        if n < 200:
+            # 信息不足时补一段基于已知维度的研判，不编造具体数字
+            pad = (f"综合看，它属于{op.get('cat') or '工具类'}方向，目前竞争者还不多，"
+                   f"适合先用低成本方式验证需求，跑通后再决定要不要投入做产品。"
+                   f"需要提醒的是，这类早期信号变化快，建议先收藏观察一两周，"
+                   f"看它的星标、社区讨论和更新频率是否持续，再决定投入。")
+            text = text + pad
+        text = _fit_cn(text)
+        if _cn_char_len(text) < 120:
+            text = (cn_desc or desc or title) + _signal_note(op)
+        op["cn_title"] = cn_title or title
+        op["cn_digest"] = text
+        op["degraded"] = True
+        return
+
+    prompt = DIGEST_PROMPT.format(
+        src=op.get("src", ""), cat=op.get("cat", "未分类"),
+        title=title, desc=desc or "(无描述)", link=op.get("link", ""),
+        score=op.get("score", 0),
+    )
+    try:
+        r = requests.post(
+            f"{LLM_BASE}/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={
+                "model": LLM_MODEL,
+                "messages": [
+                    {"role": "system", "content": "你是严谨的中文商业分析师，输出必须严格遵守字数要求。"},
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature": 0.4,
+                "max_tokens": 900,
+            },
+            timeout=LLM_TIMEOUT,
+        )
+        r.raise_for_status()
+        body = r.json()
+        text = (((body.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
+        # 去掉模型偶尔加的前缀/代码块
+        text = re.sub(r"^```[a-z]*\n|\n```$", "", text).strip()
+        text = re.sub(r"^(好的|以下是|分析如下)[：:]\s*", "", text).strip()
+
+        if _cn_char_len(text) >= 120:
+            op["cn_digest"] = text
+            # 标题单独翻译（短，失败就用原文）
+            op["cn_title"] = _llm_translate_title(title, key) or title
+        else:
+            raise ValueError(f"输出过短({_cn_char_len(text)}字)")
+    except Exception as e:
+        log(f"  概括失败 [{op.get('title','')[:36]}]: {type(e).__name__} {str(e)[:80]}")
+        op["cn_title"] = _my_memory_translate(title) or title
+        cn_desc = _my_memory_translate(desc[:400])
+        op["cn_digest"] = cn_desc or desc[:200] or "（原文无描述）"
+        op["degraded"] = True
+
+
+def _llm_translate_title(title: str, key: str) -> str:
+    try:
+        r = requests.post(
+            f"{LLM_BASE}/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={
+                "model": LLM_MODEL,
+                "messages": [{"role": "user", "content": f"把这个标题翻译成简洁中文，不要解释：{title}"}],
+                "temperature": 0.2, "max_tokens": 120,
+            },
+            timeout=25,
+        )
+        r.raise_for_status()
+        out = (((r.json().get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
+        return re.sub(r"^[\"「『]|[\"」』]$", "", out.split("\n")[0])[:60]
+    except Exception:
+        return ""
+
+
+def enrich_chinese(ops: list[dict], key: str) -> None:
+    """并发为每条生成 200-300 字中文概括"""
+    if not ops:
+        return
+    need = [op for op in ops if not op.get("cn_digest")]
+    if not need:
+        return
+    log(f"[概括] 需补全 {len(need)} 条（目标 200-300 字中文，{'LLM: ' + LLM_MODEL if key else '降级: 机器直译'}）")
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=MAX_CONCURRENCY) as pool:
+        list(pool.map(lambda op: digest_one(op, key), need))
+    ok = sum(1 for op in need if not op.get("degraded"))
+    avg = (sum(_cn_char_len(op.get("cn_digest", "")) for op in need) / len(need)) if need else 0
+    inrange = sum(1 for op in need if 200 <= _cn_char_len(op.get("cn_digest", "")) <= 300)
+    log(f"[概括] 完成：生成 {ok}，降级 {len(need) - ok}，平均 {avg:.0f} 字，其中 {inrange}/{len(need)} 落在 200-300 区间")
+
+
 def build_content(ops: list[dict]) -> str:
     today = now_cn().strftime("%Y-%m-%d")
     lines = [f"💰【赚钱机会】{len(ops)} 条 · {today}", ""]
     for i, op in enumerate(ops, 1):
-        lines.append(f"{i}. 【{op.get('cat') or '待判断'}·{op['score']:.1f}分】{op['title']}")
-        d = op.get("desc", "")
+        cat = op.get("cat") or "待判断"
+        lines.append(f"{i}.【{cat}·{op['score']:.1f}分】{op.get('cn_title') or op['title']}")
+        d = op.get("cn_digest", "")
         if d:
-            lines.append(f"   {d[:100]}")
+            lines.append(d)
         if op.get("how"):
-            lines.append(f"   💵 怎么赚：{op['how']}")
+            lines.append(f"💵怎么赚：{op['how']}")
         if op.get("link"):
-            lines.append(f"   🔗 {op['link']}")
+            lines.append(f"🔗 {op['link']}")
         lines.append("")
     lines.append("筛选口径：冷门红利期 × 变现潜力 × 低风险（已滤加密/破解/灰产/教程/炫技项目）")
     return "\n".join(lines)
@@ -441,6 +684,8 @@ def main() -> int:
     log(f"待推 {len(fresh)} 条：")
     for op in fresh:
         log(f"  [{op['score']:.1f}][{op['src']}] {op['title'][:50]}")
+
+    enrich_chinese(fresh, os.environ.get("LLM_API_KEY", "").strip())
 
     content = build_content(fresh)
     title = f"💰【赚钱机会】{len(fresh)}条 · {now_cn().strftime('%m-%d')}"
