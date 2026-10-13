@@ -1,0 +1,64 @@
+name: Probe Money Sources
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: probe-money-sources
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Probe sources
+        run: |
+          pip install requests -q
+          python - <<'PY'
+          import requests, json
+          UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36"}
+          srcs = [
+            ("GitHub API", "https://api.github.com/search/repositories?q=created:>2026-10-06&sort=stars&per_page=3"),
+            ("HN front", "https://hnrss.org/frontpage"),
+            ("HN Show", "https://hnrss.org/show"),
+            ("ProductHunt", "https://www.producthunt.com/feed"),
+            ("sspai", "https://sspai.com/feed"),
+            ("ithome", "https://www.ithome.com/rss/"),
+            ("tmtpost", "https://www.tmtpost.com/feed"),
+            ("qbitai", "https://www.qbitai.com/feed"),
+            ("solidot", "https://www.solidot.org/index.rss"),
+            ("appinn", "https://www.appinn.com/feed"),
+            ("LinuxDo", "https://linux.do/latest.json"),
+            ("V2EX", "https://www.v2ex.com/index.xml"),
+          ]
+          for name, url in srcs:
+              try:
+                  r = requests.get(url, headers=UA, timeout=20)
+                  body = r.text
+                  items = (body.count("<item") + body.count("<entry"))
+                  flag = "FEED" if items > 0 else ("JSON" if body.strip()[:1] in "{[" else "OTHER")
+                  print(f"PROBE|{name}|{r.status_code}|{len(body)//1024}KB|{flag}|{items}", flush=True)
+              except Exception as e:
+                  print(f"PROBE|{name}|FAIL|{type(e).__name__}|{str(e)[:40]}", flush=True)
+          # runner IP 归属
+          try:
+              ip = requests.get("https://api.ipify.org", timeout=10).text.strip()
+              geo = requests.get(f"http://ip-api.com/json/{ip}?lang=zh-CN", timeout=10).json()
+              print(f"PROBE|IP|{ip}|{geo.get('country')}|{geo.get('city')}|{geo.get('org','')[:40]}", flush=True)
+          except Exception as e:
+              print(f"PROBE|IP|FAIL|{e}", flush=True)
+          PY
