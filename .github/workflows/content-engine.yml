@@ -1,0 +1,71 @@
+name: Content Engine
+
+on:
+  schedule:
+    # 北京时间每天 06:30（UTC 22:30 前一天）生成，早于你起床，稿子已躺草稿箱
+    - cron: "30 22 * * *"
+  workflow_dispatch:
+    inputs:
+      count:
+        description: "生成篇数"
+        required: false
+        default: "3"
+
+permissions:
+  contents: write   # 回写选题去重历史
+
+concurrency:
+  group: content-engine-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests -q
+
+      - name: Generate content (write to WeChat draft box)
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+          WECHAT_APPID: ${{ secrets.WECHAT_APPID }}
+          WECHAT_APPSECRET: ${{ secrets.WECHAT_APPSECRET }}
+          CONTENT_DAILY_COUNT: ${{ github.event.inputs.count || '3' }}
+        run: |
+          if [ -z "$LLM_API_KEY" ]; then
+            echo "::warning::未配置 LLM_API_KEY，本次只生成降级骨架，不写入公众号草稿箱"
+            python content_engine/pipeline.py --count "${CONTENT_DAILY_COUNT}" --dry-run
+          else
+            python content_engine/pipeline.py --count "${CONTENT_DAILY_COUNT}" --push
+          fi
+
+      - name: Commit drafts and history
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p output/content
+          git add -A output/content
+          if git diff --cached --quiet; then
+            echo "no content changes"
+          else
+            git commit -m "chore(content): 每日内容产出"
+            for i in 1 2 3; do
+              git pull --rebase origin master && git push && exit 0
+              sleep 5
+            done
+            exit 1
+          fi
