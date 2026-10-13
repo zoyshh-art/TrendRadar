@@ -78,7 +78,44 @@ LOW_VALUE_KW = re.compile(
     r"rust rewrite|clean-?room|操作系统|"
     r"recompilation|native port|game port|移植|游戏|"
     r"isometric illustration|penetration test|pentest|渗透|挑战赛|"
-    r"operating system|is a plugin|harness|", re.I)
+    r"operating system|is a plugin|harness", re.I)
+# 求助/抱怨帖（论坛噪音，不是机会）
+ASK_KW = re.compile(
+    r"求推荐|求助|请问|有没有|请教|求助帖|求教|怎么办|无法|报错|"
+    r"\[讨论\]|\[求助\]|\[吐槽\]|求一份|有没有人", re.I)
+
+# ──────────────────── 变现路径手册（核心增值：告诉用户"这玩意怎么赚钱"）
+# 按关键词归类到可落地的变现套路；命中即贴标签，帮助用户直接判断可行性
+PLAYBOOK: list[tuple[str, "re.Pattern", str]] = [
+    ("视频/素材代做", re.compile(r"video|short-?video|promo|clip|reels|tiktok|剪辑|宣传片|宣传", re.I),
+     "接单帮中小商家/独立开发者做产品宣传片，短视频切片代运营；按条或按月打包收费"),
+    ("数据采集/监控服务", re.compile(r"scrap|crawl|monitor|track|alert|spy|dashboard|采集|监控", re.I),
+     "做行业数据订阅（竞品/价格/舆情监控），按月收订阅费；或直接卖定制采集方案"),
+    ("自动化工作流交付", re.compile(r"automat|workflow|no-?code|n8n|orchestrat|pipeline|自动化|工作流", re.I),
+     "给企业做流程自动化落地实施（一次性实施费 + 后续维护），客单价最高的一条路"),
+    ("AI 应用/SaaS 化", re.compile(r"saas|platform|app|dashboard|api\b|agent|llm|ai[- ]", re.I),
+     "把开源内核套成垂直 SaaS，按订阅/按量收费；国内注意 ICP 与生成式 AI 备案"),
+    ("电商/带货", re.compile(r"shopify|store|ecommerce|e-commerce|stripe|shop|商城|带货", re.I),
+     "独立站代建 + 商品选品代运营，或做联盟营销（affiliate）分佣"),
+    ("内容/流量变现", re.compile(r"newsletter|substack|blog|seo|news|rss|content|公众号|流量主|ad-?sense|广告", re.I),
+     "做垂直内容号（公众号/小红书/SEO 站），走流量主/广告/付费专栏，变现慢但稳"),
+    ("开发者周边", re.compile(r"template|boilerplate|starter|kit|sdk|toolkit|模板|脚手架", re.I),
+     "上架模板市场/卖源码包（Gumroad、GitHub Sponsors、小报童），一次制作多次售卖"),
+    ("接单/外包平台", re.compile(r"freelanc|contract|client|agency|hiring|外包|接单", re.I),
+     "去接单平台或社群接定制开发单，单价高但需作品集背书"),
+]
+
+# 安全等级：按内容自动打标（相对安全 = 少碰灰产、盗版、博彩）
+SAFE_HINT_KW = re.compile(r"open-?source|self-?host|privacy|合法|合规|self-hosted", re.I)
+
+# ── 自检：正则尾部多一个 "|" 会匹配空串，导致该过滤器命中所有条目。
+#    历史上踩过这个坑（LOW_VALUE 曾恒为真），此处做启动断言兜底。
+for _name, _rx in [("MONEY_KW", MONEY_KW), ("TOOL_KW", TOOL_KW), ("RISKY_KW", RISKY_KW),
+                   ("LOW_VALUE_KW", LOW_VALUE_KW), ("ASK_KW", ASK_KW), ("SAFE_HINT_KW", SAFE_HINT_KW)]:
+    if _rx.pattern.rstrip().endswith("|"):
+        raise RuntimeError(f"{_name} 正则以 '|' 结尾，会匹配空串（会误杀全部条目），请修正")
+    if _rx.search("hello world this is a generic sentence 2024"):
+        raise RuntimeError(f"{_name} 对普通文本误命中，正则疑似损坏，请修正")
 
 
 def log(msg: str) -> None:
@@ -238,23 +275,43 @@ def make_opportunities() -> list[dict]:
     return score_and_filter(ops)
 
 
-def score_and_filter(ops: list[dict]) -> list[dict]:
-    """评分：变现信号 + 冷门红利 + 墙外需求源基线分 − 高星降权 − 低价值降权
+def classify_play(text: str) -> tuple[str, str]:
+    """归类到变现路径手册，返回 (类别, 变现套路)。未命中返回空。"""
+    for name, pat, how in PLAYBOOK:
+        if pat.search(text):
+            return name, how
+    return "", ""
 
-    设计要点：
-    - 墙外需求源（HN Show/Front、ProductHunt）天然代表"有人做、有人付费"，
-      给基础分，不要求必须命中变现词（否则会全被刷掉、推送100%变GitHub）
-    - GitHub 源靠"变现词 + 起量速度"竞争，天然高分
-    - 风险词硬性剔除（加密交易/破解/代理等）
+
+def score_and_filter(ops: list[dict]) -> list[dict]:
+    """评分 + 硬门槛过滤
+
+    门槛（任一不满足直接淘汰，不是扣分）：
+      1. 风险词：加密交易/破解/灰产 → 淘汰
+      2. 低价值词：教程/驱动/游戏移植/炫技 → 淘汰
+      3. 求助抱怨帖：论坛噪音 → 淘汰
+      4. 无链接：不可点击 = 无价值 → 淘汰
+    评分（仅对通过门槛的）：
+      变现信号 + 墙外需求源基线 + GitHub 冷门红利 − 高星已爆
+    变现路径：命中手册则贴标签并加分（用户最需要的是"怎么赚"）
     """
     scored = []
-    # 墙外需求源：本身即信号，给基础分
     DEMAND_SRC = {"HN·Show", "HN·热门", "ProductHunt", "V2EX"}
     for op in ops:
-        text = f"{op['title']} {op.get('desc','')}"
-        # 风险过滤（硬性）
+        title = op.get("title", "")
+        desc = op.get("desc", "")
+        text = f"{title} {desc}"
+
+        # ── 硬门槛 ──
         if RISKY_KW.search(text):
             continue
+        if LOW_VALUE_KW.search(text):
+            continue
+        if ASK_KW.search(title):
+            continue
+        if not op.get("link"):
+            continue
+
         score = 0.0
         # 变现信号（强）
         if MONEY_KW.search(text):
@@ -265,6 +322,12 @@ def score_and_filter(ops: list[dict]) -> list[dict]:
         # 墙外需求源基线分：产品被公开发布 = 有市场验证
         if op["src"] in DEMAND_SRC:
             score += 1.5
+        # 变现路径归因（核心增值）
+        cat, how = classify_play(text)
+        if cat:
+            score += 1.5
+            op["cat"] = cat
+            op["how"] = how
         # GitHub 冷门红利：新 + 快起量 = 红利期（先来者赚信息差）
         stars = op.get("stars", 0)
         days = op.get("days", 0)
@@ -277,12 +340,7 @@ def score_and_filter(ops: list[dict]) -> list[dict]:
         # 高星已爆的降权（不冷门了）
         if stars >= 3000:
             score -= 1.0
-        # 资讯/教程/驱动类降权
-        if LOW_VALUE_KW.search(text):
-            score -= 1.5
-        # 无链接降权
-        if not op.get("link"):
-            score -= 2.0
+
         op["score"] = round(score, 2)
         if score >= MIN_SCORE:
             scored.append(op)
@@ -315,15 +373,16 @@ def build_content(ops: list[dict]) -> str:
     today = now_cn().strftime("%Y-%m-%d")
     lines = [f"💰【赚钱机会】{len(ops)} 条 · {today}", ""]
     for i, op in enumerate(ops, 1):
-        src = op["src"]
-        lines.append(f"{i}. [{src}·{op['score']:.1f}分] {op['title']}")
+        lines.append(f"{i}. 【{op.get('cat') or '待判断'}·{op['score']:.1f}分】{op['title']}")
         d = op.get("desc", "")
         if d:
-            lines.append(f"   {d[:110]}")
+            lines.append(f"   {d[:100]}")
+        if op.get("how"):
+            lines.append(f"   💵 怎么赚：{op['how']}")
         if op.get("link"):
-            lines.append(f"   {op['link']}")
+            lines.append(f"   🔗 {op['link']}")
         lines.append("")
-    lines.append("— 每日筛选：新工具红利 × 变现潜力 × 低风险")
+    lines.append("筛选口径：冷门红利期 × 变现潜力 × 低风险（已滤加密/破解/灰产/教程/炫技项目）")
     return "\n".join(lines)
 
 
