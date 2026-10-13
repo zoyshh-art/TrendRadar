@@ -629,7 +629,7 @@ def build_content(ops: list[dict]) -> str:
         d = op.get("cn_digest", "")
         if d:
             lines.append(d)
-        if op.get("how"):
+        elif op.get("how"):          # 无概括时（理论上不会出现）才单独显示变现路径
             lines.append(f"💵怎么赚：{op['how']}")
         if op.get("link"):
             lines.append(f"🔗 {op['link']}")
