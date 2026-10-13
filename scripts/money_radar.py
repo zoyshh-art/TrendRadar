@@ -82,7 +82,12 @@ LOW_VALUE_KW = re.compile(
 # 求助/抱怨帖（论坛噪音，不是机会）
 ASK_KW = re.compile(
     r"求推荐|求助|请问|有没有|请教|求助帖|求教|怎么办|无法|报错|"
-    r"\[讨论\]|\[求助\]|\[吐槽\]|求一份|有没有人", re.I)
+    r"求一份|有没有人|好用吗|能用吗|还能|吗[?？]|？$|"
+    r"\[讨论\]|\[求助\]|\[吐槽\]|\[问与答\]|\[Apple\]|\[YouTube\]|\[问与答\]", re.I)
+
+# V2EX 板块白名单：只有"作品/接单"板块是机会，其余（问与答/Apple/YouTube/新闻）是噪音
+V2EX_KEEP = re.compile(r"\[(分享创造|酷工作|外包|创业|招聘|自由职业|独立开发)\]", re.I)
+V2EX_DROP = re.compile(r"\[(问与答|Apple|YouTube|Google|编程|游戏|二手交易|酷工作招聘|闲聊|问与答|职场|机制| Sugi )\]", re.I)
 
 # ──────────────────── 变现路径手册（核心增值：告诉用户"这玩意怎么赚钱"）
 # 按关键词归类到可落地的变现套路；命中即贴标签，帮助用户直接判断可行性
@@ -263,7 +268,7 @@ def make_opportunities() -> list[dict]:
 
     # 5) 国内源（独立开发/小众/接单视角）
     for url, tag in [
-        ("https://www.v2ex.com/index.xml", "V2EX"),
+        ("https://www.v2ex.com/index.xml", "V2EX·作品"),
         ("https://www.appinn.com/feed", "小众软件"),
         ("https://sspai.com/feed", "少数派"),
         ("https://www.qbitai.com/feed", "量子位"),
@@ -296,7 +301,7 @@ def score_and_filter(ops: list[dict]) -> list[dict]:
     变现路径：命中手册则贴标签并加分（用户最需要的是"怎么赚"）
     """
     scored = []
-    DEMAND_SRC = {"HN·Show", "HN·热门", "ProductHunt", "V2EX"}
+    DEMAND_SRC = {"HN·Show", "HN·热门", "ProductHunt", "V2EX·作品"}
     for op in ops:
         title = op.get("title", "")
         desc = op.get("desc", "")
@@ -309,6 +314,10 @@ def score_and_filter(ops: list[dict]) -> list[dict]:
             continue
         if ASK_KW.search(title):
             continue
+        if op["src"] == "V2EX·作品":
+            # V2EX 首页混着大量提问帖/新闻贴，只留"作品/接单/创业"板块
+            if not V2EX_KEEP.search(title):
+                continue
         if not op.get("link"):
             continue
 
