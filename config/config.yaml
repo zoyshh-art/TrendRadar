@@ -100,7 +100,7 @@ rss:
   # 热榜接口失败时退化为按新旧精选，条数上限始终生效；不影响 HTML 报告全量数据
   select:
     enabled: true                     # 是否启用每轮精选（true=启用, false=原样全推）
-    max_items: 25                     # 每轮推送上限（跨全部分类合计）
+    max_items: 20                     # 每轮推送上限（跨全部分类合计）
     hot_api_url: ""                   # 热榜 API（留空使用默认 newsnow 公共实例）
     hot_platforms:                    # 热点信号源（仅作选材依据，不单独展示）
       - weibo                         # 微博热搜
